@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,10 +30,13 @@ def append_audit_entry(entry: dict[str, Any], path: Path = AUDIT_LOG_PATH) -> di
 
 def get_latest_audit_entries(limit: int = 50, path: Path = AUDIT_LOG_PATH) -> list[dict[str, Any]]:
     """Read latest entries from JSONL audit log."""
+    if limit <= 0:
+        return []
+
     if not path.exists():
         return []
 
-    entries: list[dict[str, Any]] = []
+    entries: deque[dict[str, Any]] = deque(maxlen=limit)
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -44,6 +48,4 @@ def get_latest_audit_entries(limit: int = 50, path: Path = AUDIT_LOG_PATH) -> li
                 # Keep logger append-only and resilient to malformed lines.
                 continue
 
-    if limit <= 0:
-        return []
-    return entries[-limit:]
+    return list(entries)
