@@ -37,26 +37,43 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-NEGATED_CANCEL_PATTERNS = (
-    re.compile(r"\b(?:do\s+not|don't|dont|not|never)\s+cancel\b"),
-    re.compile(r"\b(?:no|not\s+a)\s+cancellation\b"),
-)
+NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
+
+
+def _keyword_pattern(keyword: str) -> str:
+    return rf"(?<!\w){re.escape(keyword)}(?!\w)"
+
+
+def _contains_keyword(text: str, keyword: str) -> bool:
+    return re.search(_keyword_pattern(keyword), text) is not None
+
+
+def _is_negated_cancel_keyword(text: str, keyword: str) -> bool:
+    if re.search(
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+{_keyword_pattern(keyword)}",
+        text,
+    ):
+        return True
+
+    if keyword == "cancellation" and re.search(
+        rf"(?<!\w)(?:no|not\s+a)\s+{_keyword_pattern(keyword)}",
+        text,
+    ):
+        return True
+
+    return False
 
 
 def _count_keyword_hits(text: str, keywords: Iterable[str]) -> int:
     hits = 0
     for keyword in keywords:
-        if keyword in {"cancel", "cancellation"} and any(
-            pattern.search(text) for pattern in NEGATED_CANCEL_PATTERNS
+        if keyword in INTENT_KEYWORDS["cancel"] and _is_negated_cancel_keyword(
+            text,
+            keyword,
         ):
             continue
 
-        if " " in keyword or "'" in keyword:
-            if keyword in text:
-                hits += 1
-            continue
-
-        if re.search(rf"\b{re.escape(keyword)}\b", text):
+        if _contains_keyword(text, keyword):
             hits += 1
     return hits
 
