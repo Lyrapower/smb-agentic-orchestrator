@@ -42,6 +42,33 @@ class RouterTests(unittest.TestCase):
 
         self.assertEqual(intent, "schedule")
 
+    def test_coordinated_negated_cancel_synonyms_do_not_route_to_cancel(self) -> None:
+        examples = (
+            "Please do not cancel or remove appointment tomorrow",
+            "Don't call off or remove appointment tomorrow",
+            "Do not drop appointment or remove appointment tomorrow",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "schedule")
+
+    def test_negated_intent_to_cancel_does_not_route_to_cancel(self) -> None:
+        examples = (
+            "I don't want to cancel my appointment",
+            "I do not want to remove appointment tomorrow",
+            "I am not trying to cancel my appointment",
+            "I never want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "schedule")
+
 
 if __name__ == "__main__":
     unittest.main()
