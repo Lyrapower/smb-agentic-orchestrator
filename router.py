@@ -38,6 +38,12 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
 }
 
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
+NEGATION_TARGET_GAP_PATTERN = (
+    r"(?:\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
+    r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
+    r"going|mean|meant)\s+to)?"
+)
+CANCEL_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
 
 
 def _keyword_pattern(keyword: str) -> str:
@@ -50,10 +56,24 @@ def _contains_keyword(text: str, keyword: str) -> bool:
 
 def _is_negated_cancel_keyword(text: str, keyword: str) -> bool:
     if re.search(
-        rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+{_keyword_pattern(keyword)}",
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+        rf"{NEGATION_TARGET_GAP_PATTERN}\s+{_keyword_pattern(keyword)}",
         text,
     ):
         return True
+
+    for previous_keyword in INTENT_KEYWORDS["cancel"]:
+        if previous_keyword == keyword:
+            continue
+
+        if re.search(
+            rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{_keyword_pattern(previous_keyword)}"
+            rf"{CANCEL_CONJUNCTION_PATTERN}{_keyword_pattern(keyword)}",
+            text,
+        ):
+            return True
 
     if keyword == "cancellation" and re.search(
         rf"(?<!\w)(?:no|not\s+a)\s+{_keyword_pattern(keyword)}",
