@@ -58,9 +58,12 @@ class RouterTests(unittest.TestCase):
     def test_negated_intent_to_cancel_does_not_route_to_cancel(self) -> None:
         examples = (
             "I don't want to cancel my appointment",
+            "I don't want you to cancel my appointment",
             "I do not want to remove appointment tomorrow",
+            "I do not need anyone to remove appointment tomorrow",
             "I am not trying to cancel my appointment",
             "I never want to cancel my appointment",
+            "Please don't want you to cancel or remove appointment",
         )
 
         for text in examples:
