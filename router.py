@@ -41,7 +41,7 @@ NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
-    r"going|mean|meant)\s+to)?"
+    r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to)?"
 )
 CANCEL_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
 
