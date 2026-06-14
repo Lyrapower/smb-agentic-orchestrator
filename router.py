@@ -37,13 +37,15 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+NEGATION_AWARE_INTENTS = {"cancel", "reschedule"}
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to)?"
 )
-CANCEL_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
+ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor)\s+)"
+SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
 
 
 def _keyword_pattern(keyword: str) -> str:
@@ -54,7 +56,11 @@ def _contains_keyword(text: str, keyword: str) -> bool:
     return re.search(_keyword_pattern(keyword), text) is not None
 
 
-def _is_negated_cancel_keyword(text: str, keyword: str) -> bool:
+def _action_keywords() -> tuple[str, ...]:
+    return tuple(keyword for keywords in INTENT_KEYWORDS.values() for keyword in keywords)
+
+
+def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if re.search(
         rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
         rf"{NEGATION_TARGET_GAP_PATTERN}\s+{_keyword_pattern(keyword)}",
@@ -62,7 +68,16 @@ def _is_negated_cancel_keyword(text: str, keyword: str) -> bool:
     ):
         return True
 
-    for previous_keyword in INTENT_KEYWORDS["cancel"]:
+    return False
+
+
+def _has_negated_conjunction(
+    text: str,
+    keyword: str,
+    previous_keywords: Iterable[str],
+    conjunction_pattern: str,
+) -> bool:
+    for previous_keyword in previous_keywords:
         if previous_keyword == keyword:
             continue
 
@@ -70,10 +85,36 @@ def _is_negated_cancel_keyword(text: str, keyword: str) -> bool:
             rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
             rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
             rf"{_keyword_pattern(previous_keyword)}"
-            rf"{CANCEL_CONJUNCTION_PATTERN}{_keyword_pattern(keyword)}",
+            rf"{conjunction_pattern}{_keyword_pattern(keyword)}",
             text,
         ):
             return True
+
+    return False
+
+
+def _is_negated_keyword(text: str, intent: str, keyword: str) -> bool:
+    if intent not in NEGATION_AWARE_INTENTS:
+        return False
+
+    if _has_negation_before_keyword(text, keyword):
+        return True
+
+    if _has_negated_conjunction(
+        text,
+        keyword,
+        INTENT_KEYWORDS[intent],
+        SAME_INTENT_CONJUNCTION_PATTERN,
+    ):
+        return True
+
+    if _has_negated_conjunction(
+        text,
+        keyword,
+        _action_keywords(),
+        ACTION_CHOICE_CONJUNCTION_PATTERN,
+    ):
+        return True
 
     if keyword == "cancellation" and re.search(
         rf"(?<!\w)(?:no|not\s+a)\s+{_keyword_pattern(keyword)}",
@@ -84,11 +125,12 @@ def _is_negated_cancel_keyword(text: str, keyword: str) -> bool:
     return False
 
 
-def _count_keyword_hits(text: str, keywords: Iterable[str]) -> int:
+def _count_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
     hits = 0
     for keyword in keywords:
-        if keyword in INTENT_KEYWORDS["cancel"] and _is_negated_cancel_keyword(
+        if _is_negated_keyword(
             text,
+            intent,
             keyword,
         ):
             continue
@@ -105,7 +147,7 @@ def route_intent(text: str) -> tuple[str, str]:
         return "schedule", "No content provided; defaulted to schedule."
 
     scores = {
-        intent: _count_keyword_hits(normalized, keywords)
+        intent: _count_keyword_hits(normalized, intent, keywords)
         for intent, keywords in INTENT_KEYWORDS.items()
     }
 

@@ -72,6 +72,44 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "schedule")
 
+    def test_negated_reschedule_synonyms_do_not_route_to_reschedule(self) -> None:
+        examples = (
+            "Please don't reschedule my appointment",
+            "I don't want you to move my appointment",
+            "Please do not change time tomorrow",
+            "I never want to rebook this appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "schedule")
+
+    def test_cancel_with_negated_reschedule_routes_to_cancel(self) -> None:
+        examples = (
+            "Please cancel, don't reschedule",
+            "I don't want to reschedule my appointment, please cancel it",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
+    def test_coordinated_negated_mixed_actions_do_not_route_to_action(self) -> None:
+        examples = (
+            "I do not want to cancel or reschedule my appointment",
+            "Please don't reschedule or cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "schedule")
+
 
 if __name__ == "__main__":
     unittest.main()
