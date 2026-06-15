@@ -14,6 +14,24 @@ class RouterTests(unittest.TestCase):
 
         self.assertEqual(intent, "reschedule")
 
+    def test_cannot_make_with_negated_cancel_does_not_route_to_cancel(self) -> None:
+        examples = (
+            "I cannot make it tomorrow, please don't cancel",
+            "I can't make it, do not cancel my appointment",
+            "I cannot make it tomorrow, please don't remove appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "schedule")
+
+    def test_cannot_make_with_positive_cancel_still_routes_to_cancel(self) -> None:
+        intent, _ = route_intent("I cannot make it tomorrow, please cancel")
+
+        self.assertEqual(intent, "cancel")
+
     def test_plain_cancel_still_routes_to_cancel(self) -> None:
         intent, _ = route_intent("Please cancel my appointment tomorrow")
 

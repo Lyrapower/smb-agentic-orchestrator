@@ -38,6 +38,7 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
 }
 
 NEGATION_AWARE_INTENTS = {"cancel", "reschedule"}
+IMPLIED_CANCEL_KEYWORDS = {"can't make", "cannot make"}
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
@@ -93,9 +94,49 @@ def _has_negated_conjunction(
     return False
 
 
+def _has_explicit_negated_intent(text: str, intent: str) -> bool:
+    for keyword in INTENT_KEYWORDS[intent]:
+        if intent == "cancel" and keyword in IMPLIED_CANCEL_KEYWORDS:
+            continue
+
+        if _has_negation_before_keyword(text, keyword):
+            return True
+
+        if _has_negated_conjunction(
+            text,
+            keyword,
+            INTENT_KEYWORDS[intent],
+            SAME_INTENT_CONJUNCTION_PATTERN,
+        ):
+            return True
+
+        if _has_negated_conjunction(
+            text,
+            keyword,
+            _action_keywords(),
+            ACTION_CHOICE_CONJUNCTION_PATTERN,
+        ):
+            return True
+
+        if keyword == "cancellation" and re.search(
+            rf"(?<!\w)(?:no|not\s+a)\s+{_keyword_pattern(keyword)}",
+            text,
+        ):
+            return True
+
+    return False
+
+
 def _is_negated_keyword(text: str, intent: str, keyword: str) -> bool:
     if intent not in NEGATION_AWARE_INTENTS:
         return False
+
+    if (
+        intent == "cancel"
+        and keyword in IMPLIED_CANCEL_KEYWORDS
+        and _has_explicit_negated_intent(text, intent)
+    ):
+        return True
 
     if _has_negation_before_keyword(text, keyword):
         return True
