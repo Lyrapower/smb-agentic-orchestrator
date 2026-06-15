@@ -37,7 +37,7 @@ INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-NEGATION_AWARE_INTENTS = {"cancel", "reschedule"}
+NEGATION_AWARE_INTENTS = {"cancel", "reschedule", "schedule"}
 IMPLIED_CANCEL_KEYWORDS = {"can't make", "cannot make"}
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
 NEGATION_TARGET_GAP_PATTERN = (
@@ -181,12 +181,24 @@ def _count_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
     return hits
 
 
+def _count_negated_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
+    return sum(
+        1
+        for keyword in keywords
+        if _contains_keyword(text, keyword) and _is_negated_keyword(text, intent, keyword)
+    )
+
+
 def route_intent(text: str) -> tuple[str, str]:
     """Classify intent by keyword matching without using an LLM."""
     normalized = text.strip().lower()
     if not normalized:
         return "schedule", "No content provided; defaulted to schedule."
 
+    negated_scores = {
+        intent: _count_negated_keyword_hits(normalized, intent, keywords)
+        for intent, keywords in INTENT_KEYWORDS.items()
+    }
     scores = {
         intent: _count_keyword_hits(normalized, intent, keywords)
         for intent, keywords in INTENT_KEYWORDS.items()
@@ -194,6 +206,9 @@ def route_intent(text: str) -> tuple[str, str]:
 
     max_score = max(scores.values())
     if max_score == 0:
+        if any(negated_scores.values()):
+            return "no_action", "Only negated action keyword(s) found; no action selected."
+
         return "schedule", "No cancel/reschedule keywords found; defaulted to schedule."
 
     # Prefer rescheduling in mixed-intent messages to avoid destructive cancels.

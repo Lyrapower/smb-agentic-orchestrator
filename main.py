@@ -9,7 +9,7 @@ from audit import append_audit_entry, get_latest_audit_entries
 from router import route_intent
 
 
-Intent = Literal["schedule", "reschedule", "cancel"]
+Intent = Literal["schedule", "reschedule", "cancel", "no_action"]
 
 app = FastAPI(title="Chat Audit API Service")
 
@@ -48,6 +48,7 @@ def execute(payload: ExecuteRequest) -> ExecuteResponse:
         "schedule": "Simulated scheduling action completed.",
         "reschedule": "Simulated rescheduling action completed.",
         "cancel": "Simulated cancellation action completed.",
+        "no_action": "No action performed.",
     }[payload.intent]
     saved_entry = append_audit_entry(
         {

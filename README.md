@@ -2,7 +2,7 @@
 
 Simple FastAPI service with:
 
-- `POST /chat` for rule-based intent detection (`schedule | reschedule | cancel`)
+- `POST /chat` for rule-based intent detection (`schedule | reschedule | cancel | no_action`)
 - `POST /execute` for simulated action execution + audit logging
 - `GET /audit` for latest 50 audit entries
 
