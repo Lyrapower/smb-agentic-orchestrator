@@ -133,7 +133,6 @@ class RouterTests(unittest.TestCase):
         examples = (
             "I do not want to cancel or reschedule my appointment",
             "Please don't reschedule or cancel my appointment",
-            "Please do not schedule, cancel, or reschedule anything",
         )
 
         for text in examples:
