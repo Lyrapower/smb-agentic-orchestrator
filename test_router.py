@@ -142,10 +142,31 @@ class RouterTests(unittest.TestCase):
             "Please don't reschedule or cancel my appointment",
             "Please do not schedule, cancel, or reschedule anything",
             "Please do not cancel, reschedule, nor book an appointment",
+            "Please do not cancel and reschedule my appointment",
+            "Please do not schedule and cancel anything",
         )
 
         for text in examples:
             with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_comma_only_negated_mixed_action_lists_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not schedule, cancel, reschedule",
+            "Please don't schedule, cancel, reschedule anything",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_empty_text_does_not_default_to_schedule(self) -> None:
+        for text in ("", "   "):
+            with self.subTest(text=repr(text)):
                 intent, _ = route_intent(text)
 
                 self.assertEqual(intent, "no_action")

@@ -49,7 +49,7 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to)?"
 )
-ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor)\s+)"
+ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
 SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
 
 
@@ -107,21 +107,26 @@ def _has_negated_conjunction(
 
 def _has_negated_action_list(text: str, keyword: str) -> bool:
     action_keyword_pattern = rf"(?:{_action_keyword_alternation()})"
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
 
     for previous_keyword in _action_keywords():
         if previous_keyword == keyword:
             continue
 
-        for match in re.finditer(
-            rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
-            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
-            rf"{_keyword_pattern(previous_keyword)}"
-            rf"(?P<tail>(?:\s*,\s*{action_keyword_pattern})*"
-            rf"\s*,?\s+(?:or|nor)\s+{action_keyword_pattern})",
-            text,
-        ):
-            if re.search(_keyword_pattern(keyword), match.group("tail")):
-                return True
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+                rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(_keyword_pattern(keyword), match.group("tail")):
+                    return True
 
     return False
 
@@ -230,7 +235,7 @@ def route_intent(text: str) -> tuple[str, str]:
     """Classify intent by keyword matching without using an LLM."""
     normalized = text.strip().lower()
     if not normalized:
-        return "schedule", "No content provided; defaulted to schedule."
+        return "no_action", "No content provided; no action selected."
 
     negated_scores = {
         intent: _count_negated_keyword_hits(normalized, intent, keywords)
