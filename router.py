@@ -51,6 +51,8 @@ NEGATION_TARGET_GAP_PATTERN = (
 )
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
 SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
+NEGATED_ALTERNATIVE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor)\s+)"
+NEGATED_OBJECT_GAP_PATTERN = r"(?:\s+(?!(?:or|nor|and)\b)[a-z0-9']+){0,6}"
 
 
 def _keyword_pattern(keyword: str) -> str:
@@ -98,6 +100,17 @@ def _has_negated_conjunction(
             rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
             rf"{_keyword_pattern(previous_keyword)}"
             rf"{conjunction_pattern}{_keyword_pattern(keyword)}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{_keyword_pattern(previous_keyword)}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{NEGATED_ALTERNATIVE_CONJUNCTION_PATTERN}"
+            rf"{_keyword_pattern(keyword)}",
             text,
         ):
             return True
