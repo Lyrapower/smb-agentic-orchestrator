@@ -143,6 +143,14 @@ class RouterTests(unittest.TestCase):
             "Please do not cancel my appointment or reschedule it",
             "Please do not reschedule my appointment or cancel it",
             "I do not want to cancel my appointment tomorrow or reschedule it",
+            (
+                "Please do not cancel my very important annual comprehensive "
+                "checkup appointment or reschedule it"
+            ),
+            (
+                "Please do not cancel my very important annual comprehensive "
+                "checkup appointment and reschedule it"
+            ),
             "Please do not schedule, cancel, or reschedule anything",
             "Please do not cancel, reschedule, nor book an appointment",
             "Please do not cancel and reschedule my appointment",
