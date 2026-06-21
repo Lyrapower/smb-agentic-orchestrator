@@ -191,6 +191,8 @@ class RouterTests(unittest.TestCase):
         examples = (
             "What time is my appointment tomorrow?",
             "Hello, can you help me?",
+            "I cannot make it tomorrow",
+            "I can't make it tomorrow",
             "I can not make it tomorrow",
             "I cant make it tomorrow",
         )

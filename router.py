@@ -223,6 +223,9 @@ def _is_negated_keyword(text: str, intent: str, keyword: str) -> bool:
 def _count_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
     hits = 0
     for keyword in keywords:
+        if intent == "cancel" and keyword in IMPLIED_CANCEL_KEYWORDS:
+            continue
+
         if _is_negated_keyword(
             text,
             intent,
