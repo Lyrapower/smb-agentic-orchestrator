@@ -45,9 +45,13 @@ IMPLIED_INTENT_KEYWORDS = {
 }
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
 NEGATION_TARGET_GAP_PATTERN = (
-    r"(?:\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
+    r"(?:"
+    r"\s+to"
+    r"|\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
-    r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to)?"
+    r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to"
+    r"|\s+(?:let|allow|permit)\s+(?:the\s+)?[a-z0-9']+(?:\s+to)?"
+    r")?"
 )
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
 SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
