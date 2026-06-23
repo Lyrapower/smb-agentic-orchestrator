@@ -89,6 +89,7 @@ class RouterTests(unittest.TestCase):
             "Please remind them never to cancel my appointment",
             "Please do not let anyone cancel my appointment",
             "Please do not allow the office to cancel my appointment",
+            "Please do not allow my care team to cancel my appointment",
             "I do not want to remove appointment tomorrow",
             "I do not need anyone to remove appointment tomorrow",
             "I am not trying to cancel my appointment",
@@ -108,6 +109,7 @@ class RouterTests(unittest.TestCase):
             "I don't want you to move my appointment",
             "I asked not to reschedule my appointment",
             "Please do not change time tomorrow",
+            "Please do not let the front desk reschedule my appointment",
             "I never want to rebook this appointment",
         )
 
@@ -134,6 +136,7 @@ class RouterTests(unittest.TestCase):
             "Please do not schedule an appointment",
             "I don't want you to book an appointment",
             "Please make sure not to schedule a new appointment",
+            "Please do not permit the scheduling staff to book a new appointment",
             "Never arrange a new appointment",
         )
 
@@ -144,9 +147,16 @@ class RouterTests(unittest.TestCase):
                 self.assertEqual(intent, "no_action")
 
     def test_do_not_forget_positive_action_still_routes_to_cancel(self) -> None:
-        intent, _ = route_intent("Please do not forget to cancel my appointment")
+        examples = (
+            "Please do not forget to cancel my appointment",
+            "Please do not allow the office to forget to cancel my appointment",
+        )
 
-        self.assertEqual(intent, "cancel")
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
 
     def test_coordinated_negated_mixed_actions_do_not_route_to_action(self) -> None:
         examples = (
