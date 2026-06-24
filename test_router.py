@@ -131,6 +131,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "cancel")
 
+    def test_informational_cancellation_questions_do_not_route_to_cancel(self) -> None:
+        examples = (
+            "What is your cancellation policy?",
+            "Can you explain the cancellation fee?",
+            "Where can I find the cancellation rules?",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_appointment_cancellation_noun_still_routes_to_cancel(self) -> None:
+        examples = (
+            "I need cancellation of my appointment",
+            "Please process my appointment cancellation",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
     def test_negated_schedule_synonyms_do_not_route_to_schedule(self) -> None:
         examples = (
             "Please do not schedule an appointment",

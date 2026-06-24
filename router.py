@@ -56,6 +56,9 @@ NEGATION_TARGET_GAP_PATTERN = (
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
 SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
 NEGATED_OBJECT_GAP_PATTERN = r"(?:\s+(?!(?:or|nor|and)\b)[a-z0-9']+)*"
+INFORMATIONAL_CANCELLATION_PATTERN = (
+    r"\bcancellation\s+(?:polic(?:y|ies)|fees?|rules?|terms?|details?|info|information)\b"
+)
 
 
 def _keyword_pattern(keyword: str) -> str:
@@ -74,6 +77,14 @@ def _action_keyword_alternation() -> str:
     return "|".join(
         _keyword_pattern(keyword)
         for keyword in sorted(_action_keywords(), key=len, reverse=True)
+    )
+
+
+def _is_ignored_keyword_context(text: str, intent: str, keyword: str) -> bool:
+    return (
+        intent == "cancel"
+        and keyword == "cancellation"
+        and re.search(INFORMATIONAL_CANCELLATION_PATTERN, text) is not None
     )
 
 
@@ -230,6 +241,9 @@ def _count_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
         if intent == "cancel" and keyword in IMPLIED_CANCEL_KEYWORDS:
             continue
 
+        if _is_ignored_keyword_context(text, intent, keyword):
+            continue
+
         if _is_negated_keyword(
             text,
             intent,
@@ -246,7 +260,9 @@ def _count_negated_keyword_hits(text: str, intent: str, keywords: Iterable[str])
     return sum(
         1
         for keyword in keywords
-        if _contains_keyword(text, keyword) and _is_negated_keyword(text, intent, keyword)
+        if not _is_ignored_keyword_context(text, intent, keyword)
+        and _contains_keyword(text, keyword)
+        and _is_negated_keyword(text, intent, keyword)
     )
 
 
