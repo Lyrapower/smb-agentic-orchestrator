@@ -136,6 +136,11 @@ class RouterTests(unittest.TestCase):
             "What is your cancellation policy?",
             "Can you explain the cancellation fee?",
             "Where can I find the cancellation rules?",
+            "What is your cancellation process?",
+            "How does cancellation work?",
+            "What is the cancellation deadline?",
+            "Can you explain the cancellation procedure?",
+            "Where can I find cancellation instructions?",
         )
 
         for text in examples:
@@ -148,6 +153,7 @@ class RouterTests(unittest.TestCase):
         examples = (
             "I need cancellation of my appointment",
             "Please process my appointment cancellation",
+            "Please start the cancellation process for my appointment",
         )
 
         for text in examples:

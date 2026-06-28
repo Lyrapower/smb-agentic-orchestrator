@@ -58,6 +58,12 @@ SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
 NEGATED_OBJECT_GAP_PATTERN = r"(?:\s+(?!(?:or|nor|and)\b)[a-z0-9']+)*"
 INFORMATIONAL_CANCELLATION_PATTERN = (
     r"\bcancellation\s+(?:polic(?:y|ies)|fees?|rules?|terms?|details?|info|information)\b"
+    r"|(?:\b(?:what(?:'s|\s+(?:is|are))|how(?:\s+does)?|where\s+can\s+i\s+find|"
+    r"can\s+you\s+explain|could\s+you\s+explain|please\s+explain|"
+    r"tell\s+me\s+about|do\s+you\s+have|is\s+there|when\s+is)\b"
+    r"(?:\s+[a-z0-9']+){0,6}\s+cancellation\s+"
+    r"(?:process(?:es)?|procedures?|steps?|instructions?|deadlines?|windows?|"
+    r"requirements?|options?|works?)\b)"
 )
 
 
