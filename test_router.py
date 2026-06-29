@@ -149,6 +149,22 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_informational_action_process_questions_do_not_route_to_action(self) -> None:
+        examples = (
+            "Where can I find instructions to cancel an appointment?",
+            "Please tell me the steps to cancel an appointment",
+            "What is the process to cancel an appointment?",
+            "Can you tell me how to cancel my appointment?",
+            "How do I reschedule my appointment?",
+            "What are the steps to schedule a new appointment?",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_appointment_cancellation_noun_still_routes_to_cancel(self) -> None:
         examples = (
             "I need cancellation of my appointment",
@@ -161,6 +177,19 @@ class RouterTests(unittest.TestCase):
                 intent, _ = route_intent(text)
 
                 self.assertEqual(intent, "cancel")
+
+    def test_direct_action_questions_still_route_to_action(self) -> None:
+        examples = (
+            ("Can you cancel my appointment?", "cancel"),
+            ("Can you reschedule my appointment?", "reschedule"),
+            ("Can you schedule a new appointment?", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
 
     def test_negated_schedule_synonyms_do_not_route_to_schedule(self) -> None:
         examples = (

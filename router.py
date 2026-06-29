@@ -65,6 +65,17 @@ INFORMATIONAL_CANCELLATION_PATTERN = (
     r"(?:process(?:es)?|procedures?|steps?|instructions?|deadlines?|windows?|"
     r"requirements?|options?|works?)\b)"
 )
+INFORMATIONAL_ACTION_CONTEXT_PREFIX = (
+    r"(?:"
+    r"what(?:'s|\s+is)|what\s+are|where\s+can\s+i\s+find|"
+    r"can\s+you\s+(?:tell|show)\s+me|could\s+you\s+(?:tell|show)\s+me|"
+    r"please\s+(?:tell|show)\s+me|tell\s+me|"
+    r"please\s+explain|can\s+you\s+explain|could\s+you\s+explain"
+    r")"
+)
+INFORMATIONAL_ACTION_NOUN_PATTERN = (
+    r"(?:process(?:es)?|procedures?|steps?|instructions?|requirements?|options?)"
+)
 
 
 def _keyword_pattern(keyword: str) -> str:
@@ -86,7 +97,49 @@ def _action_keyword_alternation() -> str:
     )
 
 
+def _has_informational_action_context(text: str, keyword: str) -> bool:
+    keyword_pattern = _keyword_pattern(keyword)
+    return (
+        re.search(
+            rf"\bhow\s+(?:do|can|could|should|would)\s+i\s+{keyword_pattern}",
+            text,
+        )
+        is not None
+        or re.search(rf"\bhow\s+to\s+{keyword_pattern}", text) is not None
+        or re.search(
+            rf"\b(?:can|could)\s+you\s+(?:tell|show)\s+me\s+how\s+to\s+"
+            rf"{keyword_pattern}",
+            text,
+        )
+        is not None
+        or re.search(
+            rf"\bplease\s+(?:tell|show)\s+me\s+how\s+to\s+{keyword_pattern}",
+            text,
+        )
+        is not None
+        or re.search(
+            rf"\b{INFORMATIONAL_ACTION_CONTEXT_PREFIX}\b"
+            rf"(?:\s+[a-z0-9']+){{0,8}}\s+"
+            rf"{INFORMATIONAL_ACTION_NOUN_PATTERN}"
+            rf"(?:\s+[a-z0-9']+){{0,5}}\s+(?:to|for)\s+{keyword_pattern}",
+            text,
+        )
+        is not None
+        or re.search(
+            rf"\b{INFORMATIONAL_ACTION_CONTEXT_PREFIX}\b"
+            rf"(?:\s+[a-z0-9']+){{0,8}}\s+"
+            rf"{INFORMATIONAL_ACTION_NOUN_PATTERN}"
+            rf"(?:\s+[a-z0-9']+){{0,5}}\s+{keyword_pattern}",
+            text,
+        )
+        is not None
+    )
+
+
 def _is_ignored_keyword_context(text: str, intent: str, keyword: str) -> bool:
+    if _has_informational_action_context(text, keyword):
+        return True
+
     return (
         intent == "cancel"
         and keyword == "cancellation"
