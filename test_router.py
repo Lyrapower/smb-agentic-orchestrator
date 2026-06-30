@@ -46,6 +46,8 @@ class RouterTests(unittest.TestCase):
 
     def test_negated_cancel_synonyms_do_not_route_to_cancel(self) -> None:
         examples = (
+            "Please don\u2019t cancel my appointment",
+            "Please don\u2018t cancel my appointment",
             "Please don't call off my appointment",
             "Please do not drop appointment tomorrow",
             "Please never remove appointment from my calendar",
@@ -105,6 +107,7 @@ class RouterTests(unittest.TestCase):
 
     def test_negated_reschedule_synonyms_do_not_route_to_reschedule(self) -> None:
         examples = (
+            "Please don\u2019t reschedule my appointment",
             "Please don't reschedule my appointment",
             "I don't want you to move my appointment",
             "I asked not to reschedule my appointment",
@@ -193,6 +196,7 @@ class RouterTests(unittest.TestCase):
 
     def test_negated_schedule_synonyms_do_not_route_to_schedule(self) -> None:
         examples = (
+            "Please don\u2019t schedule an appointment",
             "Please do not schedule an appointment",
             "I don't want you to book an appointment",
             "Please make sure not to schedule a new appointment",
@@ -246,9 +250,16 @@ class RouterTests(unittest.TestCase):
                 self.assertEqual(intent, "no_action")
 
     def test_negated_cancel_with_reschedule_instead_still_routes_to_reschedule(self) -> None:
-        intent, _ = route_intent("Please don't cancel my appointment, reschedule it instead")
+        examples = (
+            "Please don't cancel my appointment, reschedule it instead",
+            "Please don\u2019t cancel my appointment, reschedule it instead",
+        )
 
-        self.assertEqual(intent, "reschedule")
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "reschedule")
 
     def test_comma_only_negated_mixed_action_lists_do_not_route_to_action(self) -> None:
         examples = (
