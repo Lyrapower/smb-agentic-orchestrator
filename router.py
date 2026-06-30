@@ -43,6 +43,14 @@ IMPLIED_INTENT_KEYWORDS = {
     "cancel": IMPLIED_CANCEL_KEYWORDS,
     "schedule": {"new appointment", "make an appointment"},
 }
+APOSTROPHE_TRANSLATION = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201b": "'",
+        "\u2032": "'",
+    }
+)
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
@@ -327,7 +335,7 @@ def _count_negated_keyword_hits(text: str, intent: str, keywords: Iterable[str])
 
 def route_intent(text: str) -> tuple[str, str]:
     """Classify intent by keyword matching without using an LLM."""
-    normalized = text.strip().lower()
+    normalized = text.strip().lower().translate(APOSTROPHE_TRANSLATION)
     if not normalized:
         return "no_action", "No content provided; no action selected."
 
