@@ -48,6 +48,10 @@ class RouterTests(unittest.TestCase):
         examples = (
             "Please don\u2019t cancel my appointment",
             "Please don\u2018t cancel my appointment",
+            "Please don\u02bct cancel my appointment",
+            "Please don\uff07t cancel my appointment",
+            "Please don`t cancel my appointment",
+            "Please don\u00b4t cancel my appointment",
             "Please don't call off my appointment",
             "Please do not drop appointment tomorrow",
             "Please never remove appointment from my calendar",
@@ -108,6 +112,8 @@ class RouterTests(unittest.TestCase):
     def test_negated_reschedule_synonyms_do_not_route_to_reschedule(self) -> None:
         examples = (
             "Please don\u2019t reschedule my appointment",
+            "Please don\u02bct reschedule my appointment",
+            "Please don\uff07t reschedule my appointment",
             "Please don't reschedule my appointment",
             "I don't want you to move my appointment",
             "I asked not to reschedule my appointment",
@@ -197,6 +203,8 @@ class RouterTests(unittest.TestCase):
     def test_negated_schedule_synonyms_do_not_route_to_schedule(self) -> None:
         examples = (
             "Please don\u2019t schedule an appointment",
+            "Please don\u02bct schedule an appointment",
+            "Please don\uff07t schedule an appointment",
             "Please do not schedule an appointment",
             "I don't want you to book an appointment",
             "Please make sure not to schedule a new appointment",
