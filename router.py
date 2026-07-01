@@ -45,10 +45,14 @@ IMPLIED_INTENT_KEYWORDS = {
 }
 APOSTROPHE_TRANSLATION = str.maketrans(
     {
+        "`": "'",
+        "\u00b4": "'",
         "\u2018": "'",
         "\u2019": "'",
         "\u201b": "'",
+        "\u02bc": "'",
         "\u2032": "'",
+        "\uff07": "'",
     }
 )
 NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
