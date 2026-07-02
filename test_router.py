@@ -52,6 +52,9 @@ class RouterTests(unittest.TestCase):
             "Please don\uff07t cancel my appointment",
             "Please don`t cancel my appointment",
             "Please don\u00b4t cancel my appointment",
+            "Please don't ever cancel my appointment",
+            "Please do not ever cancel my appointment",
+            "Never ever cancel my appointment",
             "Please don't call off my appointment",
             "Please do not drop appointment tomorrow",
             "Please never remove appointment from my calendar",
@@ -98,6 +101,7 @@ class RouterTests(unittest.TestCase):
             "Please do not allow my care team to cancel my appointment",
             "I do not want to remove appointment tomorrow",
             "I do not need anyone to remove appointment tomorrow",
+            "I don't ever want to cancel my appointment",
             "I am not trying to cancel my appointment",
             "I never want to cancel my appointment",
             "Please don't want you to cancel or remove appointment",
@@ -115,6 +119,7 @@ class RouterTests(unittest.TestCase):
             "Please don\u02bct reschedule my appointment",
             "Please don\uff07t reschedule my appointment",
             "Please don't reschedule my appointment",
+            "Please don't ever reschedule my appointment",
             "I don't want you to move my appointment",
             "I asked not to reschedule my appointment",
             "Please do not change time tomorrow",
@@ -206,6 +211,7 @@ class RouterTests(unittest.TestCase):
             "Please don\u02bct schedule an appointment",
             "Please don\uff07t schedule an appointment",
             "Please do not schedule an appointment",
+            "Please don't ever schedule an appointment",
             "I don't want you to book an appointment",
             "Please make sure not to schedule a new appointment",
             "Please do not permit the scheduling staff to book a new appointment",
@@ -221,6 +227,7 @@ class RouterTests(unittest.TestCase):
     def test_do_not_forget_positive_action_still_routes_to_cancel(self) -> None:
         examples = (
             "Please do not forget to cancel my appointment",
+            "Please don't ever forget to cancel my appointment",
             "Please do not allow the office to forget to cancel my appointment",
         )
 
