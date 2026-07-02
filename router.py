@@ -55,7 +55,7 @@ APOSTROPHE_TRANSLATION = str.maketrans(
         "\uff07": "'",
     }
 )
-NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)"
+NEGATION_PREFIX_PATTERN = r"(?:do\s+not|don't|dont|not|never)(?:\s+ever\b)?"
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
