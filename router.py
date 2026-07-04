@@ -68,6 +68,11 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"|\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to"
+    r"|\s+(?:ask|asks|asked|tell|tells|told|instruct|instructs|instructed|"
+    r"request|requests|requested|advise|advises|advised|direct|directs|directed|"
+    r"order|orders|ordered|authorize|authorizes|authorized|urge|urges|urged|get|"
+    r"gets|got|have|has|had|make|makes|made)"
+    r"(?:\s+(?!to\b)[a-z0-9']+){0,6}(?:\s+to)?"
     r"|\s+(?:let|allow|permit)(?:\s+(?!to\b)[a-z0-9']+){1,6}(?:\s+to)?"
     r")?"
 )
