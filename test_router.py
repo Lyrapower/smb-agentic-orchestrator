@@ -111,6 +111,9 @@ class RouterTests(unittest.TestCase):
             "I am not trying to cancel my appointment",
             "I never want to cancel my appointment",
             "Please don't want you to cancel or remove appointment",
+            "Please don't ask the office to cancel my appointment",
+            "Please do not tell the clinic to cancel my appointment",
+            "Never authorize anyone to cancel my appointment",
         )
 
         for text in examples:
@@ -133,6 +136,9 @@ class RouterTests(unittest.TestCase):
             "Please do not change time tomorrow",
             "Please do not let the front desk reschedule my appointment",
             "I never want to rebook this appointment",
+            "Please don't instruct the office to reschedule my appointment",
+            "Please do not request anyone to move my appointment",
+            "Never direct the clinic to rebook this appointment",
         )
 
         for text in examples:
@@ -226,6 +232,9 @@ class RouterTests(unittest.TestCase):
             "Please make sure not to schedule a new appointment",
             "Please do not permit the scheduling staff to book a new appointment",
             "Never arrange a new appointment",
+            "Please don't ask the office to schedule an appointment",
+            "Please do not tell anyone to book a new appointment",
+            "Never authorize the clinic to arrange a new appointment",
         )
 
         for text in examples:
@@ -240,6 +249,8 @@ class RouterTests(unittest.TestCase):
             "Please don't ever forget to cancel my appointment",
             "Please don't under any circumstances forget to cancel my appointment",
             "Please do not allow the office to forget to cancel my appointment",
+            "Please don't ask the office to forget to cancel my appointment",
+            "Please do not tell anyone to forget to cancel my appointment",
         )
 
         for text in examples:
