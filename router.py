@@ -55,6 +55,8 @@ APOSTROPHE_TRANSLATION = str.maketrans(
         "\uff07": "'",
     }
 )
+NEGATION_GAP_TOKEN_PATTERN = r"[a-z0-9']+(?:[.-][a-z0-9']+)*(?:\.)?,?"
+NEGATION_NON_TO_GAP_TOKEN_PATTERN = rf"(?!to\b){NEGATION_GAP_TOKEN_PATTERN}"
 NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|under\s+any\s+circumstances|for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
@@ -67,18 +69,20 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"\s+to"
     r"|\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
-    r"going|mean|meant)(?:\s+[a-z0-9']+){0,3}\s+to"
+    rf"going|mean|meant)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
     r"|\s+(?:ask|asks|asked|tell|tells|told|instruct|instructs|instructed|"
     r"request|requests|requested|advise|advises|advised|direct|directs|directed|"
     r"order|orders|ordered|authorize|authorizes|authorized|urge|urges|urged|get|"
     r"gets|got|have|has|had|make|makes|made)"
-    r"(?:\s+(?!to\b)[a-z0-9']+){0,6}(?:\s+to)?"
-    r"|\s+(?:let|allow|permit)(?:\s+(?!to\b)[a-z0-9']+){1,6}(?:\s+to)?"
+    rf"(?:\s+{NEGATION_NON_TO_GAP_TOKEN_PATTERN}){{0,6}}(?:\s+to)?"
+    rf"|\s+(?:let|allow|permit)(?:\s+{NEGATION_NON_TO_GAP_TOKEN_PATTERN}){{1,6}}(?:\s+to)?"
     r")?"
 )
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
 SAME_INTENT_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|and|nor)\s+)"
-NEGATED_OBJECT_GAP_PATTERN = r"(?:\s+(?!(?:or|nor|and)\b)[a-z0-9']+)*"
+NEGATED_OBJECT_GAP_PATTERN = (
+    rf"(?:\s+(?!(?:or|nor|and)\b){NEGATION_GAP_TOKEN_PATTERN})*"
+)
 INFORMATIONAL_CANCELLATION_PATTERN = (
     r"\bcancellation\s+(?:polic(?:y|ies)|fees?|rules?|terms?|details?|info|information)\b"
     r"|(?:\b(?:what(?:'s|\s+(?:is|are))|how(?:\s+does)?|where\s+can\s+i\s+find|"
