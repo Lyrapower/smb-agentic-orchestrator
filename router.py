@@ -61,7 +61,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|under\s+any\s+circumstances|for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 NEGATION_PREFIX_PATTERN = (
-    r"(?:do\s+not|don't|dont|not|never)(?:\s+ever\b)?"
+    r"(?:do\s+not|don't|dont|won't|wont|not|never)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
 NEGATION_TARGET_GAP_PATTERN = (

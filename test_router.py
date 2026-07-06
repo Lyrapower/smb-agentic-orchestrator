@@ -60,6 +60,8 @@ class RouterTests(unittest.TestCase):
             "Please do not for any reason cancel my appointment",
             "Please don't ever, ever cancel my appointment",
             "Please never, ever cancel my appointment",
+            "Please confirm you won't cancel my appointment",
+            "Please confirm you wont cancel my appointment",
             "Please don't call off my appointment",
             "Please do not drop appointment tomorrow",
             "Please never remove appointment from my calendar",
@@ -143,6 +145,8 @@ class RouterTests(unittest.TestCase):
             "Never direct the clinic to rebook this appointment",
             "Please don't ask the on-call office manager to reschedule my appointment",
             "Please do not request Nurse Jones, to move my appointment",
+            "Please confirm you won't reschedule my appointment",
+            "Please confirm you wont move my appointment",
         )
 
         for text in examples:
@@ -244,6 +248,8 @@ class RouterTests(unittest.TestCase):
             "Never authorize the clinic to arrange a new appointment",
             "Please don't ask Dr. Smith to schedule an appointment",
             "Please do not request Nurse Jones, to book a new appointment",
+            "Please confirm you won't schedule an appointment",
+            "Please confirm you wont book a new appointment",
         )
 
         for text in examples:
