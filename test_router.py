@@ -128,6 +128,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_no_intent_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "I have no plans to cancel my appointment",
+            "I have no plan to cancel my appointment",
+            "I have no intention to cancel my appointment",
+            "I have no intent to cancel my appointment",
+            "I have no desire to cancel my appointment",
+            "I have no need to cancel my appointment",
+            "There is no plan to cancel my appointment",
+            "There are no plans to reschedule my appointment",
+            "I have no intention to reschedule my appointment",
+            "I have no desire to book a new appointment",
+            "No need to schedule an appointment",
+            "No need to cancel my appointment",
+            "No plans to cancel my appointment",
+            "No reschedule is needed",
+            "No new appointment is needed",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_negated_reschedule_synonyms_do_not_route_to_reschedule(self) -> None:
         examples = (
             "Please don\u2019t reschedule my appointment",
@@ -229,6 +254,9 @@ class RouterTests(unittest.TestCase):
             ("Please ask Dr. Smith to cancel my appointment", "cancel"),
             ("Please tell front-desk staff to reschedule my appointment", "reschedule"),
             ("Please request Nurse Jones, to book a new appointment", "schedule"),
+            ("No, please cancel my appointment", "cancel"),
+            ("No - please reschedule my appointment", "reschedule"),
+            ("No, please schedule a new appointment", "schedule"),
         )
 
         for text, expected_intent in examples:
