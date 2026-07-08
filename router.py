@@ -64,6 +64,9 @@ NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|won't|wont|not|never)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
+NO_INTENT_NOUN_PATTERN = (
+    r"(?:plans?|intentions?|intents?|desires?|need|needs?|reason|reasons?)"
+)
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
@@ -183,6 +186,14 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     ):
         return True
 
+    if re.search(
+        rf"(?<!\w)(?:no|not\s+any)\s+{NO_INTENT_NOUN_PATTERN}"
+        rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+"
+        rf"{_keyword_pattern(keyword)}",
+        text,
+    ):
+        return True
+
     return False
 
 
@@ -272,8 +283,8 @@ def _has_explicit_negated_intent(text: str, intent: str) -> bool:
         if _has_negated_action_list(text, keyword):
             return True
 
-        if keyword == "cancellation" and re.search(
-            rf"(?<!\w)(?:no|not\s+a)\s+{_keyword_pattern(keyword)}",
+        if re.search(
+            rf"(?<!\w)(?:no|not\s+a|not\s+an)\s+{_keyword_pattern(keyword)}",
             text,
         ):
             return True
@@ -313,8 +324,8 @@ def _is_negated_keyword(text: str, intent: str, keyword: str) -> bool:
     if _has_negated_action_list(text, keyword):
         return True
 
-    if keyword == "cancellation" and re.search(
-        rf"(?<!\w)(?:no|not\s+a)\s+{_keyword_pattern(keyword)}",
+    if re.search(
+        rf"(?<!\w)(?:no|not\s+a|not\s+an)\s+{_keyword_pattern(keyword)}",
         text,
     ):
         return True
