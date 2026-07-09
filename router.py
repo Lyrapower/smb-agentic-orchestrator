@@ -178,7 +178,36 @@ def _is_ignored_keyword_context(text: str, intent: str, keyword: str) -> bool:
     )
 
 
+def _has_negated_belief_before_keyword(text: str, keyword: str) -> bool:
+    keyword_pattern = _keyword_pattern(keyword)
+    if re.search(
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+"
+        r"(?:think|believe|feel|suppose|expect)"
+        rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,4}}\s+"
+        r"(?:need|needs|needed|want|wants|wanted|should|would|have|has|had|"
+        r"ought|reason|reasons)"
+        rf"(?:\s+to)?\s+{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    return (
+        re.search(
+            rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+"
+            r"(?:think|believe|feel|suppose|expect)"
+            rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,5}}\s+"
+            rf"{keyword_pattern}(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+"
+            r"(?:is|are|will\s+be|would\s+be)\s+needed\b",
+            text,
+        )
+        is not None
+    )
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
+    if _has_negated_belief_before_keyword(text, keyword):
+        return True
+
     if re.search(
         rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
         rf"{NEGATION_TARGET_GAP_PATTERN}\s+{_keyword_pattern(keyword)}",
