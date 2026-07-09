@@ -153,6 +153,23 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_negated_belief_or_need_do_not_route_to_action(self) -> None:
+        examples = (
+            "I don't think I need to cancel my appointment",
+            "I do not believe I should cancel my appointment",
+            "I don't think there is any reason to cancel my appointment",
+            "I don't feel there is any need to reschedule my appointment",
+            "I don't think I have to move my appointment",
+            "I don't think I need to book a new appointment",
+            "I do not believe a new appointment is needed",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_negated_reschedule_synonyms_do_not_route_to_reschedule(self) -> None:
         examples = (
             "Please don\u2019t reschedule my appointment",
