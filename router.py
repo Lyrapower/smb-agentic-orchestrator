@@ -67,6 +67,11 @@ NEGATION_PREFIX_PATTERN = (
 NO_INTENT_NOUN_PATTERN = (
     r"(?:plans?|intentions?|intents?|desires?|need|needs?|reason|reasons?)"
 )
+DIRECT_OBJECT_NEGATION_VERB_PATTERN = (
+    r"(?:want|wants|wanted|need|needs|needed|wish|wishes|wished|"
+    r"desire|desires|desired)"
+)
+DIRECT_OBJECT_ARTICLE_PATTERN = r"(?:a|an|any|another|the)"
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
@@ -204,8 +209,38 @@ def _has_negated_belief_before_keyword(text: str, keyword: str) -> bool:
     )
 
 
+def _has_negated_direct_object_before_keyword(text: str, keyword: str) -> bool:
+    return (
+        re.search(
+            rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+"
+            rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}"
+            rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,2}}\s+"
+            rf"(?:{DIRECT_OBJECT_ARTICLE_PATTERN}\s+)?"
+            rf"{_keyword_pattern(keyword)}",
+            text,
+        )
+        is not None
+    )
+
+
+def _has_no_intent_noun_before_keyword(text: str, keyword: str) -> bool:
+    return (
+        re.search(
+            rf"(?<!\w)(?:no|not\s+any)\s+{NO_INTENT_NOUN_PATTERN}"
+            rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+"
+            rf"(?:to|for)\s+(?:{DIRECT_OBJECT_ARTICLE_PATTERN}\s+)?"
+            rf"{_keyword_pattern(keyword)}",
+            text,
+        )
+        is not None
+    )
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_negated_belief_before_keyword(text, keyword):
+        return True
+
+    if _has_negated_direct_object_before_keyword(text, keyword):
         return True
 
     if re.search(
@@ -215,12 +250,7 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     ):
         return True
 
-    if re.search(
-        rf"(?<!\w)(?:no|not\s+any)\s+{NO_INTENT_NOUN_PATTERN}"
-        rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+"
-        rf"{_keyword_pattern(keyword)}",
-        text,
-    ):
+    if _has_no_intent_noun_before_keyword(text, keyword):
         return True
 
     return False
