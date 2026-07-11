@@ -1,5 +1,7 @@
 import unittest
+from unittest import mock
 
+import router
 from router import route_intent
 
 
@@ -43,6 +45,17 @@ class RouterTests(unittest.TestCase):
         intent, _ = route_intent("Please cancel my appointment tomorrow")
 
         self.assertEqual(intent, "cancel")
+
+    def test_absent_keywords_do_not_trigger_negation_scans(self) -> None:
+        with mock.patch(
+            "router._is_negated_keyword",
+            wraps=router._is_negated_keyword,
+        ) as negated_keyword:
+            intent, _ = route_intent("Please cancel my appointment tomorrow")
+
+        self.assertEqual(intent, "cancel")
+        checked_keywords = [call.args[2] for call in negated_keyword.call_args_list]
+        self.assertEqual(checked_keywords, ["cancel", "cancel"])
 
     def test_negated_cancel_synonyms_do_not_route_to_cancel(self) -> None:
         examples = (

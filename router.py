@@ -398,6 +398,9 @@ def _count_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
         if intent == "cancel" and keyword in IMPLIED_CANCEL_KEYWORDS:
             continue
 
+        if not _contains_keyword(text, keyword):
+            continue
+
         if _is_ignored_keyword_context(text, intent, keyword):
             continue
 
@@ -408,8 +411,7 @@ def _count_keyword_hits(text: str, intent: str, keywords: Iterable[str]) -> int:
         ):
             continue
 
-        if _contains_keyword(text, keyword):
-            hits += 1
+        hits += 1
     return hits
 
 
