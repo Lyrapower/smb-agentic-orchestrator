@@ -172,8 +172,34 @@ def _has_informational_action_context(text: str, keyword: str) -> bool:
     )
 
 
+def _unless_clause_spans(text: str) -> tuple[tuple[int, int], ...]:
+    spans: list[tuple[int, int]] = []
+    for match in re.finditer(r"(?<!\w)unless\b", text):
+        after_unless = text[match.end() :]
+        boundary = re.search(r"(?:[.;!?]|,\s*(?:then|please|but|and|or)\b)", after_unless)
+        end = match.end() + boundary.start() if boundary else len(text)
+        spans.append((match.start(), end))
+
+    return tuple(spans)
+
+
+def _has_unless_condition_context(text: str, keyword: str) -> bool:
+    keyword_matches = tuple(re.finditer(_keyword_pattern(keyword), text))
+    if not keyword_matches:
+        return False
+
+    unless_spans = _unless_clause_spans(text)
+    return bool(unless_spans) and all(
+        any(start <= match.start() and match.end() <= end for start, end in unless_spans)
+        for match in keyword_matches
+    )
+
+
 def _is_ignored_keyword_context(text: str, intent: str, keyword: str) -> bool:
     if _has_informational_action_context(text, keyword):
+        return True
+
+    if _has_unless_condition_context(text, keyword):
         return True
 
     return (
@@ -419,8 +445,8 @@ def _count_negated_keyword_hits(text: str, intent: str, keywords: Iterable[str])
     return sum(
         1
         for keyword in keywords
-        if not _is_ignored_keyword_context(text, intent, keyword)
-        and _contains_keyword(text, keyword)
+        if _contains_keyword(text, keyword)
+        and not _is_ignored_keyword_context(text, intent, keyword)
         and _is_negated_keyword(text, intent, keyword)
     )
 

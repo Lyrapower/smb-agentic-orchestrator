@@ -387,6 +387,45 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "reschedule")
 
+    def test_unless_condition_actions_do_not_override_current_request(self) -> None:
+        examples = (
+            (
+                "Please cancel my appointment unless I ask you to reschedule it",
+                "cancel",
+            ),
+            (
+                "Please schedule a new appointment unless I call to cancel",
+                "schedule",
+            ),
+            (
+                "Please reschedule my appointment unless I ask you to cancel it",
+                "reschedule",
+            ),
+            (
+                "Unless I ask you to reschedule, please cancel my appointment",
+                "cancel",
+            ),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_negated_request_with_unless_condition_does_not_route_to_condition(self) -> None:
+        examples = (
+            "Do not cancel my appointment unless I ask you to reschedule it",
+            "Do not reschedule my appointment unless I ask you to cancel it",
+            "Do not schedule a new appointment unless I ask you to cancel it",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_comma_only_negated_mixed_action_lists_do_not_route_to_action(self) -> None:
         examples = (
             "Please do not schedule, cancel, reschedule",
