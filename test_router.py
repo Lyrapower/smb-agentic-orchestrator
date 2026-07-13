@@ -275,6 +275,24 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "cancel")
 
+    def test_negated_cancellation_processing_does_not_route_to_cancel(self) -> None:
+        examples = (
+            "Please do not process cancellation of my appointment",
+            "Please do not process my appointment cancellation",
+            "Please do not proceed with cancellation of my appointment",
+            "Please do not initiate cancellation of my appointment",
+            "Please do not submit a cancellation request for my appointment",
+            "Please do not start the cancellation process for my appointment",
+            "Please do not complete cancellation of my appointment",
+            "Please do not handle my appointment cancellation",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
