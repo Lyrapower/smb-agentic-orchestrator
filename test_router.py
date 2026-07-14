@@ -293,6 +293,21 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_negated_processing_in_prior_clause_does_not_hide_cancel_request(self) -> None:
+        examples = (
+            "I do not process claims but please cancel my appointment",
+            "I did not process the note, please start cancellation of my appointment",
+            "I did not start the paperwork. Please process cancellation of my appointment",
+            "I did not complete the form; please initiate cancellation of my appointment",
+            "I did not handle that request; instead cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),

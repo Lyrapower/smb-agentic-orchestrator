@@ -57,6 +57,10 @@ APOSTROPHE_TRANSLATION = str.maketrans(
 )
 NEGATION_GAP_TOKEN_PATTERN = r"[a-z0-9']+(?:[.-][a-z0-9']+)*(?:\.)?,?"
 NEGATION_NON_TO_GAP_TOKEN_PATTERN = rf"(?!to\b){NEGATION_GAP_TOKEN_PATTERN}"
+NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN = (
+    r"(?!(?:to|but|however|instead|yet)\b)"
+    r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
+)
 NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|under\s+any\s+circumstances|for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
@@ -72,6 +76,12 @@ DIRECT_OBJECT_NEGATION_VERB_PATTERN = (
     r"desire|desires|desired)"
 )
 DIRECT_OBJECT_ARTICLE_PATTERN = r"(?:a|an|any|another|the)"
+OPERATIONAL_NEGATION_VERB_PATTERN = (
+    r"(?:process|processes|processed|proceed|proceeds|proceeded|"
+    r"initiate|initiates|initiated|submit|submits|submitted|start|starts|started|"
+    r"begin|begins|began|begun|handle|handles|handled|complete|completes|completed|"
+    r"perform|performs|performed)"
+)
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
@@ -82,11 +92,10 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"|\s+(?:ask|asks|asked|tell|tells|told|instruct|instructs|instructed|"
     r"request|requests|requested|advise|advises|advised|direct|directs|directed|"
     r"order|orders|ordered|authorize|authorizes|authorized|urge|urges|urged|get|"
-    r"gets|got|have|has|had|make|makes|made|process|processes|processed|"
-    r"proceed|proceeds|proceeded|initiate|initiates|initiated|submit|submits|"
-    r"submitted|start|starts|started|begin|begins|began|begun|handle|handles|"
-    r"handled|complete|completes|completed|perform|performs|performed)"
+    r"gets|got|have|has|had|make|makes|made)"
     rf"(?:\s+{NEGATION_NON_TO_GAP_TOKEN_PATTERN}){{0,6}}(?:\s+to)?"
+    rf"|\s+{OPERATIONAL_NEGATION_VERB_PATTERN}"
+    rf"(?:\s+{NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN}){{0,6}}(?:\s+to)?"
     rf"|\s+(?:let|allow|permit)(?:\s+{NEGATION_NON_TO_GAP_TOKEN_PATTERN}){{1,6}}(?:\s+to)?"
     r")?"
 )
