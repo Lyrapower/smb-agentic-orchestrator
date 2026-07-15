@@ -56,7 +56,10 @@ APOSTROPHE_TRANSLATION = str.maketrans(
     }
 )
 NEGATION_GAP_TOKEN_PATTERN = r"[a-z0-9']+(?:[.-][a-z0-9']+)*(?:\.)?,?"
-NEGATION_NON_TO_GAP_TOKEN_PATTERN = rf"(?!to\b){NEGATION_GAP_TOKEN_PATTERN}"
+NEGATION_DELEGATED_GAP_TOKEN_PATTERN = (
+    r"(?!(?:to|but|however|instead|yet|please)\b)"
+    r"(?:(?:mr|mrs|ms|dr)\.|[a-z0-9']+(?:[.-][a-z0-9']+)*)"
+)
 NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN = (
     r"(?!(?:to|but|however|instead|yet)\b)"
     r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
@@ -93,10 +96,11 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"request|requests|requested|advise|advises|advised|direct|directs|directed|"
     r"order|orders|ordered|authorize|authorizes|authorized|urge|urges|urged|get|"
     r"gets|got|have|has|had|make|makes|made)"
-    rf"(?:\s+{NEGATION_NON_TO_GAP_TOKEN_PATTERN}){{0,6}}(?:\s+to)?"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}(?:,?\s+to)?"
     rf"|\s+{OPERATIONAL_NEGATION_VERB_PATTERN}"
     rf"(?:\s+{NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN}){{0,6}}(?:\s+to)?"
-    rf"|\s+(?:let|allow|permit)(?:\s+{NEGATION_NON_TO_GAP_TOKEN_PATTERN}){{1,6}}(?:\s+to)?"
+    rf"|\s+(?:let|allow|permit)"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{1,6}}(?:,?\s+to)?"
     r")?"
 )
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
