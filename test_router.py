@@ -308,6 +308,20 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "cancel")
 
+    def test_negated_delegation_in_prior_clause_does_not_hide_action_request(self) -> None:
+        examples = (
+            ("I did not make the payment, please cancel my appointment", "cancel"),
+            ("I did not ask for help but please cancel my appointment", "cancel"),
+            ("I did not tell them. Please reschedule my appointment", "reschedule"),
+            ("I do not allow cookies, please schedule a new appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
