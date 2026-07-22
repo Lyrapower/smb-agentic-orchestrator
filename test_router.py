@@ -326,8 +326,11 @@ class RouterTests(unittest.TestCase):
     def test_emphasis_inside_negated_delegation_does_not_route_to_action(self) -> None:
         examples = (
             "Please do not ask the office, under any circumstances, to cancel my appointment",
+            "Please do not ask the office, under no circumstances, to cancel my appointment",
             "Please do not tell the office, for any reason, to reschedule my appointment",
+            "Please do not tell the office, under no circumstances, to reschedule my appointment",
             "Please do not permit the clinic, ever, to book a new appointment",
+            "Please do not permit the clinic, under no circumstances, to book a new appointment",
             "Please do not ask them please to cancel my appointment",
         )
 

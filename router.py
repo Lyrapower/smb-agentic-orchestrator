@@ -65,7 +65,8 @@ NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN = (
     r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
 )
 NEGATION_EMPHASIS_PATTERN = (
-    r"(?:\s*,?\s*(?:ever|under\s+any\s+circumstances|for\s+any\s+reason|i\s+repeat)\s*,?)*"
+    r"(?:\s*,?\s*(?:ever|under\s+(?:any|no)\s+circumstances|"
+    r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|won't|wont|not|never)(?:\s+ever\b)?"
