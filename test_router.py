@@ -293,9 +293,24 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_appositive_inside_negated_processing_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not process my request, which is to cancel my appointment",
+            "Please do not process my request, which is to reschedule my appointment",
+            "Please do not process my request, which is to schedule a new appointment",
+            "Please do not handle my request, that is to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_negated_processing_in_prior_clause_does_not_hide_cancel_request(self) -> None:
         examples = (
             "I do not process claims but please cancel my appointment",
+            "I do not process claims, please cancel my appointment",
             "I did not process the note, please start cancellation of my appointment",
             "I did not start the paperwork. Please process cancellation of my appointment",
             "I did not complete the form; please initiate cancellation of my appointment",
@@ -322,6 +337,20 @@ class RouterTests(unittest.TestCase):
                 intent, _ = route_intent(text)
 
                 self.assertEqual(intent, expected_intent)
+
+    def test_appositive_inside_negated_delegation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not ask Sarah, my assistant, to cancel my appointment",
+            "Please do not ask Sarah, my assistant, to reschedule my appointment",
+            "Please do not ask Sarah, my assistant, to book a new appointment",
+            "Please do not tell Dr. Smith, my cardiologist, to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
 
     def test_emphasis_inside_negated_delegation_does_not_route_to_action(self) -> None:
         examples = (
