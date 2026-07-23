@@ -58,11 +58,11 @@ APOSTROPHE_TRANSLATION = str.maketrans(
 NEGATION_GAP_TOKEN_PATTERN = r"[a-z0-9']+(?:[.-][a-z0-9']+)*(?:\.)?,?"
 NEGATION_DELEGATED_GAP_TOKEN_PATTERN = (
     r"(?!(?:to|but|however|instead|yet|please)\b)"
-    r"(?:(?:mr|mrs|ms|dr)\.|[a-z0-9']+(?:[.-][a-z0-9']+)*)"
+    r"(?:(?:mr|mrs|ms|dr)\.|[a-z0-9']+(?:[.-][a-z0-9']+)*),?"
 )
 NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN = (
-    r"(?!(?:to|but|however|instead|yet)\b)"
-    r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
+    r"(?!(?:to|but|however|instead|yet|please)\b)"
+    r"[a-z0-9']+(?:[.-][a-z0-9']+)*,?"
 )
 NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|under\s+(?:any|no)\s+circumstances|"
