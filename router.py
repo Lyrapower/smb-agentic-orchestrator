@@ -56,13 +56,19 @@ APOSTROPHE_TRANSLATION = str.maketrans(
     }
 )
 NEGATION_GAP_TOKEN_PATTERN = r"[a-z0-9']+(?:[.-][a-z0-9']+)*(?:\.)?,?"
-NEGATION_DELEGATED_GAP_TOKEN_PATTERN = (
+NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN = (
     r"(?!(?:to|but|however|instead|yet|please)\b)"
-    r"(?:(?:mr|mrs|ms|dr)\.|[a-z0-9']+(?:[.-][a-z0-9']+)*),?"
+    r"(?:(?:mr|mrs|ms|dr)\.|[a-z0-9']+(?:[.-][a-z0-9']+)*)"
+)
+NEGATION_DELEGATED_GAP_TOKEN_PATTERN = (
+    rf"{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN},?"
+)
+NEGATION_SAME_CLAUSE_GAP_TOKEN_NO_COMMA_PATTERN = (
+    r"(?!(?:to|but|however|instead|yet|please)\b)"
+    r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
 )
 NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN = (
-    r"(?!(?:to|but|however|instead|yet|please)\b)"
-    r"[a-z0-9']+(?:[.-][a-z0-9']+)*,?"
+    rf"{NEGATION_SAME_CLAUSE_GAP_TOKEN_NO_COMMA_PATTERN},?"
 )
 NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|under\s+(?:any|no)\s+circumstances|"
@@ -97,13 +103,27 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"request|requests|requested|advise|advises|advised|direct|directs|directed|"
     r"order|orders|ordered|authorize|authorizes|authorized|urge|urges|urged|get|"
     r"gets|got|have|has|had|make|makes|made)"
+    r"(?:"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}"
-    rf"{NEGATION_EMPHASIS_PATTERN}(?:,?\s+to|\s+please\s+to)?"
+    rf"{NEGATION_EMPHASIS_PATTERN}(?:,?\s+to|\s+please\s+to)"
+    rf"|"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{0,6}}"
+    rf"{NEGATION_EMPHASIS_PATTERN}"
+    r")"
     rf"|\s+{OPERATIONAL_NEGATION_VERB_PATTERN}"
-    rf"(?:\s+{NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN}){{0,6}}(?:\s+to)?"
+    r"(?:"
+    rf"(?:\s+{NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN}){{0,6}}\s+to"
+    rf"|"
+    rf"(?:\s+{NEGATION_SAME_CLAUSE_GAP_TOKEN_NO_COMMA_PATTERN}){{0,6}}"
+    r")"
     rf"|\s+(?:let|allow|permit)"
+    r"(?:"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{1,6}}"
-    rf"{NEGATION_EMPHASIS_PATTERN}(?:,?\s+to|\s+please\s+to)?"
+    rf"{NEGATION_EMPHASIS_PATTERN}(?:,?\s+to|\s+please\s+to)"
+    rf"|"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{1,6}}"
+    rf"{NEGATION_EMPHASIS_PATTERN}"
+    r")"
     r")?"
 )
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
@@ -473,6 +493,8 @@ def _count_negated_keyword_hits(text: str, intent: str, keywords: Iterable[str])
 def route_intent(text: str) -> tuple[str, str]:
     """Classify intent by keyword matching without using an LLM."""
     normalized = text.strip().lower().translate(APOSTROPHE_TRANSLATION)
+    # Treat parenthetical asides like surrounding words so negation can span them.
+    normalized = re.sub(r"[()]", " ", normalized)
     if not normalized:
         return "no_action", "No content provided; no action selected."
 
