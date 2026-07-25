@@ -153,6 +153,23 @@ INFORMATIONAL_ACTION_NOUN_PATTERN = (
 )
 
 
+def _normalize_route_text(text: str) -> str:
+    """Normalize chat text so appositive punctuation does not break negation."""
+    normalized = text.strip().lower().translate(APOSTROPHE_TRANSLATION)
+    # Treat grouping/quote marks like surrounding words so negation can span them.
+    normalized = re.sub(r"[()\[\]\"\u201c\u201d]", " ", normalized)
+    # Ellipses are pauses, not tokens.
+    normalized = re.sub(r"\.{2,}", " ", normalized)
+    # Convert slash-joined phrases like Sarah/my assistant into separate tokens.
+    normalized = re.sub(r"(?<=[a-z0-9])/(?=[a-z0-9])", " ", normalized)
+    # Convert dash/colon appositives to commas so comma-bridge rules apply.
+    # Keep hyphenated names (Mary-Jane) and clock times (3:30).
+    normalized = re.sub(r"\s*[\u2013\u2014]+\s*", ", ", normalized)
+    normalized = re.sub(r"\s+-\s+", ", ", normalized)
+    normalized = re.sub(r":(?!\d)\s*", ", ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
 def _keyword_pattern(keyword: str) -> str:
     return rf"(?<!\w){re.escape(keyword)}(?!\w)"
 
@@ -492,9 +509,7 @@ def _count_negated_keyword_hits(text: str, intent: str, keywords: Iterable[str])
 
 def route_intent(text: str) -> tuple[str, str]:
     """Classify intent by keyword matching without using an LLM."""
-    normalized = text.strip().lower().translate(APOSTROPHE_TRANSLATION)
-    # Treat parenthetical asides like surrounding words so negation can span them.
-    normalized = re.sub(r"[()]", " ", normalized)
+    normalized = _normalize_route_text(text)
     if not normalized:
         return "no_action", "No content provided; no action selected."
 

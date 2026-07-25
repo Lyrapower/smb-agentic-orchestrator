@@ -301,6 +301,12 @@ class RouterTests(unittest.TestCase):
             "Please do not handle my request, that is to cancel my appointment",
             "Please do not process my request (which is to cancel my appointment)",
             "Please do not process my request (which is to reschedule my appointment)",
+            "Please do not process my request - which is to cancel my appointment",
+            "Please do not process my request – which is to reschedule my appointment",
+            "Please do not process my request — which is to schedule a new appointment",
+            "Please do not process my request: which is to cancel my appointment",
+            "Please do not process my request [which is to cancel my appointment]",
+            "Please do not process my request... which is to cancel my appointment",
         )
 
         for text in examples:
@@ -314,7 +320,11 @@ class RouterTests(unittest.TestCase):
             "I do not process claims but please cancel my appointment",
             "I do not process claims, please cancel my appointment",
             "I do not process claims, cancel my appointment",
+            "I do not process claims - cancel my appointment",
+            "I do not process claims — cancel my appointment",
+            "I do not process claims: cancel my appointment",
             "Please do not handle this, cancel my appointment",
+            "Please do not handle this - cancel my appointment",
             "Please do not handle billing, cancel my appointment",
             "Do not process this request, cancel my appointment",
             "I did not process the note, please start cancellation of my appointment",
@@ -370,6 +380,16 @@ class RouterTests(unittest.TestCase):
             "Please do not ask Sarah (my assistant) to cancel my appointment",
             "Please do not ask Sarah (my assistant) to reschedule my appointment",
             "Please do not tell Dr. Smith (my cardiologist) to cancel my appointment",
+            "Please do not ask Sarah - my assistant - to cancel my appointment",
+            "Please do not ask Sarah – my assistant – to reschedule my appointment",
+            "Please do not ask Sarah — my assistant — to book a new appointment",
+            "Please do not ask Sarah—my assistant—to cancel my appointment",
+            'Please do not ask "Sarah" to cancel my appointment',
+            'Please do not tell the "front desk" to reschedule my appointment',
+            "Please do not ask Sarah [my assistant] to cancel my appointment",
+            "Please do not ask Sarah/my assistant to cancel my appointment",
+            "Please do not ask Sarah... to cancel my appointment",
+            "Please do not ask Mary-Jane to cancel my appointment",
         )
 
         for text in examples:
