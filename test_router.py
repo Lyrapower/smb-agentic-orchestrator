@@ -304,9 +304,13 @@ class RouterTests(unittest.TestCase):
             "Please do not process my request - which is to cancel my appointment",
             "Please do not process my request – which is to reschedule my appointment",
             "Please do not process my request — which is to schedule a new appointment",
+            "Please do not process my request -- which is to cancel my appointment",
             "Please do not process my request: which is to cancel my appointment",
+            "Please do not process my request; which is to cancel my appointment",
             "Please do not process my request [which is to cancel my appointment]",
+            "Please do not process my request {which is to cancel my appointment}",
             "Please do not process my request... which is to cancel my appointment",
+            "Please do not process my request… which is to cancel my appointment",
         )
 
         for text in examples:
@@ -322,7 +326,9 @@ class RouterTests(unittest.TestCase):
             "I do not process claims, cancel my appointment",
             "I do not process claims - cancel my appointment",
             "I do not process claims — cancel my appointment",
+            "I do not process claims -- cancel my appointment",
             "I do not process claims: cancel my appointment",
+            "I do not process claims; cancel my appointment",
             "Please do not handle this, cancel my appointment",
             "Please do not handle this - cancel my appointment",
             "Please do not handle billing, cancel my appointment",
@@ -384,11 +390,18 @@ class RouterTests(unittest.TestCase):
             "Please do not ask Sarah – my assistant – to reschedule my appointment",
             "Please do not ask Sarah — my assistant — to book a new appointment",
             "Please do not ask Sarah—my assistant—to cancel my appointment",
+            "Please do not ask Sarah -- my assistant -- to cancel my appointment",
+            "Please do not ask Sarah--my assistant--to cancel my appointment",
+            "Please do not ask Sarah; my assistant; to cancel my appointment",
+            "Please do not ask Sarah; my assistant; to reschedule my appointment",
             'Please do not ask "Sarah" to cancel my appointment',
             'Please do not tell the "front desk" to reschedule my appointment',
             "Please do not ask Sarah [my assistant] to cancel my appointment",
+            "Please do not ask Sarah {my assistant} to cancel my appointment",
             "Please do not ask Sarah/my assistant to cancel my appointment",
+            "Please do not ask Sarah / my assistant to cancel my appointment",
             "Please do not ask Sarah... to cancel my appointment",
+            "Please do not ask Sarah… to cancel my appointment",
             "Please do not ask Mary-Jane to cancel my appointment",
         )
 
@@ -407,6 +420,26 @@ class RouterTests(unittest.TestCase):
             "Please do not permit the clinic, ever, to book a new appointment",
             "Please do not permit the clinic, under no circumstances, to book a new appointment",
             "Please do not ask them please to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_markdown_emphasis_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do *not* cancel my appointment",
+            "Please do *not* reschedule my appointment",
+            "Please do *not* schedule an appointment",
+            "Please do **not** cancel my appointment",
+            "Please do _not_ cancel my appointment",
+            "Please do __not__ reschedule my appointment",
+            "Please *do not* cancel my appointment",
+            "Please _do not_ book a new appointment",
+            "I do *not* want to cancel my appointment",
+            "Please do *not* ask Sarah to cancel my appointment",
         )
 
         for text in examples:
