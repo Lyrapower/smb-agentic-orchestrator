@@ -157,16 +157,27 @@ def _normalize_route_text(text: str) -> str:
     """Normalize chat text so appositive punctuation does not break negation."""
     normalized = text.strip().lower().translate(APOSTROPHE_TRANSLATION)
     # Treat grouping/quote marks like surrounding words so negation can span them.
-    normalized = re.sub(r"[()\[\]\"\u201c\u201d]", " ", normalized)
-    # Ellipses are pauses, not tokens.
-    normalized = re.sub(r"\.{2,}", " ", normalized)
+    normalized = re.sub(r"[()\[\]{}\"\u201c\u201d]", " ", normalized)
+    # Strip markdown emphasis so forms like *not* / _not_ still negate.
+    normalized = re.sub(r"[*_]+", " ", normalized)
+    # Soft hyphens are invisible line-break markers, not tokens.
+    normalized = normalized.replace("\u00ad", "")
+    # Ellipses (ASCII and unicode) are pauses, not tokens.
+    normalized = re.sub(r"\.{2,}|\u2026", " ", normalized)
     # Convert slash-joined phrases like Sarah/my assistant into separate tokens.
     normalized = re.sub(r"(?<=[a-z0-9])/(?=[a-z0-9])", " ", normalized)
-    # Convert dash/colon appositives to commas so comma-bridge rules apply.
+    normalized = re.sub(r"\s/\s", " ", normalized)
+    # Convert dash/colon/semicolon appositives to commas so comma-bridge rules apply.
     # Keep hyphenated names (Mary-Jane) and clock times (3:30).
-    normalized = re.sub(r"\s*[\u2013\u2014]+\s*", ", ", normalized)
+    # Include figure dash, en/em dashes, horizontal bar, minus, and ASCII --.
+    normalized = re.sub(
+        r"\s*[\u2012\u2013\u2014\u2015\u2212]+\s*",
+        ", ",
+        normalized,
+    )
+    normalized = re.sub(r"\s*--+\s*", ", ", normalized)
     normalized = re.sub(r"\s+-\s+", ", ", normalized)
-    normalized = re.sub(r":(?!\d)\s*", ", ", normalized)
+    normalized = re.sub(r"[:;](?!\d)\s*", ", ", normalized)
     return re.sub(r"\s+", " ", normalized).strip()
 
 
