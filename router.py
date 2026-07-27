@@ -155,9 +155,14 @@ INFORMATIONAL_ACTION_NOUN_PATTERN = (
 
 def _normalize_route_text(text: str) -> str:
     """Normalize chat text so appositive punctuation does not break negation."""
-    normalized = text.strip().lower().translate(APOSTROPHE_TRANSLATION)
+    normalized = text.strip().lower()
+    # Unwrap markdown code spans/fences (`not`, ``not``) before leftover lone
+    # backticks are treated as apostrophes (don`t -> don't).
+    normalized = re.sub(r"`{1,2}([^`]+)`{1,2}", r" \1 ", normalized)
+    normalized = normalized.translate(APOSTROPHE_TRANSLATION)
     # Treat grouping/quote marks like surrounding words so negation can span them.
-    normalized = re.sub(r"[()\[\]{}\"\u201c\u201d]", " ", normalized)
+    # Include ASCII angle brackets used for email-style appositives.
+    normalized = re.sub(r"[()\[\]{}\"\u201c\u201d<>]", " ", normalized)
     # Strip markdown emphasis so forms like *not* / _not_ still negate.
     normalized = re.sub(r"[*_]+", " ", normalized)
     # Soft hyphens are invisible line-break markers, not tokens.

@@ -309,6 +309,7 @@ class RouterTests(unittest.TestCase):
             "Please do not process my request; which is to cancel my appointment",
             "Please do not process my request [which is to cancel my appointment]",
             "Please do not process my request {which is to cancel my appointment}",
+            "Please do not process my request <which is to cancel my appointment>",
             "Please do not process my request... which is to cancel my appointment",
             "Please do not process my request… which is to cancel my appointment",
         )
@@ -398,6 +399,10 @@ class RouterTests(unittest.TestCase):
             'Please do not tell the "front desk" to reschedule my appointment',
             "Please do not ask Sarah [my assistant] to cancel my appointment",
             "Please do not ask Sarah {my assistant} to cancel my appointment",
+            "Please do not ask Sarah <my assistant> to cancel my appointment",
+            "Please do not ask Sarah <my assistant> to reschedule my appointment",
+            "Please do not ask Sarah <my assistant> to book a new appointment",
+            "Please do not ask <Sarah> to cancel my appointment",
             "Please do not ask Sarah/my assistant to cancel my appointment",
             "Please do not ask Sarah / my assistant to cancel my appointment",
             "Please do not ask Sarah... to cancel my appointment",
@@ -436,10 +441,15 @@ class RouterTests(unittest.TestCase):
             "Please do **not** cancel my appointment",
             "Please do _not_ cancel my appointment",
             "Please do __not__ reschedule my appointment",
+            "Please do `not` cancel my appointment",
+            "Please do `not` reschedule my appointment",
+            "Please do ``not`` cancel my appointment",
             "Please *do not* cancel my appointment",
             "Please _do not_ book a new appointment",
             "I do *not* want to cancel my appointment",
             "Please do *not* ask Sarah to cancel my appointment",
+            "Please do not ask `Sarah` to cancel my appointment",
+            "Please don`t cancel my appointment",
         )
 
         for text in examples:
