@@ -468,6 +468,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_html_emphasis_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do <b>not</b> cancel my appointment",
+            "Please do <b>not</b> reschedule my appointment",
+            "Please do <b>not</b> schedule an appointment",
+            "Please do <em>not</em> cancel my appointment",
+            "Please do <i>not</i> reschedule my appointment",
+            "Please do <strong>not</strong> cancel my appointment",
+            "Please <b>do not</b> cancel my appointment",
+            "Please <em>do not</em> schedule an appointment",
+            "Please do<span>not</span> cancel my appointment",
+            "Please do <span>not</span> cancel my appointment",
+            "Please do <b class=\"x\">not</b> cancel my appointment",
+            "Please do <B>NOT</B> cancel my appointment",
+            "Please do not ask Sarah <b>my assistant</b> to cancel my appointment",
+            "Please do not ask Sarah <em>my assistant</em> to reschedule my appointment",
+            "I do <b>not</b> want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
@@ -484,6 +509,9 @@ class RouterTests(unittest.TestCase):
             ("No, please cancel my appointment", "cancel"),
             ("No - please reschedule my appointment", "reschedule"),
             ("No, please schedule a new appointment", "schedule"),
+            ("Please <b>cancel</b> my appointment", "cancel"),
+            ("Please <em>reschedule</em> my appointment", "reschedule"),
+            ("I want to <strong>schedule</strong> an appointment", "schedule"),
         )
 
         for text, expected_intent in examples:

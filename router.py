@@ -160,6 +160,9 @@ def _normalize_route_text(text: str) -> str:
     # before leftover lone backticks are treated as apostrophes (don`t -> don't).
     normalized = re.sub(r"`+([^`]+)`+", r" \1 ", normalized)
     normalized = normalized.translate(APOSTROPHE_TRANSLATION)
+    # Strip HTML/XML tags from rich-text/email paste before leftover <> marks are
+    # spaced out; otherwise <b>not</b> becomes "b not /b" and breaks negation.
+    normalized = re.sub(r"</?[a-z][a-z0-9]*(?:\s[^>]*)?/?>", " ", normalized)
     # Treat grouping/quote marks like surrounding words so negation can span them.
     # Include ASCII angle brackets used for email-style appositives.
     normalized = re.sub(r"[()\[\]{}\"\u201c\u201d<>]", " ", normalized)
