@@ -536,6 +536,10 @@ class RouterTests(unittest.TestCase):
             ("Please <b>cancel</b> my appointment", "cancel"),
             ("Please <em>reschedule</em> my appointment", "reschedule"),
             ("I want to <strong>schedule</strong> an appointment", "schedule"),
+            ("Please\u200bcancel my appointment", "cancel"),
+            ("Please cancel\u200b my appointment", "cancel"),
+            ("Please\u200breschedule my appointment", "reschedule"),
+            ("Please\u200bschedule an appointment", "schedule"),
         )
 
         for text, expected_intent in examples:
