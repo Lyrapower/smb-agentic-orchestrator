@@ -493,6 +493,30 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_zero_width_glue_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not\u200bcancel my appointment",
+            "Please do not\u200b cancel my appointment",
+            "Please do\u200bnot cancel my appointment",
+            "Please don't\u200bcancel my appointment",
+            "Please don't\u200bwant to cancel my appointment",
+            "Please never\u200bcancel my appointment",
+            "Please do not ever\u200bcancel my appointment",
+            "Please do not\u200breschedule my appointment",
+            "Please do not\u200bschedule an appointment",
+            "Please do not\u200ccancel my appointment",
+            "Please do not\u200dcancel my appointment",
+            "Please do not\ufeffcancel my appointment",
+            "Please do not\u2060cancel my appointment",
+            "Please do\u200b not\u200b\u200bcancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
