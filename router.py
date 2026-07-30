@@ -170,6 +170,10 @@ def _normalize_route_text(text: str) -> str:
     normalized = re.sub(r"[*_~]+", " ", normalized)
     # Soft hyphens are invisible line-break markers, not tokens.
     normalized = normalized.replace("\u00ad", "")
+    # Zero-width format characters often appear from copy/paste (Word, Docs, PDF).
+    # Replace with spaces so "do not\u200bcancel" stays a negated phrase instead of
+    # gluing the action keyword past the negation boundary.
+    normalized = re.sub(r"[\u200b\u200c\u200d\u2060\ufeff]", " ", normalized)
     # Ellipses (ASCII and unicode) are pauses, not tokens.
     normalized = re.sub(r"\.{2,}|\u2026", " ", normalized)
     # Convert slash-joined phrases like Sarah/my assistant into separate tokens.
