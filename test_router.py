@@ -509,6 +509,23 @@ class RouterTests(unittest.TestCase):
             "Please do not\ufeffcancel my appointment",
             "Please do not\u2060cancel my appointment",
             "Please do\u200b not\u200b\u200bcancel my appointment",
+            # Bidirectional marks and isolates from email/chat RTL paste.
+            "Please do not\u200ecancel my appointment",
+            "Please do not\u200fcancel my appointment",
+            "Please do not\u202acancel my appointment",
+            "Please do not\u202bcancel my appointment",
+            "Please do not\u202ccancel my appointment",
+            "Please do not\u202dcancel my appointment",
+            "Please do not\u202ecancel my appointment",
+            "Please do not\u2066cancel my appointment",
+            "Please do not\u2067cancel my appointment",
+            "Please do not\u2068cancel my appointment",
+            "Please do not\u2069cancel my appointment",
+            "Please do not\u2061cancel my appointment",
+            "Please do not\u2062cancel my appointment",
+            "Please don't\u200ewant to cancel my appointment",
+            "Please do not\u200ereschedule my appointment",
+            "Please do not\u200eschedule an appointment",
         )
 
         for text in examples:
@@ -540,6 +557,11 @@ class RouterTests(unittest.TestCase):
             ("Please cancel\u200b my appointment", "cancel"),
             ("Please\u200breschedule my appointment", "reschedule"),
             ("Please\u200bschedule an appointment", "schedule"),
+            ("Please\u200ecancel my appointment", "cancel"),
+            ("Please cancel\u200e my appointment", "cancel"),
+            ("Please\u2066reschedule my appointment", "reschedule"),
+            ("Please\u202aschedule an appointment", "schedule"),
+            ("Please can\u00adcel my appointment", "cancel"),
         )
 
         for text, expected_intent in examples:

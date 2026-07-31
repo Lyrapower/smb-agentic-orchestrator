@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable
 
 
@@ -168,12 +169,15 @@ def _normalize_route_text(text: str) -> str:
     normalized = re.sub(r"[()\[\]{}\"\u201c\u201d<>]", " ", normalized)
     # Strip markdown emphasis so forms like *not* / _not_ / ~~not~~ still negate.
     normalized = re.sub(r"[*_~]+", " ", normalized)
-    # Soft hyphens are invisible line-break markers, not tokens.
+    # Soft hyphens are invisible line-break markers inside words; strip so
+    # "can\u00adcel" still matches "cancel". Remaining Unicode format chars (Cf)
+    # from copy/paste (ZWSP, LRM/RLM, bidi isolates/embeddings, BOM, etc.) are
+    # replaced with spaces so "do not\u200ecancel" stays a negated phrase instead
+    # of gluing the action keyword past the negation boundary.
     normalized = normalized.replace("\u00ad", "")
-    # Zero-width format characters often appear from copy/paste (Word, Docs, PDF).
-    # Replace with spaces so "do not\u200bcancel" stays a negated phrase instead of
-    # gluing the action keyword past the negation boundary.
-    normalized = re.sub(r"[\u200b\u200c\u200d\u2060\ufeff]", " ", normalized)
+    normalized = "".join(
+        " " if unicodedata.category(ch) == "Cf" else ch for ch in normalized
+    )
     # Ellipses (ASCII and unicode) are pauses, not tokens.
     normalized = re.sub(r"\.{2,}|\u2026", " ", normalized)
     # Convert slash-joined phrases like Sarah/my assistant into separate tokens.
