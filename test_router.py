@@ -534,6 +534,32 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_combining_mark_glue_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            # Combining diacritics from mobile/OCR paste on negation tokens.
+            "Please do not\u0301 cancel my appointment",
+            "Please do not\u0301cancel my appointment",
+            "Please do not\u0327 cancel my appointment",
+            "Please don't\u0301 cancel my appointment",
+            "Please never\u0301 cancel my appointment",
+            # Emoji/text variation selectors (Mn) after negation.
+            "Please do not\ufe0f cancel my appointment",
+            "Please do not\ufe0fcancel my appointment",
+            "Please don't\ufe0f want to cancel my appointment",
+            # Same class of glue on other appointment actions.
+            "Please do not\u0301 reschedule my appointment",
+            "Please do not\ufe0f schedule an appointment",
+            # Precomposed accented letters that NFD-fold into Mn marks.
+            "Please do n\u00f3t cancel my appointment",
+            "Please do n\u00f2t cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
@@ -562,6 +588,12 @@ class RouterTests(unittest.TestCase):
             ("Please\u2066reschedule my appointment", "reschedule"),
             ("Please\u202aschedule an appointment", "schedule"),
             ("Please can\u00adcel my appointment", "cancel"),
+            ("Please can\u0301cel my appointment", "cancel"),
+            ("Please ca\u0144cel my appointment", "cancel"),
+            ("Please\ufe0f cancel my appointment", "cancel"),
+            ("Please cancel\u0301 my appointment", "cancel"),
+            ("Please reschedule\u0301 my appointment", "reschedule"),
+            ("Please schedule\ufe0f an appointment", "schedule"),
         )
 
         for text, expected_intent in examples:
