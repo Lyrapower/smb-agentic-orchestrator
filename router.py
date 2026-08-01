@@ -174,9 +174,15 @@ def _normalize_route_text(text: str) -> str:
     # from copy/paste (ZWSP, LRM/RLM, bidi isolates/embeddings, BOM, etc.) are
     # replaced with spaces so "do not\u200ecancel" stays a negated phrase instead
     # of gluing the action keyword past the negation boundary.
+    # Combining/enclosing marks (Mn/Me), including variation selectors, are
+    # folded away after NFD so "do not\u0301 cancel" / "do not\ufe0f cancel"
+    # still negate and affirmative "can\u0301cel" still matches.
     normalized = normalized.replace("\u00ad", "")
+    normalized = unicodedata.normalize("NFD", normalized)
     normalized = "".join(
-        " " if unicodedata.category(ch) == "Cf" else ch for ch in normalized
+        " " if unicodedata.category(ch) == "Cf" else ch
+        for ch in normalized
+        if unicodedata.category(ch) not in {"Mn", "Me"}
     )
     # Ellipses (ASCII and unicode) are pauses, not tokens.
     normalized = re.sub(r"\.{2,}|\u2026", " ", normalized)
