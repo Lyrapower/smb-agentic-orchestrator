@@ -76,7 +76,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 NEGATION_PREFIX_PATTERN = (
-    r"(?:do\s+not|don't|dont|won't|wont|not|never)(?:\s+ever\b)?"
+    r"(?:do\s+not|don't|dont|donot|won't|wont|not|never)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
 NO_INTENT_NOUN_PATTERN = (
@@ -160,7 +160,13 @@ def _normalize_route_text(text: str) -> str:
     # Unwrap markdown code spans/fences of any length (`not`, ``not``, ```not```)
     # before leftover lone backticks are treated as apostrophes (don`t -> don't).
     normalized = re.sub(r"`+([^`]+)`+", r" \1 ", normalized)
+    # Translate apostrophe lookalikes before NFKC: NFKC would turn acute accent
+    # (don´t) into space+combining acute, which later Mn stripping breaks into
+    # "don t" and loses negation.
     normalized = normalized.translate(APOSTROPHE_TRANSLATION)
+    # Compatibility-normalize so fullwidth Latin (ｎｏｔ / ｃａｎｃｅｌ) and
+    # fullwidth punctuation from IME/CJK paste fold to ASCII before matching.
+    normalized = unicodedata.normalize("NFKC", normalized)
     # Strip HTML/XML tags from rich-text/email paste before leftover <> marks are
     # spaced out; otherwise <b>not</b> becomes "b not /b" and breaks negation.
     normalized = re.sub(r"</?[a-z][a-z0-9]*(?:\s[^>]*)?/?>", " ", normalized)
@@ -170,10 +176,12 @@ def _normalize_route_text(text: str) -> str:
     # Strip markdown emphasis so forms like *not* / _not_ / ~~not~~ still negate.
     normalized = re.sub(r"[*_~]+", " ", normalized)
     # Soft hyphens are invisible line-break markers inside words; strip so
-    # "can\u00adcel" still matches "cancel". Remaining Unicode format chars (Cf)
-    # from copy/paste (ZWSP, LRM/RLM, bidi isolates/embeddings, BOM, etc.) are
-    # replaced with spaces so "do not\u200ecancel" stays a negated phrase instead
-    # of gluing the action keyword past the negation boundary.
+    # "can\u00adcel" still matches "cancel". That can also glue "do\u00adnot" into
+    # "donot", which is treated as a negation prefix synonym below.
+    # Remaining Unicode format chars (Cf) from copy/paste (ZWSP, LRM/RLM, bidi
+    # isolates/embeddings, BOM, etc.) are replaced with spaces so
+    # "do not\u200ecancel" stays a negated phrase instead of gluing the action
+    # keyword past the negation boundary.
     # Combining/enclosing marks (Mn/Me), including variation selectors, are
     # folded away after NFD so "do not\u0301 cancel" / "do not\ufe0f cancel"
     # still negate and affirmative "can\u0301cel" still matches.
