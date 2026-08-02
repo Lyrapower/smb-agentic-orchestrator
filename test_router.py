@@ -560,6 +560,30 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_fullwidth_and_soft_hyphen_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            # Fullwidth Latin from CJK/IME paste on negation tokens.
+            "Please do \uff4e\uff4f\uff54 cancel my appointment",
+            "Please do \uff4e\uff4f\uff54 reschedule my appointment",
+            "Please do \uff4e\uff4f\uff54 schedule an appointment",
+            "Please do not \uff43\uff41\uff4e\uff43\uff45\uff4c my appointment",
+            "Please \uff44\uff4f\uff4e\uff07\uff54 cancel my appointment",
+            # Soft-hyphen between do/not strips to "donot"; keep it negated.
+            "Please do\u00adnot cancel my appointment",
+            "Please do\u00adnot reschedule my appointment",
+            "Please do\u00adnot schedule an appointment",
+            "Please donot cancel my appointment",
+            # Fullwidth punctuation appositives fold via NFKC.
+            "Please do not ask Sarah\uff0c my assistant\uff0c to cancel my appointment",
+            'Please do not ask \uff02Sarah\uff02 to cancel my appointment',
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
@@ -594,6 +618,10 @@ class RouterTests(unittest.TestCase):
             ("Please cancel\u0301 my appointment", "cancel"),
             ("Please reschedule\u0301 my appointment", "reschedule"),
             ("Please schedule\ufe0f an appointment", "schedule"),
+            ("Please \uff43\uff41\uff4e\uff43\uff45\uff4c my appointment", "cancel"),
+            ("Please \uff52\uff45\uff53\uff43\uff48\uff45\uff44\uff55\uff4c\uff45 my appointment", "reschedule"),
+            ("Please \uff53\uff43\uff48\uff45\uff44\uff55\uff4c\uff45 an appointment", "schedule"),
+            ('Please ask \uff02Sarah\uff02 to cancel my appointment', "cancel"),
         )
 
         for text, expected_intent in examples:
