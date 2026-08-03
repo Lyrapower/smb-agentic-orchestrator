@@ -171,8 +171,17 @@ def _normalize_route_text(text: str) -> str:
     # spaced out; otherwise <b>not</b> becomes "b not /b" and breaks negation.
     normalized = re.sub(r"</?[a-z][a-z0-9]*(?:\s[^>]*)?/?>", " ", normalized)
     # Treat grouping/quote marks like surrounding words so negation can span them.
-    # Include ASCII angle brackets used for email-style appositives.
-    normalized = re.sub(r"[()\[\]{}\"\u201c\u201d<>]", " ", normalized)
+    # Include ASCII angle brackets used for email-style appositives, European
+    # guillemets, low-9 quotes, and CJK corner/lenticular/angle brackets
+    # (including halfwidth forms that NFKC folds into these code points).
+    normalized = re.sub(
+        r"[()\[\]{}\"\u201c\u201d\u201e\u201a\u201f"
+        r"\u00ab\u00bb\u2039\u203a<>"
+        r"\u3008\u3009\u300a\u300b\u300c\u300d\u300e\u300f"
+        r"\u3010\u3011\u3014\u3015\u3016\u3017]",
+        " ",
+        normalized,
+    )
     # Strip markdown emphasis so forms like *not* / _not_ / ~~not~~ still negate.
     normalized = re.sub(r"[*_~]+", " ", normalized)
     # Soft hyphens are invisible line-break markers inside words; strip so
