@@ -584,6 +584,35 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_guillemet_and_cjk_bracket_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            # European guillemets / low quotes around delegated actors.
+            "Please do not ask \u00abSarah\u00bb to cancel my appointment",
+            "Please do not ask \u2039Sarah\u203a to cancel my appointment",
+            "Please do not ask \u201eSarah\u201c to cancel my appointment",
+            "Please do not ask \u201aSarah\u2018 to cancel my appointment",
+            "Please do not ask \u201fSarah\u201f to cancel my appointment",
+            "Please do not ask \u00abSarah, my assistant\u00bb to cancel my appointment",
+            # CJK corner / lenticular / angle brackets from chat paste.
+            "Please do not ask \u300cSarah\u300d to cancel my appointment",
+            "Please do not ask \u300eSarah\u300f to cancel my appointment",
+            "Please do not ask \u3010Sarah\u3011 to cancel my appointment",
+            "Please do not ask \u300aSarah\u300b to cancel my appointment",
+            "Please do not ask \u3008Sarah\u3009 to cancel my appointment",
+            "Please do not ask \u3016Sarah\u3017 to cancel my appointment",
+            "Please do not ask \u3014Sarah\u3015 to cancel my appointment",
+            # Halfwidth corners NFKC-fold into CJK corner brackets.
+            "Please do not ask \uff62Sarah\uff63 to cancel my appointment",
+            "Please do not ask \u300cSarah\u300d to reschedule my appointment",
+            "Please do not ask \u00abSarah\u00bb to schedule an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_direct_action_questions_still_route_to_action(self) -> None:
         examples = (
             ("Can you cancel my appointment?", "cancel"),
@@ -622,6 +651,10 @@ class RouterTests(unittest.TestCase):
             ("Please \uff52\uff45\uff53\uff43\uff48\uff45\uff44\uff55\uff4c\uff45 my appointment", "reschedule"),
             ("Please \uff53\uff43\uff48\uff45\uff44\uff55\uff4c\uff45 an appointment", "schedule"),
             ('Please ask \uff02Sarah\uff02 to cancel my appointment', "cancel"),
+            ("Please ask \u00abSarah\u00bb to cancel my appointment", "cancel"),
+            ("Please ask \u300cSarah\u300d to reschedule my appointment", "reschedule"),
+            ("Please ask \u3010Sarah\u3011 to schedule an appointment", "schedule"),
+            ("Please ask \uff62Sarah\uff63 to cancel my appointment", "cancel"),
         )
 
         for text, expected_intent in examples:
