@@ -96,6 +96,8 @@ OPERATIONAL_NEGATION_VERB_PATTERN = (
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
+    # Colloquial contractions of "want to" / "going to".
+    r"|\s+(?:wanna|gonna)"
     r"|\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"look|looks|looked|looking|seek|seeks|seeking|sought|"
