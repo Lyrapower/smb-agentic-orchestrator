@@ -75,6 +75,14 @@ class RouterTests(unittest.TestCase):
             "Please never, ever cancel my appointment",
             "Please confirm you won't cancel my appointment",
             "Please confirm you wont cancel my appointment",
+            "I shouldn't cancel my appointment",
+            "I shouldnt cancel my appointment",
+            "I mustn't cancel my appointment",
+            "I mustnt cancel my appointment",
+            "I wouldn't cancel my appointment",
+            "I wouldnt cancel my appointment",
+            "I couldn't cancel my appointment",
+            "I couldnt cancel my appointment",
             "Please don't call off my appointment",
             "Please do not drop appointment tomorrow",
             "Please never remove appointment from my calendar",
@@ -216,6 +224,10 @@ class RouterTests(unittest.TestCase):
             "Please do not request Nurse Jones, to move my appointment",
             "Please confirm you won't reschedule my appointment",
             "Please confirm you wont move my appointment",
+            "I shouldn't reschedule my appointment",
+            "I mustn't move my appointment",
+            "I wouldn't rebook this appointment",
+            "I couldn't reschedule my appointment",
         )
 
         for text in examples:
@@ -704,6 +716,10 @@ class RouterTests(unittest.TestCase):
             "Please do not request Nurse Jones, to book a new appointment",
             "Please confirm you won't schedule an appointment",
             "Please confirm you wont book a new appointment",
+            "I shouldn't schedule an appointment",
+            "I mustn't book a new appointment",
+            "I wouldn't schedule an appointment right now",
+            "I couldn't arrange a new appointment",
         )
 
         for text in examples:
@@ -711,6 +727,37 @@ class RouterTests(unittest.TestCase):
                 intent, _ = route_intent(text)
 
                 self.assertEqual(intent, "no_action")
+
+    def test_modal_contraction_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I shouldn't cancel my appointment",
+            "I mustn't cancel my appointment",
+            "I wouldn't cancel my appointment",
+            "I couldn't cancel my appointment",
+            "I shouldn't reschedule my appointment",
+            "I wouldn't schedule an appointment right now",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_affirmative_modals_still_route_to_action(self) -> None:
+        examples = (
+            ("I should cancel my appointment", "cancel"),
+            ("I must cancel my appointment", "cancel"),
+            ("I would like to cancel my appointment", "cancel"),
+            ("I should reschedule my appointment", "reschedule"),
+            ("I must schedule an appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
 
     def test_do_not_forget_positive_action_still_routes_to_cancel(self) -> None:
         examples = (

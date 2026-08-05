@@ -76,7 +76,9 @@ NEGATION_EMPHASIS_PATTERN = (
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 NEGATION_PREFIX_PATTERN = (
-    r"(?:do\s+not|don't|dont|donot|won't|wont|not|never)(?:\s+ever\b)?"
+    r"(?:do\s+not|don't|dont|donot|won't|wont|"
+    r"shouldn't|shouldnt|mustn't|mustnt|wouldn't|wouldnt|couldn't|couldnt|"
+    r"not|never)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
 NO_INTENT_NOUN_PATTERN = (
