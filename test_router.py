@@ -83,6 +83,12 @@ class RouterTests(unittest.TestCase):
             "I wouldnt cancel my appointment",
             "I couldn't cancel my appointment",
             "I couldnt cancel my appointment",
+            "I didn't cancel my appointment",
+            "I didnt cancel my appointment",
+            "I didn't want to cancel my appointment",
+            "I didnt want to cancel my appointment",
+            "I didn't ask you to cancel my appointment",
+            "I didn't tell them to cancel my appointment",
             "Please don't call off my appointment",
             "Please do not drop appointment tomorrow",
             "Please never remove appointment from my calendar",
@@ -743,6 +749,38 @@ class RouterTests(unittest.TestCase):
                 intent, _ = route_intent(text)
 
                 self.assertEqual(intent, "no_action")
+
+    def test_past_tense_didnt_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I didn't cancel my appointment",
+            "I didnt cancel my appointment",
+            "I didn’t cancel my appointment",
+            "I didn't want to cancel my appointment",
+            "I didn't ask you to cancel my appointment",
+            "I didn't tell them to reschedule",
+            "I didn't want to schedule an appointment",
+            "I didn't book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_affirmative_past_tense_still_routes_to_action(self) -> None:
+        examples = (
+            ("I did cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I didn't want Tuesday", "cancel"),
+            ("I did want to reschedule my appointment", "reschedule"),
+            ("I did book an appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
 
     def test_affirmative_modals_still_route_to_action(self) -> None:
         examples = (
