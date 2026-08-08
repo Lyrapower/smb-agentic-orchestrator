@@ -782,6 +782,49 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_adverb_bridge_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I don't really want to cancel my appointment",
+            "I don't actually want to cancel my appointment",
+            "I don't even want to cancel my appointment",
+            "I don't particularly want to reschedule my appointment",
+            "I don't currently plan to cancel my appointment",
+            "I'm not really going to cancel my appointment",
+            "I'm not really gonna cancel my appointment",
+            "I don't really wanna cancel my appointment",
+            "I don't even wanna reschedule my appointment",
+            "I don't really want a cancellation",
+            "I don't really think I need to cancel my appointment",
+            "I don't actually believe we should cancel my appointment",
+            "I'm not really looking to schedule an appointment",
+            "I don't particularly wish to schedule an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_affirmative_adverb_bridges_still_route_to_action(self) -> None:
+        examples = (
+            ("I really want to cancel my appointment", "cancel"),
+            ("I actually want to reschedule my appointment", "reschedule"),
+            ("I'm really going to cancel my appointment", "cancel"),
+            ("I really wanna schedule an appointment", "schedule"),
+            (
+                "Please cancel my appointment, I don't really want Tuesday",
+                "cancel",
+            ),
+            ("Please don't cancel, I really want to reschedule", "reschedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_affirmative_modals_still_route_to_action(self) -> None:
         examples = (
             ("I should cancel my appointment", "cancel"),

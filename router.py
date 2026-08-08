@@ -75,6 +75,13 @@ NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|under\s+(?:any|no)\s+circumstances|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
+# Hedge/intensifier adverbs that commonly sit between a negation and an intent
+# bridge ("don't really want to cancel") without changing refusal meaning.
+NEGATION_ADVERB_PATTERN = (
+    r"(?:really|actually|even|particularly|currently|also|still|always|"
+    r"just|quite|truly|simply|honestly|especially|generally|normally|"
+    r"usually|necessarily|exactly|literally)"
+)
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|donot|won't|wont|"
     r"shouldn't|shouldnt|mustn't|mustnt|wouldn't|wouldnt|couldn't|couldnt|"
@@ -99,9 +106,10 @@ OPERATIONAL_NEGATION_VERB_PATTERN = (
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
-    # Colloquial contractions of "want to" / "going to".
-    r"|\s+(?:wanna|gonna)"
-    r"|\s+(?:want|wants|wanted|wish|wishes|need|needs|needed|"
+    # Colloquial contractions of "want to" / "going to", with optional hedges.
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+(?:wanna|gonna)"
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+    r"(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"look|looks|looked|looking|seek|seeks|seeking|sought|"
     rf"going|mean|meant)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
@@ -323,7 +331,8 @@ def _is_ignored_keyword_context(text: str, intent: str, keyword: str) -> bool:
 def _has_negated_belief_before_keyword(text: str, keyword: str) -> bool:
     keyword_pattern = _keyword_pattern(keyword)
     if re.search(
-        rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+"
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
         r"(?:think|believe|feel|suppose|expect)"
         rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,4}}\s+"
         r"(?:need|needs|needed|want|wants|wanted|should|would|have|has|had|"
@@ -335,7 +344,8 @@ def _has_negated_belief_before_keyword(text: str, keyword: str) -> bool:
 
     return (
         re.search(
-            rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+"
+            rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+            rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
             r"(?:think|believe|feel|suppose|expect)"
             rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,5}}\s+"
             rf"{keyword_pattern}(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+"
@@ -349,7 +359,8 @@ def _has_negated_belief_before_keyword(text: str, keyword: str) -> bool:
 def _has_negated_direct_object_before_keyword(text: str, keyword: str) -> bool:
     return (
         re.search(
-            rf"(?<!\w){NEGATION_PREFIX_PATTERN}\s+"
+            rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+            rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
             rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}"
             rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,2}}\s+"
             rf"(?:{DIRECT_OBJECT_ARTICLE_PATTERN}\s+)?"
