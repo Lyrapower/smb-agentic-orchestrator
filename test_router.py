@@ -817,6 +817,15 @@ class RouterTests(unittest.TestCase):
                 "cancel",
             ),
             ("Please don't cancel, I really want to reschedule", "reschedule"),
+            # Rejected slot preference must not negate a later explicit action.
+            ("I don't want Tuesday, please cancel", "cancel"),
+            ("I don't really want Tuesday, please cancel", "cancel"),
+            (
+                "I don't actually want Tuesday, please cancel my appointment",
+                "cancel",
+            ),
+            ("I don't need Tuesday, please cancel", "cancel"),
+            ("I don't want that time, please reschedule", "reschedule"),
         )
 
         for text, expected_intent in examples:

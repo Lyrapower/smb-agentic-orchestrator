@@ -97,6 +97,16 @@ DIRECT_OBJECT_NEGATION_VERB_PATTERN = (
     r"desire|desires|desired)"
 )
 DIRECT_OBJECT_ARTICLE_PATTERN = r"(?:a|an|any|another|the)"
+# Determiners/prepositions that may sit between a negated want/need verb and its
+# noun object. Arbitrary content words are intentionally excluded so mixed
+# phrases like "I don't want Tuesday, please cancel" keep the affirmative action.
+DIRECT_OBJECT_PRE_NOUN_PATTERN = (
+    rf"(?:"
+    rf"(?:{DIRECT_OBJECT_ARTICLE_PATTERN}\s+)"
+    rf"|(?:(?:for|of)\s+(?:{DIRECT_OBJECT_ARTICLE_PATTERN}\s+)?)"
+    rf"|(?:(?:my|our|your|his|her|their)\s+)"
+    rf")"
+)
 OPERATIONAL_NEGATION_VERB_PATTERN = (
     r"(?:process|processes|processed|proceed|proceeds|proceeded|"
     r"initiate|initiates|initiated|submit|submits|submitted|start|starts|started|"
@@ -361,9 +371,8 @@ def _has_negated_direct_object_before_keyword(text: str, keyword: str) -> bool:
         re.search(
             rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
             rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
-            rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}"
-            rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,2}}\s+"
-            rf"(?:{DIRECT_OBJECT_ARTICLE_PATTERN}\s+)?"
+            rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+            rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
             rf"{_keyword_pattern(keyword)}",
             text,
         )
