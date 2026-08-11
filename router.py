@@ -85,7 +85,7 @@ NEGATION_ADVERB_PATTERN = (
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|donot|won't|wont|"
     r"shouldn't|shouldnt|mustn't|mustnt|wouldn't|wouldnt|couldn't|couldnt|"
-    r"didn't|didnt|"
+    r"didn't|didnt|wasn't|wasnt|weren't|werent|"
     r"not|never)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )

@@ -768,12 +768,39 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_past_tense_wasnt_werent_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I wasn't going to cancel my appointment",
+            "I wasnt going to cancel my appointment",
+            "I wasn’t going to cancel my appointment",
+            "I wasn't gonna cancel my appointment",
+            "I wasn't planning to cancel my appointment",
+            "I wasn't trying to cancel my appointment",
+            "We weren't going to cancel our appointment",
+            "We werent going to cancel our appointment",
+            "We weren’t going to reschedule",
+            "I wasn't going to schedule an appointment",
+            "I wasn't planning to book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_affirmative_past_tense_still_routes_to_action(self) -> None:
         examples = (
             ("I did cancel my appointment", "cancel"),
             ("Please cancel my appointment, I didn't want Tuesday", "cancel"),
             ("I did want to reschedule my appointment", "reschedule"),
             ("I did book an appointment", "schedule"),
+            ("I was going to cancel my appointment", "cancel"),
+            ("I was planning to cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I wasn't sure about Tuesday", "cancel"),
+            ("Please cancel my appointment, I wasn't going to make it", "cancel"),
+            ("I wasn't available Tuesday, please cancel", "cancel"),
+            ("Please reschedule, I wasn't able to come", "reschedule"),
         )
 
         for text, expected_intent in examples:
