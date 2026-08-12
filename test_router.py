@@ -789,6 +789,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_perfect_tense_havent_hadnt_hasnt_negations_do_not_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            "I haven't wanted to cancel my appointment",
+            "I havent wanted to cancel my appointment",
+            "I haven’t wanted to cancel my appointment",
+            "I haven't planned to cancel my appointment",
+            "I hadn't planned to cancel my appointment",
+            "I hadnt planned to cancel my appointment",
+            "I hadn’t wanted to cancel my appointment",
+            "She hasn't asked to cancel my appointment",
+            "She hasnt asked to cancel my appointment",
+            "She hasn’t asked to cancel my appointment",
+            "He hasn't told you to cancel my appointment",
+            "I haven't wanted to reschedule my appointment",
+            "I haven't planned to book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_affirmative_past_tense_still_routes_to_action(self) -> None:
         examples = (
             ("I did cancel my appointment", "cancel"),
@@ -801,6 +826,14 @@ class RouterTests(unittest.TestCase):
             ("Please cancel my appointment, I wasn't going to make it", "cancel"),
             ("I wasn't available Tuesday, please cancel", "cancel"),
             ("Please reschedule, I wasn't able to come", "reschedule"),
+            ("Please cancel my appointment, I haven't been able to make it", "cancel"),
+            ("I haven't been feeling well, please cancel", "cancel"),
+            ("She hasn't confirmed yet, please cancel", "cancel"),
+            ("I hadn't realized the conflict, please cancel", "cancel"),
+            ("I haven't canceled yet, please cancel", "cancel"),
+            ("I haven't heard back, please reschedule", "reschedule"),
+            ("I have wanted to cancel my appointment", "cancel"),
+            ("She has asked to cancel my appointment", "cancel"),
         )
 
         for text, expected_intent in examples:
