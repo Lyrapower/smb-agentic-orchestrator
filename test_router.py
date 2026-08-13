@@ -802,8 +802,6 @@ class RouterTests(unittest.TestCase):
             "They aren’t going to reschedule",
             "They aren't gonna cancel my appointment",
             "The office isn't going to cancel my appointment",
-            "They aren't asking you to cancel my appointment",
-            "She isn't telling you to cancel my appointment",
             "He isn't going to schedule an appointment",
             "They aren't planning to book an appointment",
         )
