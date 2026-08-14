@@ -812,6 +812,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_dialect_aint_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "He ain't going to cancel my appointment",
+            "He aint going to cancel my appointment",
+            "He ain’t going to cancel my appointment",
+            "He ain't gonna cancel my appointment",
+            "She ain't planning to cancel my appointment",
+            "She ain't trying to cancel my appointment",
+            "They ain't going to cancel my appointment",
+            "They aint going to cancel my appointment",
+            "They ain’t going to reschedule",
+            "They ain't gonna cancel my appointment",
+            "The office ain't going to cancel my appointment",
+            "He ain't going to schedule an appointment",
+            "They ain't planning to book an appointment",
+            "I ain't gonna cancel my appointment",
+            "Please confirm you ain't going to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_perfect_tense_havent_hadnt_hasnt_negations_do_not_route_to_action(
         self,
     ) -> None:
@@ -866,6 +891,12 @@ class RouterTests(unittest.TestCase):
             ("This isn't working, please cancel", "cancel"),
             ("She isn't confirmed yet, please cancel", "cancel"),
             ("Please reschedule, they aren't able to come", "reschedule"),
+            ("Please cancel my appointment, he ain't available Tuesday", "cancel"),
+            ("Please cancel my appointment, they ain't able to make it", "cancel"),
+            ("They ain't available Tuesday, please cancel", "cancel"),
+            ("He ain't coming, please cancel", "cancel"),
+            ("This ain't working, please cancel", "cancel"),
+            ("Please reschedule, they ain't able to come", "reschedule"),
         )
 
         for text, expected_intent in examples:
