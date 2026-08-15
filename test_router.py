@@ -837,6 +837,27 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_no_longer_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I no longer want to cancel my appointment",
+            "I no longer need to cancel my appointment",
+            "I no longer wish to cancel my appointment",
+            "I no longer plan to cancel my appointment",
+            "I no longer want to reschedule my appointment",
+            "I no longer want to schedule an appointment",
+            "I'm no longer going to cancel my appointment",
+            "I am no longer going to cancel my appointment",
+            "I'm no longer gonna cancel my appointment",
+            "I no longer want a cancellation",
+            "Please confirm you no longer want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_perfect_tense_havent_hadnt_hasnt_negations_do_not_route_to_action(
         self,
     ) -> None:
@@ -897,6 +918,15 @@ class RouterTests(unittest.TestCase):
             ("He ain't coming, please cancel", "cancel"),
             ("This ain't working, please cancel", "cancel"),
             ("Please reschedule, they ain't able to come", "reschedule"),
+            ("I want to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I no longer need Tuesday",
+                "cancel",
+            ),
+            ("I no longer need Tuesday, please cancel", "cancel"),
+            ("I no longer want Tuesday, please cancel", "cancel"),
+            ("I no longer can make it, please cancel", "cancel"),
+            ("Please reschedule, I no longer need that time", "reschedule"),
         )
 
         for text, expected_intent in examples:

@@ -89,7 +89,7 @@ NEGATION_PREFIX_PATTERN = (
     r"haven't|havent|hadn't|hadnt|hasn't|hasnt|"
     r"isn't|isnt|aren't|arent|"
     r"ain't|aint|"
-    r"not|never)(?:\s+ever\b)?"
+    r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
 NO_INTENT_NOUN_PATTERN = (
