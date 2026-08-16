@@ -837,6 +837,27 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_about_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not about to cancel my appointment",
+            "I am not about to cancel my appointment",
+            "I'm not about to reschedule my appointment",
+            "I'm not about to schedule an appointment",
+            "I wasn't about to cancel my appointment",
+            "He isn't about to cancel my appointment",
+            "He ain't about to cancel my appointment",
+            "They aren't about to cancel my appointment",
+            "I'm not really about to cancel my appointment",
+            "I'm not even about to cancel my appointment",
+            "Please confirm you are not about to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_no_longer_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I no longer want to cancel my appointment",
@@ -927,6 +948,12 @@ class RouterTests(unittest.TestCase):
             ("I no longer want Tuesday, please cancel", "cancel"),
             ("I no longer can make it, please cancel", "cancel"),
             ("Please reschedule, I no longer need that time", "reschedule"),
+            ("I'm about to cancel my appointment", "cancel"),
+            ("I am about to cancel my appointment", "cancel"),
+            ("I'm about to reschedule my appointment", "reschedule"),
+            ("Please cancel my appointment, I'm not about to make it", "cancel"),
+            ("I'm not about to make it, please cancel", "cancel"),
+            ("I'm not about Tuesday, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
