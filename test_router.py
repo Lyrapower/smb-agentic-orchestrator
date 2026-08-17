@@ -837,6 +837,30 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_supposed_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not supposed to cancel my appointment",
+            "I am not supposed to cancel my appointment",
+            "I'm not willing to cancel my appointment",
+            "I'm not ready to cancel my appointment",
+            "I'm not prepared to cancel my appointment",
+            "I'm not supposed to reschedule my appointment",
+            "I'm not supposed to schedule an appointment",
+            "I wasn't supposed to cancel my appointment",
+            "He isn't supposed to cancel my appointment",
+            "He ain't supposed to cancel my appointment",
+            "They aren't willing to cancel my appointment",
+            "I'm not really supposed to cancel my appointment",
+            "I'm not even willing to cancel my appointment",
+            "Please confirm you are not supposed to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_about_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not about to cancel my appointment",
@@ -954,6 +978,18 @@ class RouterTests(unittest.TestCase):
             ("Please cancel my appointment, I'm not about to make it", "cancel"),
             ("I'm not about to make it, please cancel", "cancel"),
             ("I'm not about Tuesday, please cancel", "cancel"),
+            ("I'm supposed to cancel my appointment", "cancel"),
+            ("I am willing to cancel my appointment", "cancel"),
+            ("I'm ready to cancel my appointment", "cancel"),
+            ("I'm prepared to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not supposed to make it",
+                "cancel",
+            ),
+            ("I'm not supposed to make it, please cancel", "cancel"),
+            ("I'm not ready Tuesday, please cancel", "cancel"),
+            ("I'm not willing to wait, please cancel", "cancel"),
+            ("I'm not prepared for Tuesday, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
