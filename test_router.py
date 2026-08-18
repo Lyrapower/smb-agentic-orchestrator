@@ -837,6 +837,34 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_progressive_delegated_gerund_negations_do_not_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            "I'm not asking you to cancel my appointment",
+            "I am not asking you to cancel my appointment",
+            "They aren't asking you to cancel my appointment",
+            "They aren't asking you to cancel",
+            "She isn't telling you to cancel my appointment",
+            "I'm not telling you to cancel my appointment",
+            "I'm not instructing you to cancel my appointment",
+            "I'm not requesting you to cancel my appointment",
+            "I'm not advising you to cancel my appointment",
+            "I'm not asking you to reschedule my appointment",
+            "I'm not asking you to schedule an appointment",
+            "I wasn't asking you to cancel my appointment",
+            "He isn't asking you to cancel my appointment",
+            "He ain't asking you to cancel my appointment",
+            "They aren't telling you to cancel my appointment",
+            "Please confirm you are not asking me to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_supposed_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not supposed to cancel my appointment",
@@ -990,6 +1018,15 @@ class RouterTests(unittest.TestCase):
             ("I'm not ready Tuesday, please cancel", "cancel"),
             ("I'm not willing to wait, please cancel", "cancel"),
             ("I'm not prepared for Tuesday, please cancel", "cancel"),
+            ("I'm asking you to cancel my appointment", "cancel"),
+            ("They are asking you to cancel my appointment", "cancel"),
+            ("Please ask them to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I'm not asking about Tuesday",
+                "cancel",
+            ),
+            ("I'm not asking about Tuesday, please cancel", "cancel"),
+            ("I'm not telling you about Tuesday, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
