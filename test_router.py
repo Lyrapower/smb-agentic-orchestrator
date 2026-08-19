@@ -865,6 +865,28 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_allowed_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not allowed to cancel my appointment",
+            "I am not allowed to cancel my appointment",
+            "I'm not permitted to cancel my appointment",
+            "I'm not allowed to reschedule my appointment",
+            "I'm not allowed to schedule an appointment",
+            "I wasn't allowed to cancel my appointment",
+            "He isn't allowed to cancel my appointment",
+            "He ain't allowed to cancel my appointment",
+            "They aren't permitted to cancel my appointment",
+            "I'm not really allowed to cancel my appointment",
+            "I'm not even permitted to cancel my appointment",
+            "Please confirm you are not allowed to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_supposed_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not supposed to cancel my appointment",
@@ -1027,6 +1049,16 @@ class RouterTests(unittest.TestCase):
             ),
             ("I'm not asking about Tuesday, please cancel", "cancel"),
             ("I'm not telling you about Tuesday, please cancel", "cancel"),
+            ("I'm allowed to cancel my appointment", "cancel"),
+            ("I'm permitted to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I'm not allowed to make it",
+                "cancel",
+            ),
+            ("I'm not allowed to make it, please cancel", "cancel"),
+            ("I'm not allowed Tuesday, please cancel", "cancel"),
+            ("I'm not permitted to wait, please cancel", "cancel"),
+            ("I'm not permitted Tuesday, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
