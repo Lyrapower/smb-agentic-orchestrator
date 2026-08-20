@@ -126,7 +126,7 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"look|looks|looked|looking|seek|seeks|seeking|sought|"
     rf"going|mean|meant|about|supposed|willing|ready|prepared|"
-    rf"allowed|permitted)"
+    rf"allowed|permitted|required|obligated|obliged)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
     r"|\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
     r"instruct|instructs|instructed|instructing|"

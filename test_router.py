@@ -887,6 +887,29 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_required_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not required to cancel my appointment",
+            "I am not required to cancel my appointment",
+            "I'm not obligated to cancel my appointment",
+            "I'm not obliged to cancel my appointment",
+            "I'm not required to reschedule my appointment",
+            "I'm not required to schedule an appointment",
+            "I wasn't required to cancel my appointment",
+            "He isn't required to cancel my appointment",
+            "He ain't required to cancel my appointment",
+            "They aren't obligated to cancel my appointment",
+            "I'm not really required to cancel my appointment",
+            "I'm not even obligated to cancel my appointment",
+            "Please confirm you are not required to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_supposed_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not supposed to cancel my appointment",
@@ -1059,6 +1082,18 @@ class RouterTests(unittest.TestCase):
             ("I'm not allowed Tuesday, please cancel", "cancel"),
             ("I'm not permitted to wait, please cancel", "cancel"),
             ("I'm not permitted Tuesday, please cancel", "cancel"),
+            ("I'm required to cancel my appointment", "cancel"),
+            ("I'm obligated to cancel my appointment", "cancel"),
+            ("I'm obliged to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not required to make it",
+                "cancel",
+            ),
+            ("I'm not required to make it, please cancel", "cancel"),
+            ("I'm not required Tuesday, please cancel", "cancel"),
+            ("I'm not obligated to wait, please cancel", "cancel"),
+            ("I'm not obligated Tuesday, please cancel", "cancel"),
+            ("I'm not obliged to wait, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
