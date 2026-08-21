@@ -910,6 +910,29 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_expected_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not expected to cancel my appointment",
+            "I am not expected to cancel my appointment",
+            "I don't expect to cancel my appointment",
+            "I'm not expecting to cancel my appointment",
+            "I'm not expected to reschedule my appointment",
+            "I'm not expected to schedule an appointment",
+            "I wasn't expected to cancel my appointment",
+            "He isn't expected to cancel my appointment",
+            "He ain't expected to cancel my appointment",
+            "They aren't expecting to cancel my appointment",
+            "I'm not really expected to cancel my appointment",
+            "I'm not even expecting to cancel my appointment",
+            "Please confirm you are not expected to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_supposed_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not supposed to cancel my appointment",
@@ -1094,6 +1117,17 @@ class RouterTests(unittest.TestCase):
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
             ("I'm not obliged to wait, please cancel", "cancel"),
+            ("I'm expected to cancel my appointment", "cancel"),
+            ("I expect to cancel my appointment", "cancel"),
+            ("I'm expecting to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not expected to make it",
+                "cancel",
+            ),
+            ("I'm not expected to make it, please cancel", "cancel"),
+            ("I'm not expected Tuesday, please cancel", "cancel"),
+            ("I don't expect to wait, please cancel", "cancel"),
+            ("I'm not expecting Tuesday, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
