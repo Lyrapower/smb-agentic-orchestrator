@@ -957,6 +957,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_mandated_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not mandated to cancel my appointment",
+            "I am not mandated to cancel my appointment",
+            "I'm not pressured to cancel my appointment",
+            "I'm not coerced to cancel my appointment",
+            "I'm not pressuring you to cancel my appointment",
+            "I'm not mandated to reschedule my appointment",
+            "I'm not pressured to schedule an appointment",
+            "I wasn't mandated to cancel my appointment",
+            "He isn't pressured to cancel my appointment",
+            "He ain't coerced to cancel my appointment",
+            "They aren't mandated to cancel my appointment",
+            "I'm not really mandated to cancel my appointment",
+            "I'm not even pressured to cancel my appointment",
+            "Please don't pressure the office to cancel my appointment",
+            "Please confirm you are not mandated to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_supposed_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not supposed to cancel my appointment",
@@ -1163,6 +1188,20 @@ class RouterTests(unittest.TestCase):
             ("I'm not forced Tuesday, please cancel", "cancel"),
             ("I'm not compelled to wait, please cancel", "cancel"),
             ("I'm not compelled Tuesday, please cancel", "cancel"),
+            ("I'm mandated to cancel my appointment", "cancel"),
+            ("I'm pressured to cancel my appointment", "cancel"),
+            ("I'm coerced to cancel my appointment", "cancel"),
+            ("I'm pressuring you to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not mandated to make it",
+                "cancel",
+            ),
+            ("I'm not mandated to make it, please cancel", "cancel"),
+            ("I'm not mandated Tuesday, please cancel", "cancel"),
+            ("I'm not pressured to wait, please cancel", "cancel"),
+            ("I'm not pressured Tuesday, please cancel", "cancel"),
+            ("I'm not coerced to wait, please cancel", "cancel"),
+            ("I'm not coerced Tuesday, please cancel", "cancel"),
         )
 
         for text, expected_intent in examples:
