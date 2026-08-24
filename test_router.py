@@ -812,6 +812,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_present_tense_doesnt_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "He doesn't want to cancel my appointment",
+            "He doesnt want to cancel my appointment",
+            "He doesn’t want to cancel my appointment",
+            "He doesn't wanna cancel my appointment",
+            "She doesn't need to cancel my appointment",
+            "She doesn't plan to cancel my appointment",
+            "The office doesn't want to cancel my appointment",
+            "He doesn't want you to cancel my appointment",
+            "He doesn't ask you to cancel my appointment",
+            "He doesn't want to reschedule my appointment",
+            "He doesn't want to schedule an appointment",
+            "Please confirm he doesn't cancel my appointment",
+            "He doesn't cancel my appointment",
+            "She doesn't reschedule my appointment",
+            "He doesn't really want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_dialect_aint_negations_do_not_route_to_action(self) -> None:
         examples = (
             "He ain't going to cancel my appointment",
@@ -1202,6 +1227,18 @@ class RouterTests(unittest.TestCase):
             ("I'm not pressured Tuesday, please cancel", "cancel"),
             ("I'm not coerced to wait, please cancel", "cancel"),
             ("I'm not coerced Tuesday, please cancel", "cancel"),
+            ("He does want to cancel my appointment", "cancel"),
+            ("He wants to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, he doesn't want Tuesday",
+                "cancel",
+            ),
+            ("He doesn't want Tuesday, please cancel", "cancel"),
+            ("He doesn't want to wait, please cancel", "cancel"),
+            ("Please cancel, he doesn't want to make it", "cancel"),
+            ("Please reschedule, he doesn't want that time", "reschedule"),
+            ("This doesn't work, please cancel", "cancel"),
+            ("He doesn't, please cancel my appointment", "cancel"),
         )
 
         for text, expected_intent in examples:
