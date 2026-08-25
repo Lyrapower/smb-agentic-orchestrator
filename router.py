@@ -131,7 +131,7 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"force|forces|forced|forcing|compel|compels|compelled|compelling|"
     rf"mandate|mandates|mandated|mandating|"
     rf"pressure|pressures|pressured|pressuring|"
-    rf"coerce|coerces|coerced|coercing)"
+    rf"coerce|coerces|coerced|coercing|being)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
     r"|\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
     r"instruct|instructs|instructed|instructing|"
