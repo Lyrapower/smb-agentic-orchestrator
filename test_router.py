@@ -1011,6 +1011,35 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_be_auxiliary_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please don't be asking them to cancel my appointment",
+            "Please don't be asking the office to cancel my appointment",
+            "Don't be asking them to cancel my appointment",
+            "Please do not be asking them to cancel my appointment",
+            "Please don't be telling them to cancel my appointment",
+            "Please don't be trying to cancel my appointment",
+            "Please don't be going to cancel my appointment",
+            "Please don't be forced to cancel my appointment",
+            "I won't be asking you to cancel my appointment",
+            "Please don't really be asking them to cancel my appointment",
+            "Please don't be asking them to reschedule my appointment",
+            "Please don't be asking them to schedule an appointment",
+            "I have not been going to cancel my appointment",
+            "I haven't been going to cancel my appointment",
+            "I haven't been trying to cancel my appointment",
+            "I haven't been asked to cancel my appointment",
+            "They haven't been going to cancel my appointment",
+            "I hadn't been going to cancel my appointment",
+            "He ain't been going to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_mandated_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not mandated to cancel my appointment",
@@ -1268,6 +1297,14 @@ class RouterTests(unittest.TestCase):
             ("I'm not being forced to wait, please cancel", "cancel"),
             ("I'm not being asked about Tuesday, please cancel", "cancel"),
             ("Please reschedule, I'm not being forced to wait", "reschedule"),
+            ("Please don't be late, cancel my appointment", "cancel"),
+            ("Don't be silly, cancel my appointment", "cancel"),
+            ("Please don't be late to cancel my appointment", "cancel"),
+            ("I haven't been able to cancel my appointment", "cancel"),
+            ("Please cancel my appointment, don't be asking about Tuesday", "cancel"),
+            ("Don't be asking about Tuesday, please cancel", "cancel"),
+            ("I haven't been going Tuesday, please cancel", "cancel"),
+            ("I haven't been trying to wait, please cancel", "cancel"),
             ("He does want to cancel my appointment", "cancel"),
             ("He wants to cancel my appointment", "cancel"),
             (

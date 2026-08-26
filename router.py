@@ -82,6 +82,11 @@ NEGATION_ADVERB_PATTERN = (
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
     r"usually|necessarily|exactly|literally)"
 )
+# Whole-token auxiliaries that may sit between a negation and an already
+# recognized intent-bridge or delegated verb ("don't be asking them to cancel",
+# "haven't been going to cancel"). Keep these bounded so "been able to cancel"
+# stays a help request rather than a refusal.
+NEGATION_BE_AUXILIARY_PATTERN = r"(?:be|been)"
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|donot|doesn't|doesnt|won't|wont|"
     r"shouldn't|shouldnt|mustn't|mustnt|wouldn't|wouldnt|couldn't|couldnt|"
@@ -121,7 +126,8 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"\s+to"
     # Colloquial contractions of "want to" / "going to", with optional hedges.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+(?:wanna|gonna)"
-    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     r"(?:want|wants|wanted|wish|wishes|need|needs|needed|"
     r"intend|intends|intended|plan|plans|planned|planning|try|trying|"
     r"look|looks|looked|looking|seek|seeks|seeking|sought|"
@@ -133,7 +139,9 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"pressure|pressures|pressured|pressuring|"
     rf"coerce|coerces|coerced|coercing|being)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
-    r"|\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
+    r"\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
     r"instruct|instructs|instructed|instructing|"
     r"request|requests|requested|requesting|advise|advises|advised|advising|"
     r"direct|directs|directed|directing|order|orders|ordered|ordering|"
