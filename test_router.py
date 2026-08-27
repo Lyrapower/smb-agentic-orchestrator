@@ -1011,6 +1011,31 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_intent_bridge_gerund_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not intending to cancel my appointment",
+            "I am not intending to cancel my appointment",
+            "I'm not meaning to cancel my appointment",
+            "I'm not wanting to cancel my appointment",
+            "I'm not hoping to cancel my appointment",
+            "I'm not intending to reschedule my appointment",
+            "I'm not intending to schedule an appointment",
+            "I wasn't intending to cancel my appointment",
+            "He isn't intending to cancel my appointment",
+            "He ain't intending to cancel my appointment",
+            "They aren't intending to cancel my appointment",
+            "I'm not really intending to cancel my appointment",
+            "I'm not even hoping to cancel my appointment",
+            "Please don't be intending to cancel my appointment",
+            "Please confirm you are not intending to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_be_auxiliary_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Please don't be asking them to cancel my appointment",
@@ -1301,6 +1326,21 @@ class RouterTests(unittest.TestCase):
             ("Don't be silly, cancel my appointment", "cancel"),
             ("Please don't be late to cancel my appointment", "cancel"),
             ("I haven't been able to cancel my appointment", "cancel"),
+            ("I'm intending to cancel my appointment", "cancel"),
+            ("I'm meaning to cancel my appointment", "cancel"),
+            ("I'm wanting to cancel my appointment", "cancel"),
+            ("I'm hoping to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not intending to make it",
+                "cancel",
+            ),
+            ("I'm not intending to make it, please cancel", "cancel"),
+            ("I'm not intending Tuesday, please cancel", "cancel"),
+            ("I'm not intending to wait, please cancel", "cancel"),
+            ("I'm not meaning to wait, please cancel", "cancel"),
+            ("I'm not wanting Tuesday, please cancel", "cancel"),
+            ("I'm not hoping to wait, please cancel", "cancel"),
+            ("Please reschedule, I'm not intending to wait", "reschedule"),
             ("Please cancel my appointment, don't be asking about Tuesday", "cancel"),
             ("Don't be asking about Tuesday, please cancel", "cancel"),
             ("I haven't been going Tuesday, please cancel", "cancel"),
