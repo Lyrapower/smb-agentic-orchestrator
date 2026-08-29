@@ -129,6 +129,7 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     r"(?:want|wants|wanted|wanting|wish|wishes|wished|wishing|need|needs|needed|needing|"
+    r"desire|desires|desired|desiring|"
     r"intend|intends|intended|intending|plan|plans|planned|planning|try|trying|"
     r"look|looks|looked|looking|seek|seeks|seeking|sought|"
     rf"going|mean|meant|meaning|hope|hopes|hoped|hoping|about|supposed|willing|ready|prepared|"
