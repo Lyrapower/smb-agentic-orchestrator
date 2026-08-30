@@ -1056,6 +1056,34 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_try_and_and_go_ahead_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please don't try and cancel my appointment",
+            "Please do not try and cancel my appointment",
+            "Please don't try and reschedule my appointment",
+            "Please don't try and schedule an appointment",
+            "I don't try and cancel my appointment",
+            "Please don't really try and cancel my appointment",
+            "Please don't be trying and cancel my appointment",
+            "Please don't try and cancel or reschedule my appointment",
+            "Please do not go ahead and cancel my appointment",
+            "Please don't go ahead and cancel my appointment",
+            "Don't go ahead and cancel my appointment",
+            "Never go ahead and cancel my appointment",
+            "Please do not go ahead and reschedule my appointment",
+            "Please don't go ahead and schedule an appointment",
+            "Please don't go ahead to cancel my appointment",
+            "Please don't really go ahead and cancel my appointment",
+            "Please do not, under any circumstances, go ahead and cancel my appointment",
+            "Please don't go ahead and cancel or reschedule my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_be_auxiliary_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Please don't be asking them to cancel my appointment",
@@ -1387,6 +1415,23 @@ class RouterTests(unittest.TestCase):
             ("Please reschedule, I'm not intending to wait", "reschedule"),
             ("Please reschedule, I don't hope to wait", "reschedule"),
             ("Please reschedule, I don't desire to wait", "reschedule"),
+            ("Please try and cancel my appointment", "cancel"),
+            ("Please go ahead and cancel my appointment", "cancel"),
+            ("Please go ahead and reschedule my appointment", "reschedule"),
+            ("Please don't try and wait, please cancel", "cancel"),
+            ("Please don't try and wait, please cancel my appointment", "cancel"),
+            ("I don't try Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I don't try and wait",
+                "cancel",
+            ),
+            ("Please don't go ahead and wait, please cancel", "cancel"),
+            ("Please don't go ahead Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, don't go ahead and wait",
+                "cancel",
+            ),
+            ("Please don't go, cancel my appointment", "cancel"),
             ("Please cancel my appointment, don't be asking about Tuesday", "cancel"),
             ("Don't be asking about Tuesday, please cancel", "cancel"),
             ("I haven't been going Tuesday, please cancel", "cancel"),

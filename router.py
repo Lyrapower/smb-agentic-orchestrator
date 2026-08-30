@@ -140,6 +140,13 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"pressure|pressures|pressured|pressuring|"
     rf"coerce|coerces|coerced|coercing|being)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
+    # Colloquial "try and cancel" is synonymous with already-handled "try to cancel".
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
+    r"(?:try|trying)"
+    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+and"
+    # "go ahead and/to cancel" is a proceed-to-action idiom, not a generic "go".
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+go\s+ahead(?:\s+(?:and|to))?"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
     r"\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
