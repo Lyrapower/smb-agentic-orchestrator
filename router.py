@@ -125,7 +125,10 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
     # Colloquial contractions of "want to" / "going to", with optional hedges.
+    # Also "gonna/wanna try to/and cancel", which the bare contraction path
+    # cannot reach because it expects the action keyword immediately after.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+(?:wanna|gonna)"
+    rf"(?:\s+(?:try|trying)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+(?:to|and))?"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     r"(?:want|wants|wanted|wanting|wish|wishes|wished|wishing|need|needs|needed|needing|"
@@ -141,12 +144,18 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"coerce|coerces|coerced|coercing|being)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
     # Colloquial "try and cancel" is synonymous with already-handled "try to cancel".
+    # Nested "going/want/about to try and cancel" needs the to-taking bridge before
+    # try-and; the generic to-path only accepts "to", so "try and" never attached.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
+    r"(?:(?:going|want|wants|wanted|wanting|about|"
+    r"plan|plans|planned|planning|intend|intends|intended|intending)"
+    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+)?"
     r"(?:try|trying)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+and"
-    # "go ahead and/to cancel" is a proceed-to-action idiom, not a generic "go".
-    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+go\s+ahead(?:\s+(?:and|to))?"
+    # "go ahead and/to/with cancel" is a proceed-to-action idiom, not a generic "go".
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+go\s+ahead"
+    rf"(?:\s+(?:and|to|with(?:\s+(?:{DIRECT_OBJECT_ARTICLE_PATTERN}|my|our|your|his|her|their|this|that))?))?"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
     r"\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
