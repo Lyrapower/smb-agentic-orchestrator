@@ -105,6 +105,11 @@ DIRECT_OBJECT_NEGATION_VERB_PATTERN = (
     r"desire|desires|desired)"
 )
 DIRECT_OBJECT_ARTICLE_PATTERN = r"(?:a|an|any|another|the)"
+# Determiners allowed after "go ahead/through with" so "with the cancellation"
+# attaches while "with Tuesday, please cancel" stays a mixed-message action.
+GO_AHEAD_DETERMINER_PATTERN = (
+    rf"(?:{DIRECT_OBJECT_ARTICLE_PATTERN}|my|our|your|his|her|their|this|that)"
+)
 # Determiners/prepositions that may sit between a negated want/need verb and its
 # noun object. Arbitrary content words are intentionally excluded so mixed
 # phrases like "I don't want Tuesday, please cancel" keep the affirmative action.
@@ -125,10 +130,18 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
     r"\s+to"
     # Colloquial contractions of "want to" / "going to", with optional hedges.
-    # Also "gonna/wanna try to/and cancel", which the bare contraction path
-    # cannot reach because it expects the action keyword immediately after.
+    # Also "gonna/wanna try to/and cancel" and "gonna/wanna go ahead and/to/with
+    # cancel", which the bare contraction path cannot reach because it expects
+    # the action keyword immediately after.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+(?:wanna|gonna)"
-    rf"(?:\s+(?:try|trying)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+(?:to|and))?"
+    rf"(?:"
+    rf"\s+(?:try|trying)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+(?:to|and)"
+    rf"|"
+    rf"\s+go\s+ahead"
+    rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
+    rf"|"
+    rf"\s+go\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
+    rf")?"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     r"(?:want|wants|wanted|wanting|wish|wishes|wished|wishing|need|needs|needed|needing|"
@@ -153,9 +166,18 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+)?"
     r"(?:try|trying)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+and"
-    # "go ahead and/to/with cancel" is a proceed-to-action idiom, not a generic "go".
-    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+go\s+ahead"
-    rf"(?:\s+(?:and|to|with(?:\s+(?:{DIRECT_OBJECT_ARTICLE_PATTERN}|my|our|your|his|her|their|this|that))?))?"
+    # "go ahead and/to/with" and "go through with" are proceed-to-action idioms,
+    # not a generic "go". Nested "going/want/about to go ahead and cancel" needs
+    # the to-taking bridge before the idiom; progressive "going ahead/through
+    # with" is the same shape as already-handled "trying".
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
+    r"(?:(?:going|want|wants|wanted|wanting|about|"
+    r"plan|plans|planned|planning|intend|intends|intended|intending)"
+    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+)?"
+    r"(?:go(?:ing)?\s+ahead"
+    rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
+    rf"|go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?)"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
     r"\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
