@@ -128,6 +128,27 @@ INTENT_BRIDGE_TO_TAKING_VERB_PATTERN = (
     r"pressure|pressures|pressured|pressuring|"
     r"coerce|coerces|coerced|coercing|being)"
 )
+# Delegated speech/causative verbs that take a person object then "to <action>".
+# Shared by the generic delegated path and by nested "ask them to try and" /
+# "tell them to go ahead/through with".
+NEGATION_DELEGATED_VERB_PATTERN = (
+    r"(?:ask|asks|asked|asking|tell|tells|told|telling|"
+    r"instruct|instructs|instructed|instructing|"
+    r"request|requests|requested|requesting|advise|advises|advised|advising|"
+    r"direct|directs|directed|directing|order|orders|ordered|ordering|"
+    r"authorize|authorizes|authorized|authorizing|urge|urges|urged|urging|get|"
+    r"gets|got|have|has|had|make|makes|made)"
+)
+# Optional nested "VERB (object) to" before try-and / go-ahead / go-through-with.
+# To-taking bridges keep the existing 0-3 generic gaps. Delegated/let verbs use
+# the delegated gap, which will not skip past "to", so "ask them to try and"
+# attaches while "ask them to wait, please cancel" stays mixed-message executable.
+NEGATION_NESTED_TO_COMPLEMENT_PREFIX_PATTERN = (
+    rf"(?:(?:{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN})"
+    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+"
+    rf"|(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}\s+to\s+)?"
+)
 # Determiners/prepositions that may sit between a negated want/need verb and its
 # noun object. Arbitrary content words are intentionally excluded so mixed
 # phrases like "I don't want Tuesday, please cancel" keep the affirmative action.
@@ -167,32 +188,29 @@ NEGATION_TARGET_GAP_PATTERN = (
     # Colloquial "try and cancel" is synonymous with already-handled "try to cancel".
     # Nested "hoping/looking/going to try and cancel" needs the same to-taking
     # bridge before try-and; the generic to-path only accepts "to", so "try and"
-    # never attached.
+    # never attached. Delegated "ask/tell/have them to try and cancel" needs the
+    # same nested prefix; "to" is excluded from delegated gaps, so the generic
+    # delegated path stops at "to try" instead of the action keyword.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
-    rf"(?:(?:{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN})"
-    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+)?"
+    rf"{NEGATION_NESTED_TO_COMPLEMENT_PREFIX_PATTERN}"
     r"(?:try|trying)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+and"
     # "go ahead and/to/with" and "go through with" are proceed-to-action idioms,
     # not a generic "go". Nested "hoping/looking/going to go ahead and cancel"
     # needs the same to-taking bridge before the idiom; progressive
     # "going ahead/through with" is the same shape as already-handled "trying".
+    # Delegated "ask/tell/allow them to go ahead/through with" uses the same
+    # nested prefix as try-and.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
-    rf"(?:(?:{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN})"
-    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to\s+)?"
+    rf"{NEGATION_NESTED_TO_COMPLEMENT_PREFIX_PATTERN}"
     r"(?:go(?:ing)?\s+ahead"
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?)"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
-    r"\s+(?:ask|asks|asked|asking|tell|tells|told|telling|"
-    r"instruct|instructs|instructed|instructing|"
-    r"request|requests|requested|requesting|advise|advises|advised|advising|"
-    r"direct|directs|directed|directing|order|orders|ordered|ordering|"
-    r"authorize|authorizes|authorized|authorizing|urge|urges|urged|urging|get|"
-    r"gets|got|have|has|had|make|makes|made)"
+    rf"\s+{NEGATION_DELEGATED_VERB_PATTERN}"
     r"(?:"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}"
     rf"{NEGATION_EMPHASIS_PATTERN}(?:,?\s+to|\s+please\s+to)"
