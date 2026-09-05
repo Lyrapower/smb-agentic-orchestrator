@@ -204,6 +204,15 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     rf"{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN}"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
+    # Nested "going/want/about to have/let/make them cancel" has no second "to".
+    # "I'm not going to ask them to cancel" already works via the second "to",
+    # and "I'm not gonna have them cancel" already works via the contraction
+    # path, but "to" is excluded from delegated gaps so the generic to-path
+    # cannot skip from "going to have them" to "cancel". Optional object gaps
+    # reuse the no-to delegated shape; "have to cancel" still uses the second
+    # "to", and mixed "have them wait, please cancel" stays executable.
+    rf"(?:\s+(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{1,6}})?"
     # Colloquial "try and cancel" is synonymous with already-handled "try to cancel".
     # Nested "hoping/looking/going to try and cancel" needs the same to-taking
     # bridge before try-and; the generic to-path only accepts "to", so "try and"
