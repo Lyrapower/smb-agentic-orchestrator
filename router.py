@@ -132,15 +132,17 @@ INTENT_BRIDGE_TO_TAKING_VERB_PATTERN = (
 # Shared by the generic delegated path and by nested "ask them to try and" /
 # "tell them to go ahead/through with". Progressive having/letting/making are
 # the same causative refusals as have/let/make ("I'm not having/letting/making
-# them cancel"); asking/telling gerunds already work. Do not add getting:
-# "I'm not getting to cancel" is help-seeking.
+# them cancel"); allowing/permitting are the same as allow/permit
+# ("I'm not allowing/permitting them to cancel"). Asking/telling gerunds
+# already work. Do not add getting: "I'm not getting to cancel" is help-seeking.
 NEGATION_DELEGATED_VERB_PATTERN = (
     r"(?:ask|asks|asked|asking|tell|tells|told|telling|"
     r"instruct|instructs|instructed|instructing|"
     r"request|requests|requested|requesting|advise|advises|advised|advising|"
     r"direct|directs|directed|directing|order|orders|ordered|ordering|"
     r"authorize|authorizes|authorized|authorizing|urge|urges|urged|urging|get|"
-    r"gets|got|have|has|had|having|make|makes|made|making|letting)"
+    r"gets|got|have|has|had|having|make|makes|made|making|letting|"
+    r"allowing|permitting)"
 )
 # Optional nested "VERB (object) to" before try-and / go-ahead / go-through-with.
 # To-taking bridges keep the existing 0-3 generic gaps. Delegated/let verbs use
