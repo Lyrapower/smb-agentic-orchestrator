@@ -148,9 +148,15 @@ NEGATION_DELEGATED_VERB_PATTERN = (
 # To-taking bridges keep the existing 0-3 generic gaps. Delegated/let verbs use
 # the delegated gap, which will not skip past "to", so "ask them to try and"
 # attaches while "ask them to wait, please cancel" stays mixed-message executable.
+# Optional be/been after the first "to" covers "going to be asking them to try
+# and cancel" / "going to be going ahead"; "able" is not a delegated verb, so
+# "going to be able to try and cancel" does not use this nest.
 NEGATION_NESTED_TO_COMPLEMENT_INNER_PATTERN = (
     rf"(?:(?:{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN})"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
+    rf"(?:\s+(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}\s+to)?"
     rf"|(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}\s+to)"
 )
@@ -183,16 +189,20 @@ NEGATION_TARGET_GAP_PATTERN = (
     # (try and / go ahead /) cancel" needs the same delegated/to-taking
     # complement as the non-contraction path; "to" is excluded from delegated
     # gaps, so the bare contraction cannot skip from "gonna" to "cancel".
+    # Optional be/been after gonna/wanna covers "gonna be asking them to cancel"
+    # / "gonna be trying to cancel"; "able" is not a bridge verb, so
+    # "gonna be able to cancel" stays a help request.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+(?:wanna|gonna)"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
     rf"(?:"
     rf"\s+{NEGATION_NESTED_TO_COMPLEMENT_INNER_PATTERN}"
     rf"(?:"
     rf"\s+(?:try|trying)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+(?:to|and)"
     rf"|"
-    rf"\s+go\s+ahead"
+    rf"\s+go(?:ing)?\s+ahead"
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|"
-    rf"\s+go\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
+    rf"\s+go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
     rf")?"
     rf"|"
     rf"\s+(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
@@ -200,10 +210,10 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"|"
     rf"\s+(?:try|trying)(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+(?:to|and)"
     rf"|"
-    rf"\s+go\s+ahead"
+    rf"\s+go(?:ing)?\s+ahead"
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|"
-    rf"\s+go\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
+    rf"\s+go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
     rf")?"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
@@ -216,8 +226,16 @@ NEGATION_TARGET_GAP_PATTERN = (
     # cannot skip from "going to have them" to "cancel". Optional object gaps
     # reuse the no-to delegated shape; "have to cancel" still uses the second
     # "to", and mixed "have them wait, please cancel" stays executable.
-    rf"(?:\s+(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
-    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{1,6}})?"
+    # Optional be/been after that "to" covers "going to be asking them to
+    # cancel" / "going to be having them cancel". Keep be bound to a delegated
+    # verb so "going to be able to cancel" does not gain a new match here.
+    rf"(?:\s+(?:{NEGATION_BE_AUXILIARY_PATTERN}\s+)?"
+    rf"(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
+    rf"(?:"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}\s+to"
+    rf"|"
+    rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{1,6}}"
+    rf"))?"
     # Colloquial "try and cancel" is synonymous with already-handled "try to cancel".
     # Nested "hoping/looking/going to try and cancel" needs the same to-taking
     # bridge before try-and; the generic to-path only accepts "to", so "try and"
