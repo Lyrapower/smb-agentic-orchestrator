@@ -82,11 +82,21 @@ NEGATION_ADVERB_PATTERN = (
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
     r"usually|necessarily|exactly|literally)"
 )
+# Same hedges after an already-matched bridge ("going to really cancel",
+# "gonna really have them cancel"). Keep these inside matched bridges so a
+# bare adverb after negation ("Please don't actually cancel") does not gain a
+# new no-bridge match.
+NEGATION_TRAILING_ADVERB_PATTERN = rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
 # Whole-token auxiliaries that may sit between a negation and an already
 # recognized intent-bridge or delegated verb ("don't be asking them to cancel",
 # "haven't been going to cancel"). Keep these bounded so "been able to cancel"
 # stays a help request rather than a refusal.
 NEGATION_BE_AUXILIARY_PATTERN = r"(?:be|been)"
+# Optional be/been plus trailing hedges ("gonna be really asking",
+# "going to really be having them cancel").
+NEGATION_OPTIONAL_BE_WITH_ADVERBS_PATTERN = (
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN}{NEGATION_TRAILING_ADVERB_PATTERN})?"
+)
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|donot|doesn't|doesnt|won't|wont|"
     r"shouldn't|shouldnt|mustn't|mustnt|wouldn't|wouldnt|couldn't|couldnt|"
@@ -149,12 +159,14 @@ NEGATION_DELEGATED_VERB_PATTERN = (
 # the delegated gap, which will not skip past "to", so "ask them to try and"
 # attaches while "ask them to wait, please cancel" stays mixed-message executable.
 # Optional be/been after the first "to" covers "going to be asking them to try
-# and cancel" / "going to be going ahead"; "able" is not a delegated verb, so
+# and cancel" / "going to be going ahead"; trailing hedges cover "going to
+# really ask them to try and cancel". "able" is not a delegated verb, so
 # "going to be able to try and cancel" does not use this nest.
 NEGATION_NESTED_TO_COMPLEMENT_INNER_PATTERN = (
     rf"(?:(?:{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN})"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to"
-    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
+    rf"{NEGATION_OPTIONAL_BE_WITH_ADVERBS_PATTERN}"
     rf"(?:\s+(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}\s+to)?"
     rf"|(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
@@ -181,6 +193,7 @@ OPERATIONAL_NEGATION_VERB_PATTERN = (
 )
 NEGATION_TARGET_GAP_PATTERN = (
     r"(?:"
+    r"(?:"
     r"\s+to"
     # Colloquial contractions of "want to" / "going to", with optional hedges.
     # Also "gonna/wanna try to/and cancel" and "gonna/wanna go ahead and/to/with
@@ -190,10 +203,12 @@ NEGATION_TARGET_GAP_PATTERN = (
     # complement as the non-contraction path; "to" is excluded from delegated
     # gaps, so the bare contraction cannot skip from "gonna" to "cancel".
     # Optional be/been after gonna/wanna covers "gonna be asking them to cancel"
-    # / "gonna be trying to cancel"; "able" is not a bridge verb, so
-    # "gonna be able to cancel" stays a help request.
+    # / "gonna be trying to cancel"; trailing hedges cover "gonna really cancel"
+    # / "gonna really have them cancel" / "gonna be really asking". "able" is
+    # not a bridge verb, so "gonna be able to cancel" stays a help request.
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+(?:wanna|gonna)"
-    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
+    rf"{NEGATION_OPTIONAL_BE_WITH_ADVERBS_PATTERN}"
     rf"(?:"
     rf"\s+{NEGATION_NESTED_TO_COMPLEMENT_INNER_PATTERN}"
     rf"(?:"
@@ -227,15 +242,26 @@ NEGATION_TARGET_GAP_PATTERN = (
     # reuse the no-to delegated shape; "have to cancel" still uses the second
     # "to", and mixed "have them wait, please cancel" stays executable.
     # Optional be/been after that "to" covers "going to be asking them to
-    # cancel" / "going to be having them cancel". Keep be bound to a delegated
-    # verb so "going to be able to cancel" does not gain a new match here.
-    rf"(?:\s+(?:{NEGATION_BE_AUXILIARY_PATTERN}\s+)?"
+    # cancel" / "going to be having them cancel". Trailing hedges cover
+    # "going to really cancel" / "going to really have them cancel" /
+    # "going to be really asking". After be, a to-taking verb covers
+    # "going to be really trying to cancel" the same way "gonna be really
+    # trying" already does. Keep be bound to a delegated/to-taking verb so
+    # "going to be able to cancel" does not gain a new match here.
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
+    rf"(?:"
+    rf"(?:\s+(?:{NEGATION_BE_AUXILIARY_PATTERN}{NEGATION_TRAILING_ADVERB_PATTERN}\s+)?"
     rf"(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
     rf"(?:"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_PATTERN}){{0,6}}\s+to"
     rf"|"
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{1,6}}"
-    rf"))?"
+    rf"))"
+    rf"|"
+    rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN}{NEGATION_TRAILING_ADVERB_PATTERN}\s+"
+    rf"{INTENT_BRIDGE_TO_TAKING_VERB_PATTERN}"
+    rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+to)"
+    rf")?"
     # Colloquial "try and cancel" is synonymous with already-handled "try to cancel".
     # Nested "hoping/looking/going to try and cancel" needs the same to-taking
     # bridge before try-and; the generic to-path only accepts "to", so "try and"
@@ -245,6 +271,7 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     rf"{NEGATION_NESTED_TO_COMPLEMENT_PREFIX_PATTERN}"
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
     r"(?:try|trying)"
     rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,3}}\s+and"
     # "go ahead and/to/with" and "go through with" are proceed-to-action idioms,
@@ -256,6 +283,7 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
     rf"{NEGATION_NESTED_TO_COMPLEMENT_PREFIX_PATTERN}"
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
     r"(?:go(?:ing)?\s+ahead"
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?)"
@@ -283,6 +311,8 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"(?:\s+{NEGATION_DELEGATED_GAP_TOKEN_NO_COMMA_PATTERN}){{1,6}}"
     rf"{NEGATION_EMPHASIS_PATTERN}"
     r")"
+    r")"
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
     r")?"
 )
 ACTION_CHOICE_CONJUNCTION_PATTERN = r"(?:\s*,?\s+(?:or|nor|and)\s+)"
