@@ -145,6 +145,10 @@ class RouterTests(unittest.TestCase):
             "I'm not looking to cancel my appointment",
             "I am not seeking to cancel my appointment",
             "I never want to cancel my appointment",
+            "I would not like to cancel my appointment",
+            "I wouldn't like to cancel my appointment",
+            "I don't like to cancel my appointment",
+            "I wouldn't like you to cancel my appointment",
             "Please don't want you to cancel or remove appointment",
             "Please don't ask the office to cancel my appointment",
             "Please do not tell the clinic to cancel my appointment",
@@ -953,6 +957,40 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_like_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I would not like to cancel my appointment",
+            "I wouldn't like to cancel my appointment",
+            "I wouldnt like to cancel my appointment",
+            "I don't like to cancel my appointment",
+            "I do not like to cancel my appointment",
+            "I wouldn't like you to cancel my appointment",
+            "I would not like them to cancel my appointment",
+            "I wouldn't like the office to cancel my appointment",
+            "He doesn't like to cancel my appointment",
+            "I didn't like to cancel my appointment",
+            "I never liked to cancel my appointment",
+            "I'm not liking to cancel my appointment",
+            "I wouldn't really like to cancel my appointment",
+            "I would not particularly like to cancel my appointment",
+            "I wouldn't like to reschedule my appointment",
+            "I would not like to schedule an appointment",
+            "I wouldn't like to cancel or reschedule my appointment",
+            "I wouldn't like to try and cancel my appointment",
+            "I wouldn't like to go ahead and cancel my appointment",
+            "I wouldn't like to go through with the cancellation",
+            "I wouldn't like to have them cancel my appointment",
+            "I wouldn't like to ask them to cancel my appointment",
+            "I wouldn't like them to try and cancel my appointment",
+            "Please don't like to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_expected_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not expected to cancel my appointment",
@@ -1677,6 +1715,25 @@ class RouterTests(unittest.TestCase):
             ("I'm not requiring Tuesday, please cancel", "cancel"),
             ("Please don't require them to try, and cancel my appointment", "cancel"),
             ("Please don't oblige them to wait, please cancel", "cancel"),
+            ("I would like to cancel my appointment", "cancel"),
+            ("I would like you to cancel my appointment", "cancel"),
+            ("I'd like to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I would not like Tuesday",
+                "cancel",
+            ),
+            ("I would not like Tuesday, please cancel", "cancel"),
+            ("I don't like Tuesday, please cancel", "cancel"),
+            ("I don't like my appointment, please cancel", "cancel"),
+            ("I wouldn't like to wait, please cancel", "cancel"),
+            ("I would not like them to wait, please cancel", "cancel"),
+            ("I wouldn't like that time, please reschedule", "reschedule"),
+            ("I don't like this slot, please reschedule", "reschedule"),
+            ("I wouldn't like to try, and cancel my appointment", "cancel"),
+            ("I feel like I need to cancel my appointment", "cancel"),
+            ("It looks like I need to cancel my appointment", "cancel"),
+            ("I don't like to, but please cancel", "cancel"),
+            ("I wouldn't like to, please cancel", "cancel"),
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
             ("I'm not obliged to wait, please cancel", "cancel"),

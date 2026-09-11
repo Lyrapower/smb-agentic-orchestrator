@@ -126,7 +126,8 @@ GO_AHEAD_DETERMINER_PATTERN = (
 # Do not add a generic "and" after these verbs; "look and" / "want and" mixed
 # messages must stay executable.
 INTENT_BRIDGE_TO_TAKING_VERB_PATTERN = (
-    r"(?:want|wants|wanted|wanting|wish|wishes|wished|wishing|need|needs|needed|needing|"
+    r"(?:want|wants|wanted|wanting|like|likes|liked|liking|"
+    r"wish|wishes|wished|wishing|need|needs|needed|needing|"
     r"desire|desires|desired|desiring|"
     r"intend|intends|intended|intending|plan|plans|planned|planning|try|trying|"
     r"look|looks|looked|looking|seek|seeks|seeking|sought|"
