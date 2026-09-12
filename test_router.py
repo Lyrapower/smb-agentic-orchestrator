@@ -991,6 +991,42 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_attempt_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please don't attempt to cancel my appointment",
+            "Please do not attempt to cancel my appointment",
+            "I'm not attempting to cancel my appointment",
+            "I am not attempting to cancel my appointment",
+            "I don't attempt to cancel my appointment",
+            "He doesn't attempt to cancel my appointment",
+            "He never attempts to cancel my appointment",
+            "Please don't really attempt to cancel my appointment",
+            "I'm not really attempting to cancel my appointment",
+            "Please don't be attempting to cancel my appointment",
+            "I haven't been attempting to cancel my appointment",
+            "I'm not gonna attempt to cancel my appointment",
+            "I don't wanna attempt to cancel my appointment",
+            "I'm not gonna be attempting to cancel my appointment",
+            "He isn't attempting to cancel my appointment",
+            "I ain't attempting to cancel my appointment",
+            "Please don't attempt to reschedule my appointment",
+            "I'm not attempting to schedule an appointment",
+            "Please don't attempt to cancel or reschedule my appointment",
+            "Please don't attempt to try and cancel my appointment",
+            "Please don't attempt to go ahead and cancel my appointment",
+            "Please don't attempt to go through with the cancellation",
+            "I'm not attempting to have them cancel my appointment",
+            "Please don't attempt to have them cancel my appointment",
+            "Please don't attempt to ask them to cancel my appointment",
+            "I'm not attempting to ask them to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_expected_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I'm not expected to cancel my appointment",
@@ -1734,6 +1770,19 @@ class RouterTests(unittest.TestCase):
             ("It looks like I need to cancel my appointment", "cancel"),
             ("I don't like to, but please cancel", "cancel"),
             ("I wouldn't like to, please cancel", "cancel"),
+            ("Please attempt to cancel my appointment", "cancel"),
+            ("I'm attempting to cancel my appointment", "cancel"),
+            ("I will attempt to cancel my appointment", "cancel"),
+            ("I'm gonna attempt to cancel my appointment", "cancel"),
+            ("Please don't attempt to wait, please cancel", "cancel"),
+            ("Please don't attempt to wait, please cancel my appointment", "cancel"),
+            ("I'm not attempting to wait, please cancel", "cancel"),
+            ("Please don't attempt Tuesday, please cancel", "cancel"),
+            ("Please don't attempt, cancel my appointment", "cancel"),
+            ("I don't attempt Tuesday, please cancel", "cancel"),
+            ("Please don't attempt to try, and cancel my appointment", "cancel"),
+            ("I haven't attempted to cancel my appointment", "cancel"),
+            ("I haven't tried to cancel my appointment", "cancel"),
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
             ("I'm not obliged to wait, please cancel", "cancel"),
