@@ -107,8 +107,12 @@ NEGATION_PREFIX_PATTERN = (
     r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
+# Noun refusals after "no" / "not any". "wish(es)" is the noun counterpart of
+# already-covered "desire(s)" so "I have no wish to cancel" matches the same
+# way "I have no desire to cancel" already does. Keep this to-taking/for-noun
+# only; mixed "I have no wish Tuesday, please cancel" must stay executable.
 NO_INTENT_NOUN_PATTERN = (
-    r"(?:plans?|intentions?|intents?|desires?|need|needs?|reason|reasons?)"
+    r"(?:plans?|intentions?|intents?|desires?|wish(?:es)?|need|needs?|reason|reasons?)"
 )
 DIRECT_OBJECT_NEGATION_VERB_PATTERN = (
     r"(?:want|wants|wanted|need|needs|needed|wish|wishes|wished|"
