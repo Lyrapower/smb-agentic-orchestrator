@@ -1017,6 +1017,35 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_havent_any_intent_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "I haven't any wish to cancel my appointment",
+            "I haven\u2019t any wish to cancel my appointment",
+            "I havent any wish to cancel my appointment",
+            "I haven't any wishes to cancel my appointment",
+            "She hasn't any wish to cancel my appointment",
+            "I hadn't any wish to cancel my appointment",
+            "I haven't any desire to cancel my appointment",
+            "I haven't any plans to cancel my appointment",
+            "I haven't any intention to cancel my appointment",
+            "I haven't any need to cancel my appointment",
+            "I haven't any reason to cancel my appointment",
+            "I haven't any wish for a cancellation",
+            "I haven't any wish for cancellation",
+            "I haven't any wish to reschedule my appointment",
+            "I haven't any wish to schedule an appointment",
+            "I haven't any wish to book a new appointment",
+            "I haven't any wish to call off my appointment",
+            "I haven't any plans to reschedule my appointment",
+            "I haven't any desire to book a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_attempt_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Please don't attempt to cancel my appointment",
@@ -1821,6 +1850,16 @@ class RouterTests(unittest.TestCase):
             ("I have no wish to, but please cancel", "cancel"),
             ("I have no wishes, cancel my appointment", "cancel"),
             ("Please reschedule, I have no wish for that time", "reschedule"),
+            ("I haven't any wish to wait, please cancel", "cancel"),
+            ("I haven't any wish to wait, please cancel my appointment", "cancel"),
+            ("I haven't any wish Tuesday, please cancel", "cancel"),
+            ("I haven't any wish, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I haven't any wish", "cancel"),
+            ("I haven't any wish for Tuesday, please cancel", "cancel"),
+            ("I haven't any wish to, please cancel", "cancel"),
+            ("I haven't any plans Tuesday, please cancel", "cancel"),
+            ("I haven't any desire to wait, please cancel", "cancel"),
+            ("I haven't been able to cancel my appointment", "cancel"),
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
             ("I'm not obliged to wait, please cancel", "cancel"),
