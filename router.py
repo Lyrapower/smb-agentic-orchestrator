@@ -107,18 +107,22 @@ NEGATION_PREFIX_PATTERN = (
     r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
-# Noun refusals after "no" / "not any" / contracted "haven't/hasn't/hadn't any".
-# "wish(es)" is the noun counterpart of already-covered "desire(s)" so
-# "I have no wish to cancel" matches the same way "I have no desire to cancel"
-# already does. "I haven't any wish/plans/desire to cancel" is the written
-# contraction of already-handled "I have not any ...". Keep this
-# to-taking/for-noun only; mixed "I have no wish Tuesday, please cancel" /
-# "I haven't any wish Tuesday, please cancel" must stay executable.
+# Noun refusals after "no" / "not any" / contracted "haven't/hasn't/hadn't any"
+# / "isn't/aren't/wasn't/weren't any". "wish(es)" is the noun counterpart of
+# already-covered "desire(s)" so "I have no wish to cancel" matches the same
+# way "I have no desire to cancel" already does. "I haven't any wish/plans
+# to cancel" is the written contraction of already-handled "I have not any
+# ...". "There aren't any plans to cancel" / "There isn't any wish to cancel"
+# is the same contraction of already-handled "There are not any ..." /
+# "There is not any ...". Keep this to-taking/for-noun only; mixed
+# "I have no wish Tuesday, please cancel" / "I haven't any wish Tuesday,
+# please cancel" / "There aren't any plans Tuesday, please cancel" must stay
+# executable.
 NO_INTENT_NOUN_PATTERN = (
     r"(?:plans?|intentions?|intents?|desires?|wish(?:es)?|need|needs?|reason|reasons?)"
 )
 NO_INTENT_NOUN_DETERMINER_PATTERN = (
-    r"(?:no|not\s+any|(?:have|has|had)n(?:o)?'?t\s+any)"
+    r"(?:no|not\s+any|(?:have|has|had|is|are|was|were)n(?:o)?'?t\s+any)"
 )
 DIRECT_OBJECT_NEGATION_VERB_PATTERN = (
     r"(?:want|wants|wanted|need|needs|needed|wish|wishes|wished|"

@@ -1046,6 +1046,38 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_isnt_arent_any_intent_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "There aren't any plans to cancel my appointment",
+            "There aren\u2019t any plans to cancel my appointment",
+            "There arent any plans to cancel my appointment",
+            "There aren't any plans to reschedule my appointment",
+            "There isn't any wish to cancel my appointment",
+            "There isnt any wish to cancel my appointment",
+            "There isn't any desire to cancel my appointment",
+            "There isn't any plan to cancel my appointment",
+            "There isn't any intention to cancel my appointment",
+            "There isn't any need to cancel my appointment",
+            "There isn't any reason to cancel my appointment",
+            "There wasn't any wish to cancel my appointment",
+            "There weren't any plans to cancel my appointment",
+            "There aren't any wishes to cancel my appointment",
+            "There isn't any wish for a cancellation",
+            "There isn't any wish for cancellation",
+            "There isn't any need for a cancellation",
+            "There isn't any need for a new appointment",
+            "There aren't any plans to schedule an appointment",
+            "There aren't any plans to book a new appointment",
+            "There aren't any plans to call off my appointment",
+            "There isn't any desire to book a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_attempt_to_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Please don't attempt to cancel my appointment",
@@ -1859,6 +1891,16 @@ class RouterTests(unittest.TestCase):
             ("I haven't any wish to, please cancel", "cancel"),
             ("I haven't any plans Tuesday, please cancel", "cancel"),
             ("I haven't any desire to wait, please cancel", "cancel"),
+            ("There aren't any plans to wait, please cancel", "cancel"),
+            ("There aren't any plans to wait, please cancel my appointment", "cancel"),
+            ("There aren't any plans Tuesday, please cancel", "cancel"),
+            ("There aren't any plans, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, there aren't any plans", "cancel"),
+            ("There aren't any plans for Tuesday, please cancel", "cancel"),
+            ("There aren't any plans to, please cancel", "cancel"),
+            ("There isn't any wish to wait, please cancel", "cancel"),
+            ("There isn't any wish Tuesday, please cancel", "cancel"),
+            ("There are plans to cancel my appointment", "cancel"),
             ("I haven't been able to cancel my appointment", "cancel"),
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
