@@ -97,9 +97,13 @@ NEGATION_BE_AUXILIARY_PATTERN = r"(?:be|been)"
 NEGATION_OPTIONAL_BE_WITH_ADVERBS_PATTERN = (
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN}{NEGATION_TRAILING_ADVERB_PATTERN})?"
 )
+# "needn't" is the written contraction of already-handled "need not" /
+# "don't need to". Mixed "I needn't wait, please cancel" must stay
+# executable. Do not add shan't/oughtn't/daren't/mayn't in the same pass.
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|donot|doesn't|doesnt|won't|wont|"
-    r"shouldn't|shouldnt|mustn't|mustnt|wouldn't|wouldnt|couldn't|couldnt|"
+    r"shouldn't|shouldnt|mustn't|mustnt|needn't|neednt|"
+    r"wouldn't|wouldnt|couldn't|couldnt|"
     r"didn't|didnt|wasn't|wasnt|weren't|werent|"
     r"haven't|havent|hadn't|hadnt|hasn't|hasnt|"
     r"isn't|isnt|aren't|arent|"
