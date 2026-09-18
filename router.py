@@ -99,12 +99,14 @@ NEGATION_OPTIONAL_BE_WITH_ADVERBS_PATTERN = (
 )
 # "needn't" is the written contraction of already-handled "need not" /
 # "don't need to". "shan't" is the written contraction of already-handled
-# "shall not". Mixed "I needn't wait, please cancel" / "I shan't wait,
-# please cancel" must stay executable. Do not add oughtn't/daren't/mayn't
-# in the same pass.
+# "shall not". "oughtn't" is the written contraction of already-handled
+# "ought not". Mixed "I needn't wait, please cancel" / "I shan't wait,
+# please cancel" / "I oughtn't wait, please cancel" must stay executable.
+# Do not add daren't/mayn't in the same pass.
 NEGATION_PREFIX_PATTERN = (
     r"(?:do\s+not|don't|dont|donot|doesn't|doesnt|won't|wont|"
     r"shouldn't|shouldnt|mustn't|mustnt|needn't|neednt|shan't|shant|"
+    r"oughtn't|oughtnt|"
     r"wouldn't|wouldnt|couldn't|couldnt|"
     r"didn't|didnt|wasn't|wasnt|weren't|werent|"
     r"haven't|havent|hadn't|hadnt|hasn't|hasnt|"
