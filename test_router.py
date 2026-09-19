@@ -85,6 +85,8 @@ class RouterTests(unittest.TestCase):
             "I shant cancel my appointment",
             "I oughtn't cancel my appointment",
             "I oughtnt cancel my appointment",
+            "I daren't cancel my appointment",
+            "I darent cancel my appointment",
             "I wouldn't cancel my appointment",
             "I wouldnt cancel my appointment",
             "I couldn't cancel my appointment",
@@ -246,6 +248,7 @@ class RouterTests(unittest.TestCase):
             "I needn't reschedule my appointment",
             "I shan't reschedule my appointment",
             "I oughtn't reschedule my appointment",
+            "I daren't reschedule my appointment",
             "I wouldn't rebook this appointment",
             "I couldn't reschedule my appointment",
         )
@@ -741,6 +744,7 @@ class RouterTests(unittest.TestCase):
             "I needn't schedule an appointment",
             "I shan't schedule an appointment",
             "I oughtn't schedule an appointment",
+            "I daren't schedule an appointment",
             "I wouldn't schedule an appointment right now",
             "I couldn't arrange a new appointment",
         )
@@ -758,6 +762,7 @@ class RouterTests(unittest.TestCase):
             "I needn't cancel my appointment",
             "I shan't cancel my appointment",
             "I oughtn't cancel my appointment",
+            "I daren't cancel my appointment",
             "I wouldn't cancel my appointment",
             "I couldn't cancel my appointment",
             "I shouldn't reschedule my appointment",
@@ -845,6 +850,34 @@ class RouterTests(unittest.TestCase):
             "I oughtn't have them cancel my appointment",
             "I oughtn't ask them to cancel my appointment",
             "I oughtn't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_darent_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I daren't cancel my appointment",
+            "I daren\u2019t cancel my appointment",
+            "I darent cancel my appointment",
+            "You daren't cancel my appointment",
+            "He daren't cancel my appointment",
+            "I dare not cancel my appointment",
+            "I dare not to cancel my appointment",
+            "I daren't reschedule my appointment",
+            "I daren't schedule an appointment",
+            "I daren't book a new appointment",
+            "I daren't call off my appointment",
+            "I daren't drop appointment",
+            "I daren't remove appointment",
+            "Please confirm you daren't cancel my appointment",
+            "I daren't try to cancel my appointment",
+            "I daren't have them cancel my appointment",
+            "I daren't ask them to cancel my appointment",
+            "I daren't go ahead and cancel my appointment",
         )
 
         for text in examples:
@@ -2020,6 +2053,13 @@ class RouterTests(unittest.TestCase):
             ("Please cancel my appointment, I oughtn't wait", "cancel"),
             ("I oughtn't Tuesday, please cancel", "cancel"),
             ("I oughtn't, please cancel my appointment", "cancel"),
+            ("I dare to cancel my appointment", "cancel"),
+            ("Daren't I cancel my appointment?", "cancel"),
+            ("I daren't wait, please cancel", "cancel"),
+            ("I daren't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I daren't wait", "cancel"),
+            ("I daren't Tuesday, please cancel", "cancel"),
+            ("I daren't, please cancel my appointment", "cancel"),
             ("I haven't been able to cancel my appointment", "cancel"),
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
@@ -2378,6 +2418,7 @@ class RouterTests(unittest.TestCase):
             ("I need to cancel my appointment", "cancel"),
             ("I shall cancel my appointment", "cancel"),
             ("I ought to cancel my appointment", "cancel"),
+            ("I dare to cancel my appointment", "cancel"),
             ("I would like to cancel my appointment", "cancel"),
             ("I should reschedule my appointment", "reschedule"),
             ("I must schedule an appointment", "schedule"),
