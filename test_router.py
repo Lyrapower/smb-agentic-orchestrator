@@ -89,6 +89,8 @@ class RouterTests(unittest.TestCase):
             "I darent cancel my appointment",
             "I mayn't cancel my appointment",
             "I maynt cancel my appointment",
+            "I mightn't cancel my appointment",
+            "I mightnt cancel my appointment",
             "I wouldn't cancel my appointment",
             "I wouldnt cancel my appointment",
             "I couldn't cancel my appointment",
@@ -252,6 +254,7 @@ class RouterTests(unittest.TestCase):
             "I oughtn't reschedule my appointment",
             "I daren't reschedule my appointment",
             "I mayn't reschedule my appointment",
+            "I mightn't reschedule my appointment",
             "I wouldn't rebook this appointment",
             "I couldn't reschedule my appointment",
         )
@@ -749,6 +752,7 @@ class RouterTests(unittest.TestCase):
             "I oughtn't schedule an appointment",
             "I daren't schedule an appointment",
             "I mayn't schedule an appointment",
+            "I mightn't schedule an appointment",
             "I wouldn't schedule an appointment right now",
             "I couldn't arrange a new appointment",
         )
@@ -768,6 +772,7 @@ class RouterTests(unittest.TestCase):
             "I oughtn't cancel my appointment",
             "I daren't cancel my appointment",
             "I mayn't cancel my appointment",
+            "I mightn't cancel my appointment",
             "I wouldn't cancel my appointment",
             "I couldn't cancel my appointment",
             "I shouldn't reschedule my appointment",
@@ -911,6 +916,34 @@ class RouterTests(unittest.TestCase):
             "I mayn't have them cancel my appointment",
             "I mayn't ask them to cancel my appointment",
             "I mayn't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_mightnt_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I mightn't cancel my appointment",
+            "I mightn\u2019t cancel my appointment",
+            "I mightnt cancel my appointment",
+            "You mightn't cancel my appointment",
+            "He mightn't cancel my appointment",
+            "I might not cancel my appointment",
+            "I might not to cancel my appointment",
+            "I mightn't reschedule my appointment",
+            "I mightn't schedule an appointment",
+            "I mightn't book a new appointment",
+            "I mightn't call off my appointment",
+            "I mightn't drop appointment",
+            "I mightn't remove appointment",
+            "Please confirm you mightn't cancel my appointment",
+            "I mightn't try to cancel my appointment",
+            "I mightn't have them cancel my appointment",
+            "I mightn't ask them to cancel my appointment",
+            "I mightn't go ahead and cancel my appointment",
         )
 
         for text in examples:
@@ -2100,6 +2133,13 @@ class RouterTests(unittest.TestCase):
             ("Please cancel my appointment, I mayn't wait", "cancel"),
             ("I mayn't Tuesday, please cancel", "cancel"),
             ("I mayn't, please cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("Mightn't I cancel my appointment?", "cancel"),
+            ("I mightn't wait, please cancel", "cancel"),
+            ("I mightn't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I mightn't wait", "cancel"),
+            ("I mightn't Tuesday, please cancel", "cancel"),
+            ("I mightn't, please cancel my appointment", "cancel"),
             ("I haven't been able to cancel my appointment", "cancel"),
             ("I'm not obligated to wait, please cancel", "cancel"),
             ("I'm not obligated Tuesday, please cancel", "cancel"),
@@ -2460,6 +2500,7 @@ class RouterTests(unittest.TestCase):
             ("I ought to cancel my appointment", "cancel"),
             ("I dare to cancel my appointment", "cancel"),
             ("I may cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
             ("I would like to cancel my appointment", "cancel"),
             ("I should reschedule my appointment", "reschedule"),
             ("I must schedule an appointment", "schedule"),
