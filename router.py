@@ -119,6 +119,20 @@ NEGATION_PREFIX_PATTERN = (
     r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
+# Speech-act refusals: the verb itself is the negation ("I refuse to cancel"),
+# so these must not be added to NEGATION_PREFIX_PATTERN. "Don't refuse to
+# cancel" / "I cannot refuse to cancel" / "I don't think I should refuse to
+# cancel" invert the speech act and stay executable, same as "do not forget
+# to cancel". Longer inflections are listed first so "refusing" does not
+# stick on the "refuse" alternative.
+SPEECH_ACT_REFUSAL_VERB_PATTERN = (
+    r"(?:refusing|refuses|refused|refuse|"
+    r"declining|declines|declined|decline)"
+)
+SPEECH_ACT_REFUSAL_PREFIX_PATTERN = (
+    rf"{SPEECH_ACT_REFUSAL_VERB_PATTERN}(?:\s*,\s*|\s+)to\b"
+)
+SPEECH_ACT_REFUSAL_SUBJECT_PRONOUN_PATTERN = r"(?:you|we|they|he|she|i)"
 # Noun refusals after "no" / "not any" / contracted "haven't/hasn't/hadn't any"
 # / "isn't/aren't/wasn't/weren't any". "wish(es)" is the noun counterpart of
 # already-covered "desire(s)" so "I have no wish to cancel" matches the same
@@ -587,6 +601,142 @@ def _has_no_intent_noun_before_keyword(text: str, keyword: str) -> bool:
     )
 
 
+def _speech_act_verb_is_negated(text: str, verb_start: int) -> bool:
+    """True when refuse/decline is itself under a negation or inability."""
+    before = text[:verb_start]
+    if re.search(
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}{NEGATION_TARGET_GAP_PATTERN}"
+        rf"(?:(?:\s+{SPEECH_ACT_REFUSAL_SUBJECT_PRONOUN_PATTERN})"
+        rf"|(?:\s+{NEGATION_BE_AUXILIARY_PATTERN}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}})?\s+able\s+to"
+        rf")?\s+$",
+        before,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        r"(?:think|believe|feel|suppose|expect)"
+        rf"(?:\s+{NEGATION_GAP_TOKEN_PATTERN}){{0,4}}\s+"
+        r"(?:need|needs|needed|want|wants|wanted|should|would|have|has|had|"
+        r"ought|reason|reasons)"
+        rf"(?:\s+to)?\s+$",
+        before,
+    ):
+        return True
+
+    return (
+        re.search(
+            rf"(?<!\w)(?:can't|cannot|can\s+not|unable|not\s+able)"
+            rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
+            rf"\s+(?:to\s+)?$",
+            before,
+        )
+        is not None
+        or re.search(
+            rf"(?<!\w)not(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+            rf"(?:able|unable)(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+to\s+$",
+            before,
+        )
+        is not None
+    )
+
+
+def _speech_act_refusal_tails(text: str) -> tuple[str, ...]:
+    if "refus" not in text and "declin" not in text:
+        return ()
+
+    tails: list[str] = []
+    for match in re.finditer(
+        rf"(?<!\w){SPEECH_ACT_REFUSAL_PREFIX_PATTERN}",
+        text,
+    ):
+        if _speech_act_verb_is_negated(text, match.start()):
+            continue
+        tails.append(text[match.end() :])
+    return tuple(tails)
+
+
+def _has_speech_act_refusal_before_keyword(text: str, keyword: str) -> bool:
+    keyword_pattern = _keyword_pattern(keyword)
+    for tail in _speech_act_refusal_tails(text):
+        if re.search(
+            rf"^{NEGATION_TRAILING_ADVERB_PATTERN}{NEGATION_TARGET_GAP_PATTERN}"
+            rf"\s+{keyword_pattern}",
+            tail,
+        ):
+            return True
+    return False
+
+
+def _has_speech_act_refused_conjunction(
+    text: str,
+    keyword: str,
+    previous_keywords: Iterable[str],
+    conjunction_pattern: str,
+) -> bool:
+    tails = _speech_act_refusal_tails(text)
+    if not tails:
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    for tail in tails:
+        for previous_keyword in previous_keywords:
+            if previous_keyword == keyword:
+                continue
+
+            if re.search(
+                rf"^{NEGATION_TRAILING_ADVERB_PATTERN}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{_keyword_pattern(previous_keyword)}"
+                rf"{conjunction_pattern}{keyword_pattern}",
+                tail,
+            ):
+                return True
+
+            if re.search(
+                rf"^{NEGATION_TRAILING_ADVERB_PATTERN}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{_keyword_pattern(previous_keyword)}"
+                rf"{NEGATED_OBJECT_GAP_PATTERN}"
+                rf"{conjunction_pattern}{keyword_pattern}",
+                tail,
+            ):
+                return True
+
+    return False
+
+
+def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
+    tails = _speech_act_refusal_tails(text)
+    if not tails:
+        return False
+
+    action_keyword_pattern = rf"(?:{_action_keyword_alternation()})"
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    keyword_pattern = _keyword_pattern(keyword)
+    for tail in tails:
+        for previous_keyword in _action_keywords():
+            if previous_keyword == keyword:
+                continue
+
+            for list_tail_pattern in list_tail_patterns:
+                match = re.search(
+                    rf"^{NEGATION_TRAILING_ADVERB_PATTERN}"
+                    rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+                    rf"{_keyword_pattern(previous_keyword)}"
+                    rf"(?P<tail>{list_tail_pattern})",
+                    tail,
+                )
+                if match is not None and re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_negated_belief_before_keyword(text, keyword):
         return True
@@ -604,6 +754,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_no_intent_noun_before_keyword(text, keyword):
         return True
 
+    if _has_speech_act_refusal_before_keyword(text, keyword):
+        return True
+
     return False
 
 
@@ -613,6 +766,14 @@ def _has_negated_conjunction(
     previous_keywords: Iterable[str],
     conjunction_pattern: str,
 ) -> bool:
+    if _has_speech_act_refused_conjunction(
+        text,
+        keyword,
+        previous_keywords,
+        conjunction_pattern,
+    ):
+        return True
+
     for previous_keyword in previous_keywords:
         if previous_keyword == keyword:
             continue
@@ -641,6 +802,9 @@ def _has_negated_conjunction(
 
 
 def _has_negated_action_list(text: str, keyword: str) -> bool:
+    if _has_speech_act_refused_action_list(text, keyword):
+        return True
+
     action_keyword_pattern = rf"(?:{_action_keyword_alternation()})"
     list_tail_patterns = (
         rf"(?:\s*,\s*{action_keyword_pattern})*"

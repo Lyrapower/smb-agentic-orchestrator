@@ -952,6 +952,42 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_speech_act_refuse_decline_does_not_route_to_action(self) -> None:
+        examples = (
+            "I refuse to cancel my appointment",
+            "I decline to cancel my appointment",
+            "We refuse to cancel my appointment",
+            "He refuses to cancel my appointment",
+            "She declined to cancel my appointment",
+            "They are refusing to cancel my appointment",
+            "They are declining to reschedule my appointment",
+            "I refused to reschedule my appointment",
+            "I refuse to schedule an appointment",
+            "I refuse to book a new appointment",
+            "I decline to call off my appointment",
+            "I refuse to drop appointment",
+            "I refuse to remove appointment",
+            "Please confirm you refuse to cancel my appointment",
+            "I refuse to try to cancel my appointment",
+            "I refuse to try and cancel my appointment",
+            "I refuse to have them cancel my appointment",
+            "I refuse to ask them to cancel my appointment",
+            "I refuse to go ahead and cancel my appointment",
+            "I decline to let them cancel my appointment",
+            "I refuse to really cancel my appointment",
+            "I refuse to cancel or reschedule my appointment",
+            "I decline to reschedule or book a new appointment",
+            "I refuse to cancel my appointment or reschedule it",
+            "I refuse to schedule, cancel, or reschedule anything",
+            "I refuse to cancel because I can't make it",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
     def test_past_tense_didnt_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I didn't cancel my appointment",
@@ -2527,6 +2563,50 @@ class RouterTests(unittest.TestCase):
                 intent, _ = route_intent(text)
 
                 self.assertEqual(intent, "cancel")
+
+    def test_negated_speech_act_refusal_still_routes_to_action(self) -> None:
+        examples = (
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please do not refuse to cancel my appointment", "cancel"),
+            ("Please don't ever refuse to cancel my appointment", "cancel"),
+            (
+                "Please don't under any circumstances refuse to cancel my appointment",
+                "cancel",
+            ),
+            ("Please do not decline to cancel my appointment", "cancel"),
+            ("Please don't decline to reschedule my appointment", "reschedule"),
+            ("Please don't refuse to schedule an appointment", "schedule"),
+            ("Don't you refuse to cancel my appointment", "cancel"),
+            ("Please do not allow the office to refuse to cancel my appointment", "cancel"),
+            ("Please don't ask the office to refuse to cancel my appointment", "cancel"),
+            ("Please do not tell anyone to decline to cancel my appointment", "cancel"),
+            ("I cannot refuse to cancel my appointment", "cancel"),
+            ("I can't refuse to cancel my appointment", "cancel"),
+            ("I can not refuse to cancel my appointment", "cancel"),
+            ("I'm not able to refuse to cancel my appointment", "cancel"),
+            ("I am unable to refuse to cancel my appointment", "cancel"),
+            ("I'm not really able to refuse to cancel my appointment", "cancel"),
+            ("I cannot really refuse to cancel my appointment", "cancel"),
+            ("I'm not going to be able to refuse to cancel my appointment", "cancel"),
+            ("I won't refuse to cancel my appointment", "cancel"),
+            ("I didn't refuse to cancel my appointment", "cancel"),
+            ("I don't think I should refuse to cancel my appointment", "cancel"),
+            ("I don't believe we ought to refuse to cancel my appointment", "cancel"),
+            ("I refuse to wait, please cancel my appointment", "cancel"),
+            ("I refuse, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I refuse to wait", "cancel"),
+            ("I refuse to cancel my appointment, please reschedule it", "reschedule"),
+            ("Don't refuse to cancel or reschedule my appointment", "reschedule"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("I might not cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
 
     def test_coordinated_negated_mixed_actions_do_not_route_to_action(self) -> None:
         examples = (
