@@ -988,6 +988,98 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_speech_act_noun_object_refuse_decline_does_not_route_to_action(self) -> None:
+        examples = (
+            "I refuse the cancellation",
+            "I decline the cancellation",
+            "I decline the cancellation of my appointment",
+            "I refuse a cancellation",
+            "I decline cancellation",
+            "I refuse this cancellation",
+            "I decline that cancellation",
+            "I refuse any cancellation",
+            "I refuse another cancellation",
+            "I refuse my cancellation",
+            "I refuse their cancellation",
+            "We declined a cancellation",
+            "She declines the cancellation",
+            "He refused the cancellation",
+            "They are refusing the cancellation",
+            "They are declining the cancellation",
+            "Please decline the cancellation",
+            "Please refuse the cancellation",
+            "Please confirm you refuse the cancellation",
+            "I refuse the reschedule",
+            "She refused the reschedule",
+            "I decline the rebook",
+            "I refuse the postpone",
+            "I refuse the new appointment",
+            "I would refuse the cancellation",
+            "I'm going to refuse the cancellation",
+            "I want to decline the cancellation",
+            "I want them to refuse the cancellation",
+            "Please do not forget to decline the cancellation",
+            "I refuse the cancellation or reschedule",
+            "I refuse the cancellation or the reschedule",
+            "I decline the cancellation of my appointment or reschedule it",
+            "I refuse the cancellation, the reschedule, or the rebook",
+            "I refuse cancellation, reschedule, or rebook",
+            "I refuse the cancellation or reschedule my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_speech_act_noun_object_still_routes_to_action(self) -> None:
+        examples = (
+            ("Don't decline the cancellation", "cancel"),
+            ("Please do not refuse the cancellation", "cancel"),
+            ("Don't you refuse the cancellation", "cancel"),
+            ("Please don't ever refuse the cancellation", "cancel"),
+            (
+                "Please don't under any circumstances refuse the cancellation",
+                "cancel",
+            ),
+            ("Never refuse the cancellation", "cancel"),
+            ("I cannot refuse the cancellation", "cancel"),
+            ("I can't decline the cancellation", "cancel"),
+            ("I can not refuse the cancellation", "cancel"),
+            ("I'm not able to refuse the cancellation", "cancel"),
+            ("I am unable to decline the cancellation", "cancel"),
+            ("I don't think I should refuse the cancellation", "cancel"),
+            ("Please don't ask the office to refuse the cancellation", "cancel"),
+            ("Please do not allow the office to refuse the cancellation", "cancel"),
+            ("I won't refuse the cancellation", "cancel"),
+            ("I didn't refuse the cancellation", "cancel"),
+            ("I would not refuse the cancellation", "cancel"),
+            ("I must not refuse the cancellation", "cancel"),
+            ("I'm not going to refuse the cancellation", "cancel"),
+            ("Don't refuse the cancellation or reschedule", "reschedule"),
+            ("I refuse the cancellation, please reschedule it", "reschedule"),
+            ("I decline the cancellation, please reschedule", "reschedule"),
+            ("I refuse, please cancel my appointment", "cancel"),
+            ("I refuse the wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I refuse the cancellation", "cancel"),
+            ("Please reschedule, I decline the cancellation", "reschedule"),
+            ("Please process my appointment cancellation", "cancel"),
+            ("I need cancellation of my appointment", "cancel"),
+            ("Please go ahead with the cancellation", "cancel"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("I refuse to cancel my appointment", "no_action"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("I mightn't cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_past_tense_didnt_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I didn't cancel my appointment",

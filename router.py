@@ -133,6 +133,16 @@ SPEECH_ACT_REFUSAL_PREFIX_PATTERN = (
     rf"{SPEECH_ACT_REFUSAL_VERB_PATTERN}(?:\s*,\s*|\s+)to\b"
 )
 SPEECH_ACT_REFUSAL_SUBJECT_PRONOUN_PATTERN = r"(?:you|we|they|he|she|i)"
+# Noun-object speech acts ("I refuse the cancellation", "I decline a
+# cancellation") have no "to", so the infinitive prefix above misses them and
+# the action noun stays live. Keep the object to an optional determiner plus
+# the action keyword. An open gap would treat "I refuse, please cancel" as a
+# refusal. Inverted "Don't refuse the cancellation" still stays executable
+# because the verb itself is negated. Do not add these verbs to
+# NEGATION_PREFIX_PATTERN.
+SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN = (
+    r"(?:a|an|any|another|the|this|that|my|our|your|his|her|their)"
+)
 # Noun refusals after "no" / "not any" / contracted "haven't/hasn't/hadn't any"
 # / "isn't/aren't/wasn't/weren't any". "wish(es)" is the noun counterpart of
 # already-covered "desire(s)" so "I have no wish to cancel" matches the same
@@ -658,6 +668,34 @@ def _speech_act_refusal_tails(text: str) -> tuple[str, ...]:
     return tuple(tails)
 
 
+def _unnegated_speech_act_verb_ends(text: str) -> tuple[int, ...]:
+    """End offsets of refuse/decline verbs that are not themselves negated."""
+    if "refus" not in text and "declin" not in text:
+        return ()
+
+    ends: list[int] = []
+    for match in re.finditer(
+        rf"(?<!\w){SPEECH_ACT_REFUSAL_VERB_PATTERN}(?!\w)",
+        text,
+    ):
+        if _speech_act_verb_is_negated(text, match.start()):
+            continue
+        ends.append(match.end())
+    return tuple(ends)
+
+
+def _has_speech_act_noun_object_refusal(text: str, keyword: str) -> bool:
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN
+    for end in _unnegated_speech_act_verb_ends(text):
+        if re.search(
+            rf"^(?:\s+{determiner})?\s+{keyword_pattern}",
+            text[end:],
+        ):
+            return True
+    return False
+
+
 def _has_speech_act_refusal_before_keyword(text: str, keyword: str) -> bool:
     keyword_pattern = _keyword_pattern(keyword)
     for tail in _speech_act_refusal_tails(text):
@@ -667,6 +705,39 @@ def _has_speech_act_refusal_before_keyword(text: str, keyword: str) -> bool:
             tail,
         ):
             return True
+
+    return _has_speech_act_noun_object_refusal(text, keyword)
+
+
+def _has_speech_act_noun_object_conjunction(
+    text: str,
+    keyword: str,
+    previous_keywords: Iterable[str],
+    conjunction_pattern: str,
+) -> bool:
+    ends = _unnegated_speech_act_verb_ends(text)
+    if not ends:
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN
+    object_prefix = rf"(?:\s+{determiner})?"
+    for end in ends:
+        tail = text[end:]
+        for previous_keyword in previous_keywords:
+            if previous_keyword == keyword:
+                continue
+
+            if re.search(
+                rf"^{object_prefix}\s+{_keyword_pattern(previous_keyword)}"
+                rf"{NEGATED_OBJECT_GAP_PATTERN}"
+                rf"{conjunction_pattern}"
+                rf"(?:{determiner}\s+)?"
+                rf"{keyword_pattern}",
+                tail,
+            ):
+                return True
+
     return False
 
 
@@ -676,6 +747,14 @@ def _has_speech_act_refused_conjunction(
     previous_keywords: Iterable[str],
     conjunction_pattern: str,
 ) -> bool:
+    if _has_speech_act_noun_object_conjunction(
+        text,
+        keyword,
+        previous_keywords,
+        conjunction_pattern,
+    ):
+        return True
+
     tails = _speech_act_refusal_tails(text)
     if not tails:
         return False
@@ -706,7 +785,44 @@ def _has_speech_act_refused_conjunction(
     return False
 
 
+def _has_speech_act_noun_object_action_list(text: str, keyword: str) -> bool:
+    ends = _unnegated_speech_act_verb_ends(text)
+    if not ends:
+        return False
+
+    determiner = SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN
+    action_keyword_pattern = (
+        rf"(?:(?:{determiner}\s+)?(?:{_action_keyword_alternation()}))"
+    )
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    keyword_pattern = _keyword_pattern(keyword)
+    object_prefix = rf"(?:\s+{determiner})?"
+    for end in ends:
+        tail = text[end:]
+        for previous_keyword in _action_keywords():
+            if previous_keyword == keyword:
+                continue
+
+            for list_tail_pattern in list_tail_patterns:
+                match = re.search(
+                    rf"^{object_prefix}\s+{_keyword_pattern(previous_keyword)}"
+                    rf"(?P<tail>{list_tail_pattern})",
+                    tail,
+                )
+                if match is not None and re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
+    if _has_speech_act_noun_object_action_list(text, keyword):
+        return True
+
     tails = _speech_act_refusal_tails(text)
     if not tails:
         return False
