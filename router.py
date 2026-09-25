@@ -119,6 +119,37 @@ NEGATION_PREFIX_PATTERN = (
     r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
+# Standalone "under no circumstances <action>" is itself a refusal. The same
+# phrase after don't/never already matches via NEGATION_EMPHASIS_PATTERN.
+# Do not add this idiom to NEGATION_PREFIX_PATTERN: that would invert
+# "Under no circumstances I refuse to cancel" into an executable cancel, the
+# same way "Don't refuse to cancel" must stay executable. Inversion
+# auxiliaries cover "should you" / "will I" / "do I" / "am I". Extra subject
+# tokens stop before "not" so "do not forget to cancel" stays executable.
+# Bare "Don't go and cancel" is a different construction and is not handled
+# here.
+# Trailing comma belongs to the idiom ("circumstances, cancel"). Do not eat the
+# following space; the action keyword still needs a whitespace boundary.
+UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = r"under\s+no\s+circumstances(?:\s*,)?"
+UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
+    r"(?:anyone|someone|everybody|everyone|their|they|this|that|she|you|"
+    r"your|our|his|her|the|we|he|it|an|my|i|a)(?!\w)"
+)
+UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN = (
+    r"(?!(?:to|but|however|instead|yet|please|not)\b)"
+    r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
+)
+UNDER_NO_CIRCUMSTANCES_INVERSION_PATTERN = (
+    r"(?:\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?)?"
+)
+UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN = (
+    rf"{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN}"
+    rf"{UNDER_NO_CIRCUMSTANCES_INVERSION_PATTERN}"
+    r"(?:\s+ever\b)?"
+    rf"{NEGATION_EMPHASIS_PATTERN}"
+)
 # Speech-act refusals: the verb itself is the negation ("I refuse to cancel"),
 # so these must not be added to NEGATION_PREFIX_PATTERN. "Don't refuse to
 # cancel" / "I cannot refuse to cancel" / "I don't think I should refuse to
@@ -853,6 +884,177 @@ def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
     return False
 
 
+def _under_no_circumstances_forward_attaches(text: str, idiom_end: int) -> bool:
+    """True when the idiom negates an action that follows it."""
+    tail = text[idiom_end:]
+    keyword_pattern = rf"(?:{_action_keyword_alternation()})"
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix_rest = (
+        rf"{UNDER_NO_CIRCUMSTANCES_INVERSION_PATTERN}"
+        r"(?:\s+ever\b)?"
+        rf"{NEGATION_EMPHASIS_PATTERN}"
+    )
+    if re.search(
+        rf"^{prefix_rest}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        tail,
+    ):
+        return True
+
+    return (
+        re.search(
+            rf"^{prefix_rest}"
+            rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+            rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+            rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+            rf"{keyword_pattern}",
+            tail,
+        )
+        is not None
+    )
+
+
+def _under_no_circumstances_suffix_applies(text: str, idiom_end: int) -> bool:
+    """True when a preceding keyword, not a following word, owns the idiom.
+
+    Clause-final "cancel under no circumstances" refuses cancel. A following
+    action ("under no circumstances reschedule") is a forward refusal. Other
+    following words ("under no circumstances wait") leave the earlier action
+    executable.
+    """
+    if _under_no_circumstances_forward_attaches(text, idiom_end):
+        return False
+
+    rest = re.sub(r"^[\s,;:.!?]+", "", text[idiom_end:])
+    if not rest:
+        return True
+
+    return re.match(r"(?:please|but|however|instead|yet)\b", rest) is not None
+
+
+def _has_under_no_circumstances_after_keyword(text: str, keyword: str) -> bool:
+    """True when the idiom follows the keyword in the same clause.
+
+    "I will cancel under no circumstances" refuses the keyword. A later action
+    the idiom attaches to stays the forward target, so "Please cancel, under
+    no circumstances reschedule" keeps cancel.
+    """
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    gap = rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}}"
+    list_bridge = (
+        rf"(?:(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}"
+        rf"|(?:\s*,\s*{action_keyword_pattern})+)"
+    )
+    patterns = (
+        rf"{keyword_pattern}{gap}\s*,?\s+(?P<idiom>{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN})",
+        rf"{keyword_pattern}(?P<mid>{list_bridge}){gap}\s*,?\s+"
+        rf"(?P<idiom>{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN})",
+    )
+    for pattern in patterns:
+        for match in re.finditer(pattern, text):
+            if not _under_no_circumstances_suffix_applies(text, match.end("idiom")):
+                continue
+            return True
+
+    return False
+
+
+def _has_under_no_circumstances_before_keyword(text: str, keyword: str) -> bool:
+    if "circumstances" not in text:
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    if re.search(
+        rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+        rf"{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    return _has_under_no_circumstances_after_keyword(text, keyword)
+
+
+def _has_under_no_circumstances_conjunction(
+    text: str,
+    keyword: str,
+    previous_keywords: Iterable[str],
+    conjunction_pattern: str,
+) -> bool:
+    if "circumstances" not in text:
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    for previous_keyword in previous_keywords:
+        if previous_keyword == keyword:
+            continue
+
+        if re.search(
+            rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{_keyword_pattern(previous_keyword)}"
+            rf"{conjunction_pattern}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{_keyword_pattern(previous_keyword)}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{conjunction_pattern}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    return False
+
+
+def _has_under_no_circumstances_action_list(text: str, keyword: str) -> bool:
+    if "circumstances" not in text:
+        return False
+
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    keyword_pattern = _keyword_pattern(keyword)
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+                rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_negated_belief_before_keyword(text, keyword):
         return True
@@ -873,6 +1075,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_speech_act_refusal_before_keyword(text, keyword):
         return True
 
+    if _has_under_no_circumstances_before_keyword(text, keyword):
+        return True
+
     return False
 
 
@@ -882,6 +1087,14 @@ def _has_negated_conjunction(
     previous_keywords: Iterable[str],
     conjunction_pattern: str,
 ) -> bool:
+    if _has_under_no_circumstances_conjunction(
+        text,
+        keyword,
+        previous_keywords,
+        conjunction_pattern,
+    ):
+        return True
+
     if _has_speech_act_refused_conjunction(
         text,
         keyword,
@@ -918,6 +1131,9 @@ def _has_negated_conjunction(
 
 
 def _has_negated_action_list(text: str, keyword: str) -> bool:
+    if _has_under_no_circumstances_action_list(text, keyword):
+        return True
+
     if _has_speech_act_refused_action_list(text, keyword):
         return True
 

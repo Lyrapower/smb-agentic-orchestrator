@@ -1080,6 +1080,96 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_under_no_circumstances_does_not_route_to_action(self) -> None:
+        examples = (
+            "Under no circumstances cancel my appointment",
+            "Under no circumstances, cancel my appointment",
+            "UNDER NO CIRCUMSTANCES CANCEL",
+            "Under no circumstances\u2014cancel my appointment",
+            "Under no circumstances ever cancel my appointment",
+            "Under no circumstances, ever, cancel my appointment",
+            "Under no circumstances reschedule my appointment",
+            "Under no circumstances schedule an appointment",
+            "Under no circumstances call off my appointment",
+            "Under no circumstances book a new appointment",
+            "Under no circumstances drop appointment tomorrow",
+            "Under no circumstances the cancellation",
+            "Under no circumstances a cancellation",
+            "Under no circumstances want to cancel my appointment",
+            "Under no circumstances ask them to cancel my appointment",
+            "Under no circumstances go ahead and cancel my appointment",
+            "Under no circumstances should you cancel my appointment",
+            "Under no circumstances will I cancel my appointment",
+            "Under no circumstances do I want to cancel my appointment",
+            "Under no circumstances am I going to cancel my appointment",
+            "Under no circumstances would I reschedule my appointment",
+            "Under no circumstances must the office cancel my appointment",
+            "Under no circumstances cancel or reschedule my appointment",
+            "Under no circumstances cancel, reschedule, or book",
+            "Under no circumstances the cancellation or the reschedule",
+            "Cancel under no circumstances",
+            "I will cancel under no circumstances",
+            "I will cancel my appointment under no circumstances",
+            "I will cancel, under no circumstances",
+            "I will cancel or reschedule under no circumstances",
+            "I will cancel, reschedule, or book under no circumstances",
+            "Please ask the office to cancel, under no circumstances",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_under_no_circumstances_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("Under no circumstances, please cancel my appointment", "cancel"),
+            ("Under no circumstances wait, please cancel my appointment", "cancel"),
+            ("Under no circumstances Tuesday, please cancel", "cancel"),
+            ("Please cancel, under no circumstances wait", "cancel"),
+            ("Please cancel. Under no circumstances reschedule", "cancel"),
+            ("Please cancel, under no circumstances reschedule", "cancel"),
+            ("Please cancel, under no circumstances, reschedule", "cancel"),
+            ("Under no circumstances cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment under no circumstances, please reschedule",
+                "reschedule",
+            ),
+            ("Don't go and cancel my appointment", "cancel"),
+            ("Please don't come and cancel my appointment", "cancel"),
+            ("Under no circumstances go and cancel my appointment", "cancel"),
+            ("Under no circumstances I refuse to cancel", "no_action"),
+            ("Under no circumstances, I refuse to cancel", "no_action"),
+            ("Under no circumstances refuse to cancel", "no_action"),
+            ("Under no circumstances refuse the cancellation", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Don't refuse the cancellation", "cancel"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("Under no circumstances forget to cancel my appointment", "cancel"),
+            ("Under no circumstances do not forget to cancel", "cancel"),
+            ("Under no circumstances should you not forget to cancel", "cancel"),
+            ("I'm not going to refuse the cancellation", "cancel"),
+            ("Please don't under any circumstances cancel my appointment", "no_action"),
+            (
+                "Please do not ask the office, under no circumstances, to cancel my appointment",
+                "no_action",
+            ),
+            ("I might cancel my appointment", "cancel"),
+            ("No, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says under no circumstances",
+                "cancel",
+            ),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_past_tense_didnt_negations_do_not_route_to_action(self) -> None:
         examples = (
             "I didn't cancel my appointment",
