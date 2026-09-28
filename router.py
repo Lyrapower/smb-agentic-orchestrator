@@ -126,8 +126,8 @@ NEGATION_PREFIX_PATTERN = (
 # same way "Don't refuse to cancel" must stay executable. Inversion
 # auxiliaries cover "should you" / "will I" / "do I" / "am I". Extra subject
 # tokens stop before "not" so "do not forget to cancel" stays executable.
-# Bare "Don't go and cancel" is a different construction and is not handled
-# here.
+# "Don't go and cancel" uses the go-and/come-and bridge in the shared gap,
+# not this prefix.
 # Trailing comma belongs to the idiom ("circumstances, cancel"). Do not eat the
 # following space; the action keyword still needs a whitespace boundary.
 UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = r"under\s+no\s+circumstances(?:\s*,)?"
@@ -201,6 +201,14 @@ DIRECT_OBJECT_ARTICLE_PATTERN = r"(?:a|an|any|another|the)"
 GO_AHEAD_DETERMINER_PATTERN = (
     rf"(?:{DIRECT_OBJECT_ARTICLE_PATTERN}|my|our|your|his|her|their|this|that)"
 )
+# "go and <action>" / "come and <action>" are the same proceed-to-action idiom
+# as "go ahead and <action>" ("Don't go and cancel", "Please don't come and
+# cancel", "Under no circumstances go and cancel"). Require an immediate "and"
+# so "don't go, please cancel", "don't go, and cancel", and "don't come
+# Tuesday, please cancel" stay mixed-message actions. Do not match
+# going/coming, and do not add a generic "and" after other verbs
+# ("don't look and cancel" / "don't want and cancel" stay executable).
+GO_AND_COME_AND_PATTERN = r"(?:go|come)(?!\w)\s+and"
 # Verbs that take a "to <action>" complement. Shared by the generic to-path and
 # by nested "VERB to try and" / "VERB to go ahead/through with" so hoping/looking
 # and the rest of this set attach the same way going/want/plan/intend already do.
@@ -283,9 +291,10 @@ NEGATION_TARGET_GAP_PATTERN = (
     # Also "gonna/wanna try to/and cancel" and "gonna/wanna go ahead and/to/with
     # cancel", which the bare contraction path cannot reach because it expects
     # the action keyword immediately after. Nested "gonna/wanna ask them to
-    # (try and / go ahead /) cancel" needs the same delegated/to-taking
-    # complement as the non-contraction path; "to" is excluded from delegated
-    # gaps, so the bare contraction cannot skip from "gonna" to "cancel".
+    # (try and / go ahead / go and / come and) cancel" needs the same
+    # delegated/to-taking complement as the non-contraction path; "to" is
+    # excluded from delegated gaps, so the bare contraction cannot skip from
+    # "gonna" to "cancel".
     # Optional be/been after gonna/wanna covers "gonna be asking them to cancel"
     # / "gonna be trying to cancel"; trailing hedges cover "gonna really cancel"
     # / "gonna really have them cancel" / "gonna be really asking". "able" is
@@ -302,6 +311,8 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|"
     rf"\s+go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
+    rf"|"
+    rf"\s+{GO_AND_COME_AND_PATTERN}"
     rf")?"
     rf"|"
     rf"\s+(?:{NEGATION_DELEGATED_VERB_PATTERN}|let|allow|permit)"
@@ -313,6 +324,8 @@ NEGATION_TARGET_GAP_PATTERN = (
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|"
     rf"\s+go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?"
+    rf"|"
+    rf"\s+{GO_AND_COME_AND_PATTERN}"
     rf")?"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?\s+"
@@ -371,6 +384,13 @@ NEGATION_TARGET_GAP_PATTERN = (
     r"(?:go(?:ing)?\s+ahead"
     rf"(?:\s+(?:and|to|with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?))?"
     rf"|go(?:ing)?\s+through\s+with(?:\s+{GO_AHEAD_DETERMINER_PATTERN})?)"
+    # "go and" / "come and" are the bare form of that idiom. Same nested
+    # prefix so "going to go and" / "ask them to come and" attach, while a
+    # comma or an extra word before "and" does not.
+    rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+    rf"{NEGATION_NESTED_TO_COMPLEMENT_PREFIX_PATTERN}"
+    rf"{NEGATION_TRAILING_ADVERB_PATTERN}"
+    rf"{GO_AND_COME_AND_PATTERN}"
     rf"|(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
     rf"(?:\s+{NEGATION_BE_AUXILIARY_PATTERN})?"
     rf"\s+{NEGATION_DELEGATED_VERB_PATTERN}"
