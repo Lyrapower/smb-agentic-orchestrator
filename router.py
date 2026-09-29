@@ -72,7 +72,10 @@ NEGATION_SAME_CLAUSE_GAP_TOKEN_PATTERN = (
     rf"{NEGATION_SAME_CLAUSE_GAP_TOKEN_NO_COMMA_PATTERN},?"
 )
 NEGATION_EMPHASIS_PATTERN = (
-    r"(?:\s*,?\s*(?:ever|under\s+(?:any|no)\s+circumstances|"
+    r"(?:\s*,?\s*(?:ever|"
+    r"under\s+(?:any|no)\s+circumstances?(?!\w)|"
+    r"in\s+no\s+circumstances?(?!\w)|"
+    r"on\s+no\s+account(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 # Hedge/intensifier adverbs that commonly sit between a negation and an intent
@@ -119,18 +122,24 @@ NEGATION_PREFIX_PATTERN = (
     r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
-# Standalone "under no circumstances <action>" is itself a refusal. The same
-# phrase after don't/never already matches via NEGATION_EMPHASIS_PATTERN.
-# Do not add this idiom to NEGATION_PREFIX_PATTERN: that would invert
-# "Under no circumstances I refuse to cancel" into an executable cancel, the
-# same way "Don't refuse to cancel" must stay executable. Inversion
-# auxiliaries cover "should you" / "will I" / "do I" / "am I". Extra subject
+# Standalone "under no circumstances <action>" is itself a refusal. Singular
+# "under no circumstance", "in no circumstances", and "on no account" are the
+# same prohibition. The same phrases after don't/never match via
+# NEGATION_EMPHASIS_PATTERN. Do not add these idioms to
+# NEGATION_PREFIX_PATTERN: that would invert "Under no circumstances I refuse
+# to cancel" into an executable cancel, the same way "Don't refuse to cancel"
+# must stay executable. Do not treat "under any circumstances" as this prefix;
+# without a negation word it is affirmative. Inversion auxiliaries cover
+# "should you" / "will I" / "do I" / "am I", not "can"/"could". Extra subject
 # tokens stop before "not" so "do not forget to cancel" stays executable.
 # "Don't go and cancel" uses the go-and/come-and bridge in the shared gap,
 # not this prefix.
 # Trailing comma belongs to the idiom ("circumstances, cancel"). Do not eat the
 # following space; the action keyword still needs a whitespace boundary.
-UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = r"under\s+no\s+circumstances(?:\s*,)?"
+UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
+    r"(?:(?:under|in)\s+no\s+circumstances?|on\s+no\s+account)(?!\w)"
+    r"(?:\s*,)?"
+)
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
     r"(?:anyone|someone|everybody|everyone|their|they|this|that|she|you|"
     r"your|our|his|her|the|we|he|it|an|my|i|a)(?!\w)"
@@ -904,6 +913,15 @@ def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
     return False
 
 
+def _has_prohibitive_idiom_marker(text: str) -> bool:
+    """Fast reject before the standalone prohibitive-idiom scan.
+
+    "circumstance" covers singular and plural. "no account" is tighter than
+    "account", which shows up in unrelated appointment text.
+    """
+    return "circumstance" in text or "no account" in text
+
+
 def _under_no_circumstances_forward_attaches(text: str, idiom_end: int) -> bool:
     """True when the idiom negates an action that follows it."""
     tail = text[idiom_end:]
@@ -982,7 +1000,7 @@ def _has_under_no_circumstances_after_keyword(text: str, keyword: str) -> bool:
 
 
 def _has_under_no_circumstances_before_keyword(text: str, keyword: str) -> bool:
-    if "circumstances" not in text:
+    if not _has_prohibitive_idiom_marker(text):
         return False
 
     keyword_pattern = _keyword_pattern(keyword)
@@ -1013,7 +1031,7 @@ def _has_under_no_circumstances_conjunction(
     previous_keywords: Iterable[str],
     conjunction_pattern: str,
 ) -> bool:
-    if "circumstances" not in text:
+    if not _has_prohibitive_idiom_marker(text):
         return False
 
     keyword_pattern = _keyword_pattern(keyword)
@@ -1046,7 +1064,7 @@ def _has_under_no_circumstances_conjunction(
 
 
 def _has_under_no_circumstances_action_list(text: str, keyword: str) -> bool:
-    if "circumstances" not in text:
+    if not _has_prohibitive_idiom_marker(text):
         return False
 
     determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
