@@ -255,6 +255,55 @@ NEGATION_DELEGATED_VERB_PATTERN = (
     r"gets|got|have|has|had|having|make|makes|made|making|letting|"
     r"allowing|permitting)"
 )
+# "There are no circumstances in which I want to cancel" is the same
+# prohibition, but "no circumstance(s)" is not immediately after under/in.
+# Require in which / under which / where so "There are no circumstances,
+# please cancel" stays executable. "There are circumstances in which I want
+# to cancel" is affirmative and must not match. Subject tokens stop before
+# "not" and before can/could, so "do not forget to cancel" and "I can cancel"
+# stay executable, matching the under-no-circumstances controls. Bridge verbs
+# stay outside the subject so the shared gap still sees "want to" / "go and".
+# Do not add this idiom to NEGATION_PREFIX_PATTERN.
+NO_CIRCUMSTANCES_IN_WHICH_IDIOM_PATTERN = (
+    r"(?:"
+    r"there\s+(?:is|are|was|were)n(?:o)?'?t\s+any\s+"
+    r"|there(?:'s|'re)\s+(?:no|not\s+any)\s+"
+    r"|(?:there\s+(?:is|are|was|were)\s+)?(?:no|not\s+any)\s+"
+    r")"
+    r"circumstances?(?!\w)(?:\s*,)?\s+"
+    r"(?:(?:in|under)\s+which|where)(?!\w)"
+    r"(?:\s*,)?"
+)
+# Keep this lookahead small. A full bridge-verb alternation here, in front of
+# the shared gap, backtracks for seconds on near-misses such as "want to start
+# the cancellation".
+NO_CIRCUMSTANCES_IN_WHICH_SUBJECT_TOKEN_PATTERN = (
+    r"(?!(?:to|but|however|instead|yet|please|not|can|could|"
+    r"want|wants|wanted|wanting|need|needs|needed|"
+    r"wish|wishes|wished|like|likes|try|trying|attempt|attempting|"
+    r"go|going|come|coming|ask|asks|asked|asking|tell|tells|told|"
+    r"have|has|had|let|make|makes|made|start|starts)\b)"
+    r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
+)
+NO_CIRCUMSTANCES_IN_WHICH_SUBJECT_PATTERN = (
+    r"(?:\s+(?:anyone|someone|everybody|everyone|their|they|this|that|she|"
+    r"you|your|our|his|her|the|we|he|it|an|my|i(?:'(?:d|ll|m|ve))?|a)(?!\w)"
+    rf"(?:\s+{NO_CIRCUMSTANCES_IN_WHICH_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+)
+NO_CIRCUMSTANCES_IN_WHICH_PREFIX_PATTERN = (
+    rf"{NO_CIRCUMSTANCES_IN_WHICH_IDIOM_PATTERN}"
+    rf"{NEGATION_EMPHASIS_PATTERN}"
+    rf"{NO_CIRCUMSTANCES_IN_WHICH_SUBJECT_PATTERN}"
+    rf"{UNDER_NO_CIRCUMSTANCES_INVERSION_PATTERN}"
+    r"(?:\s+ever\b)?"
+    rf"{NEGATION_EMPHASIS_PATTERN}"
+)
+PROHIBITIVE_IDIOM_PATTERN = (
+    rf"(?:{NO_CIRCUMSTANCES_IN_WHICH_IDIOM_PATTERN}|{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN})"
+)
+PROHIBITIVE_FORWARD_PREFIX_PATTERN = (
+    rf"(?:{NO_CIRCUMSTANCES_IN_WHICH_PREFIX_PATTERN}|{UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN})"
+)
 # Optional nested "VERB (object) to" before try-and / go-ahead / go-through-with.
 # To-taking bridges keep the existing 0-3 generic gaps. Delegated/let verbs use
 # the delegated gap, which will not skip past "to", so "ask them to try and"
@@ -922,33 +971,52 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     return "circumstance" in text or "no account" in text
 
 
+def _prohibitive_forward_prefix_rests(text: str, idiom_end: int) -> tuple[str, ...]:
+    """Prefix tails that may sit between a prohibitive idiom and its action.
+
+    "under no circumstances should you" is auxiliary-first. "there are no
+    circumstances in which I want" is subject-first, and only that idiom ends
+    at which/where. Applying the subject-first tail to every idiom would
+    change "Under no circumstances I will cancel".
+    """
+    inversion_rest = (
+        rf"{UNDER_NO_CIRCUMSTANCES_INVERSION_PATTERN}"
+        r"(?:\s+ever\b)?"
+        rf"{NEGATION_EMPHASIS_PATTERN}"
+    )
+    if re.search(r"(?:which|where)\b(?:\s*,)?\s*$", text[:idiom_end]):
+        return (
+            rf"{NEGATION_EMPHASIS_PATTERN}"
+            rf"{NO_CIRCUMSTANCES_IN_WHICH_SUBJECT_PATTERN}{inversion_rest}",
+            inversion_rest,
+        )
+
+    return (inversion_rest,)
+
+
 def _under_no_circumstances_forward_attaches(text: str, idiom_end: int) -> bool:
     """True when the idiom negates an action that follows it."""
     tail = text[idiom_end:]
     keyword_pattern = rf"(?:{_action_keyword_alternation()})"
     determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
-    prefix_rest = (
-        rf"{UNDER_NO_CIRCUMSTANCES_INVERSION_PATTERN}"
-        r"(?:\s+ever\b)?"
-        rf"{NEGATION_EMPHASIS_PATTERN}"
-    )
-    if re.search(
-        rf"^{prefix_rest}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
-        tail,
-    ):
-        return True
+    for prefix_rest in _prohibitive_forward_prefix_rests(text, idiom_end):
+        if re.search(
+            rf"^{prefix_rest}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+            tail,
+        ):
+            return True
 
-    return (
-        re.search(
+        if re.search(
             rf"^{prefix_rest}"
             rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
             rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
             rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
             rf"{keyword_pattern}",
             tail,
-        )
-        is not None
-    )
+        ):
+            return True
+
+    return False
 
 
 def _under_no_circumstances_suffix_applies(text: str, idiom_end: int) -> bool:
@@ -986,9 +1054,9 @@ def _has_under_no_circumstances_after_keyword(text: str, keyword: str) -> bool:
         rf"|(?:\s*,\s*{action_keyword_pattern})+)"
     )
     patterns = (
-        rf"{keyword_pattern}{gap}\s*,?\s+(?P<idiom>{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN})",
+        rf"{keyword_pattern}{gap}\s*,?\s+(?P<idiom>{PROHIBITIVE_IDIOM_PATTERN})",
         rf"{keyword_pattern}(?P<mid>{list_bridge}){gap}\s*,?\s+"
-        rf"(?P<idiom>{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN})",
+        rf"(?P<idiom>{PROHIBITIVE_IDIOM_PATTERN})",
     )
     for pattern in patterns:
         for match in re.finditer(pattern, text):
@@ -1006,14 +1074,14 @@ def _has_under_no_circumstances_before_keyword(text: str, keyword: str) -> bool:
     keyword_pattern = _keyword_pattern(keyword)
     determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
     if re.search(
-        rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+        rf"(?<!\w){PROHIBITIVE_FORWARD_PREFIX_PATTERN}"
         rf"{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
         text,
     ):
         return True
 
     if re.search(
-        rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+        rf"(?<!\w){PROHIBITIVE_FORWARD_PREFIX_PATTERN}"
         rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
         rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
         rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
@@ -1041,7 +1109,7 @@ def _has_under_no_circumstances_conjunction(
             continue
 
         if re.search(
-            rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+            rf"(?<!\w){PROHIBITIVE_FORWARD_PREFIX_PATTERN}"
             rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
             rf"{determiner}{_keyword_pattern(previous_keyword)}"
             rf"{conjunction_pattern}{determiner}{keyword_pattern}",
@@ -1050,7 +1118,7 @@ def _has_under_no_circumstances_conjunction(
             return True
 
         if re.search(
-            rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+            rf"(?<!\w){PROHIBITIVE_FORWARD_PREFIX_PATTERN}"
             rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
             rf"{determiner}{_keyword_pattern(previous_keyword)}"
             rf"{NEGATED_OBJECT_GAP_PATTERN}"
@@ -1081,7 +1149,7 @@ def _has_under_no_circumstances_action_list(text: str, keyword: str) -> bool:
 
         for list_tail_pattern in list_tail_patterns:
             for match in re.finditer(
-                rf"(?<!\w){UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}"
+                rf"(?<!\w){PROHIBITIVE_FORWARD_PREFIX_PATTERN}"
                 rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
                 rf"{determiner}{_keyword_pattern(previous_keyword)}"
                 rf"(?P<tail>{list_tail_pattern})",

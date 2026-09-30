@@ -1295,7 +1295,7 @@ class RouterTests(unittest.TestCase):
             ("In any circumstances cancel my appointment", "cancel"),
             ("On no account can I cancel my appointment", "cancel"),
             ("Under no circumstances can I cancel my appointment", "cancel"),
-            ("There are no circumstances in which I want to cancel", "cancel"),
+            ("There are no circumstances in which I want to cancel", "no_action"),
             ("I have no account, please cancel my appointment", "cancel"),
             (
                 "Please cancel my appointment, the policy says on no account",
@@ -1304,6 +1304,95 @@ class RouterTests(unittest.TestCase):
             ("Please go and cancel my appointment", "cancel"),
             ("Don't go and cancel my appointment", "no_action"),
             ("Under no circumstances cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_no_circumstances_in_which_does_not_route_to_action(self) -> None:
+        examples = (
+            "There are no circumstances in which I want to cancel my appointment",
+            "There are no circumstances in which I want to cancel",
+            "THERE ARE NO CIRCUMSTANCES IN WHICH I WANT TO CANCEL",
+            "There are no circumstances in which, I want to cancel",
+            "There is no circumstance in which I want to cancel",
+            "There is no circumstance in which I would cancel",
+            "There are no circumstances under which I will cancel",
+            "There are no circumstances where I want to cancel",
+            "There's no circumstance in which I want to cancel",
+            "There're no circumstances in which I want to cancel",
+            "There aren't any circumstances in which I want to cancel",
+            "There isn't any circumstance in which I want to cancel",
+            "There are not any circumstances in which I want to cancel",
+            "No circumstances in which I want to cancel",
+            "No circumstance under which I would cancel",
+            "There are no circumstances in which to cancel",
+            "There are no circumstances in which I want to reschedule",
+            "There are no circumstances in which I want to schedule an appointment",
+            "There are no circumstances in which I want to call off my appointment",
+            "There are no circumstances in which I want to book a new appointment",
+            "There are no circumstances in which I want the cancellation",
+            "There are no circumstances in which the cancellation",
+            "There are no circumstances in which I ask them to cancel",
+            "There are no circumstances in which I go and cancel",
+            "There are no circumstances in which I want to go and cancel",
+            "There are no circumstances in which I come and cancel",
+            "There were no circumstances in which I wanted to cancel",
+            "There are no circumstances in which I am going to cancel",
+            "There are no circumstances in which I'd cancel",
+            "There are no circumstances in which I'll cancel",
+            "There are no circumstances in which I'm going to cancel",
+            "There are no circumstances in which I should cancel",
+            "There are no circumstances in which, ever, I want to cancel",
+            "There are no circumstances in which ever I want to cancel",
+            "There are no circumstances in which I ever want to cancel",
+            "There are no circumstances in which I want to cancel or reschedule",
+            "There are no circumstances in which I want to cancel, reschedule, or book",
+            "There are no circumstances in which I refuse to cancel",
+            "There are no circumstances\u2014in which I want to cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_no_circumstances_in_which_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("There are no circumstances, please cancel my appointment", "cancel"),
+            ("There are no circumstances in which I want to wait, please cancel", "cancel"),
+            ("There are circumstances in which I want to cancel", "cancel"),
+            ("There is a circumstance in which I want to cancel", "cancel"),
+            ("Under any circumstances cancel my appointment", "cancel"),
+            ("In any circumstances cancel my appointment", "cancel"),
+            (
+                "There are no circumstances in which I want to cancel, please reschedule",
+                "reschedule",
+            ),
+            (
+                "Please cancel, there are no circumstances in which I want to reschedule",
+                "cancel",
+            ),
+            (
+                "Please cancel. There are no circumstances in which I want to reschedule",
+                "cancel",
+            ),
+            ("There are no circumstances in which I can cancel", "cancel"),
+            ("There are no circumstances in which I could cancel", "cancel"),
+            ("Under no circumstances can I cancel my appointment", "cancel"),
+            ("On no account can I cancel my appointment", "cancel"),
+            ("There are no circumstances in which I do not forget to cancel", "cancel"),
+            ("There are no circumstances in which do not forget to cancel", "cancel"),
+            ("On no account, please cancel my appointment", "cancel"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("There are no circumstances in which I refuse to cancel", "no_action"),
+            ("Under no circumstances cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
             ("Please cancel my appointment", "cancel"),
         )
 
