@@ -1402,6 +1402,100 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_by_no_means_does_not_route_to_action(self) -> None:
+        examples = (
+            "By no means cancel my appointment",
+            "By no means, cancel my appointment",
+            "BY NO MEANS CANCEL",
+            "By no means\u2014cancel my appointment",
+            "By no means ever cancel my appointment",
+            "By no means, ever, cancel my appointment",
+            "By no means reschedule my appointment",
+            "By no means schedule an appointment",
+            "By no means call off my appointment",
+            "By no means book a new appointment",
+            "By no means the cancellation",
+            "By no means a cancellation",
+            "By no means want to cancel my appointment",
+            "By no means ask them to cancel my appointment",
+            "By no means have them cancel my appointment",
+            "By no means let them cancel my appointment",
+            "By no means go ahead and cancel my appointment",
+            "By no means go and cancel my appointment",
+            "By no means come and cancel my appointment",
+            "By no means should you cancel my appointment",
+            "By no means will I cancel my appointment",
+            "By no means do I want to cancel my appointment",
+            "By no means am I going to cancel my appointment",
+            "By no means am I to cancel my appointment",
+            "By no means is this a cancellation",
+            "By no means cancel or reschedule my appointment",
+            "By no means cancel, reschedule, or book",
+            "By no means the cancellation or the reschedule",
+            "Cancel by no means",
+            "I will cancel by no means",
+            "I will cancel my appointment by no means",
+            "I will cancel or reschedule by no means",
+            "I will by no means cancel my appointment",
+            "You must by no means cancel my appointment",
+            "Please don't by no means cancel my appointment",
+            "Please don't, by no means, cancel my appointment",
+            "Please do not by no means cancel my appointment",
+            "Never by no means cancel my appointment",
+            "Please don't by no means go and cancel my appointment",
+            "By no means I refuse to cancel",
+            "Please ask the office to cancel, by no means",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_by_no_means_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("By no means, please cancel my appointment", "cancel"),
+            ("By no means please cancel my appointment", "cancel"),
+            ("By no means wait, please cancel my appointment", "cancel"),
+            ("By no means Tuesday, please cancel", "cancel"),
+            ("Please cancel, by no means wait", "cancel"),
+            ("Please cancel. By no means reschedule", "cancel"),
+            ("Please cancel, by no means reschedule", "cancel"),
+            ("By no means cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment by no means, please reschedule",
+                "reschedule",
+            ),
+            ("By no means go, and cancel my appointment", "cancel"),
+            ("By no means go and wait, please cancel", "cancel"),
+            ("By no means I will cancel my appointment", "cancel"),
+            ("By no means, I will cancel my appointment", "cancel"),
+            ("By no means refuse to cancel", "no_action"),
+            ("By no means refuse the cancellation", "no_action"),
+            ("By no means forget to cancel my appointment", "cancel"),
+            ("By no means do not forget to cancel", "cancel"),
+            ("By no means can I cancel my appointment", "cancel"),
+            ("By all means cancel my appointment", "cancel"),
+            ("By all means, please cancel my appointment", "cancel"),
+            ("By any means cancel my appointment", "cancel"),
+            ("I have no means to cancel my appointment", "cancel"),
+            ("I have no means, please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says by no means",
+                "cancel",
+            ),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
