@@ -1496,6 +1496,103 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_no_way_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no way cancel my appointment",
+            "In no way, cancel my appointment",
+            "IN NO WAY CANCEL",
+            "In no way\u2014cancel my appointment",
+            "In no way ever cancel my appointment",
+            "In no way, ever, cancel my appointment",
+            "In no way reschedule my appointment",
+            "In no way schedule an appointment",
+            "In no way call off my appointment",
+            "In no way book a new appointment",
+            "In no way the cancellation",
+            "In no way a cancellation",
+            "In no way want to cancel my appointment",
+            "In no way ask them to cancel my appointment",
+            "In no way have them cancel my appointment",
+            "In no way let them cancel my appointment",
+            "In no way go ahead and cancel my appointment",
+            "In no way go and cancel my appointment",
+            "In no way come and cancel my appointment",
+            "In no way should you cancel my appointment",
+            "In no way will I cancel my appointment",
+            "In no way do I want to cancel my appointment",
+            "In no way am I going to cancel my appointment",
+            "In no way am I to cancel my appointment",
+            "In no way is this a cancellation",
+            "In no way cancel or reschedule my appointment",
+            "In no way cancel, reschedule, or book",
+            "In no way the cancellation or the reschedule",
+            "Cancel in no way",
+            "I will cancel in no way",
+            "I will cancel my appointment in no way",
+            "I will cancel or reschedule in no way",
+            "I will in no way cancel my appointment",
+            "You must in no way cancel my appointment",
+            "Please don't in no way cancel my appointment",
+            "Please don't, in no way, cancel my appointment",
+            "Please do not in no way cancel my appointment",
+            "Never in no way cancel my appointment",
+            "Please don't in no way go and cancel my appointment",
+            "In no way I refuse to cancel",
+            "Please ask the office to cancel, in no way",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_way_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no way, please cancel my appointment", "cancel"),
+            ("In no way please cancel my appointment", "cancel"),
+            ("In no way wait, please cancel my appointment", "cancel"),
+            ("In no way Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no way wait", "cancel"),
+            ("Please cancel. In no way reschedule", "cancel"),
+            ("Please cancel, in no way reschedule", "cancel"),
+            ("In no way cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no way, please reschedule",
+                "reschedule",
+            ),
+            ("In no way go, and cancel my appointment", "cancel"),
+            ("In no way go and wait, please cancel", "cancel"),
+            ("In no way I will cancel my appointment", "cancel"),
+            ("In no way, I will cancel my appointment", "cancel"),
+            ("In no way refuse to cancel", "no_action"),
+            ("In no way refuse the cancellation", "no_action"),
+            ("In no way forget to cancel my appointment", "cancel"),
+            ("In no way do not forget to cancel", "cancel"),
+            ("In no way can I cancel my appointment", "cancel"),
+            ("In any way cancel my appointment", "cancel"),
+            ("In some way, please cancel my appointment", "cancel"),
+            ("There's no way I can cancel my appointment", "cancel"),
+            ("There is no way to cancel my appointment", "cancel"),
+            ("I have no way to cancel my appointment", "cancel"),
+            ("No way cancel my appointment", "cancel"),
+            ("No way, please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says in no way",
+                "cancel",
+            ),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
