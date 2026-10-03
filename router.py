@@ -134,9 +134,9 @@ NEGATION_PREFIX_PATTERN = (
 # to cancel" into an executable cancel, the same way "Don't refuse to cancel"
 # must stay executable. Do not treat "under any circumstances", "by any means",
 # "by all means", "in any way", "under/on any condition", or "in no condition"
-# as this prefix. "In no condition" is inability, not this prohibition, and
-# the "any" forms are affirmative without a separate don't/never. Inversion
-# auxiliaries cover "should you" / "will I" / "do I" / "am I", not
+# as this prefix. "In no condition" is inability, not this prohibition.
+# "Under/on any condition" stays affirmative, including after don't/never.
+# Inversion auxiliaries cover "should you" / "will I" / "do I" / "am I", not
 # "can"/"could". Extra subject tokens stop before "not" so "do not forget to
 # cancel" stays executable. "Don't go and cancel" uses the go-and/come-and
 # bridge in the shared gap, not this prefix.
