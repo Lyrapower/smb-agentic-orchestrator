@@ -1593,6 +1593,115 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_under_or_on_no_condition_does_not_route_to_action(self) -> None:
+        examples = (
+            "Under no condition cancel my appointment",
+            "Under no conditions cancel my appointment",
+            "On no condition cancel my appointment",
+            "On no conditions cancel my appointment",
+            "Under no condition, cancel my appointment",
+            "On no condition, cancel my appointment",
+            "UNDER NO CONDITION CANCEL",
+            "Under no condition\u2014cancel my appointment",
+            "Under no condition ever cancel my appointment",
+            "On no condition, ever, cancel my appointment",
+            "Under no condition reschedule my appointment",
+            "On no condition schedule an appointment",
+            "Under no condition call off my appointment",
+            "On no condition book a new appointment",
+            "Under no condition the cancellation",
+            "On no condition a cancellation",
+            "Under no condition want to cancel my appointment",
+            "On no condition ask them to cancel my appointment",
+            "Under no condition have them cancel my appointment",
+            "On no condition let them cancel my appointment",
+            "Under no condition go ahead and cancel my appointment",
+            "On no condition go and cancel my appointment",
+            "Under no condition come and cancel my appointment",
+            "Under no condition should you cancel my appointment",
+            "On no condition will I cancel my appointment",
+            "Under no condition do I want to cancel my appointment",
+            "On no condition am I going to cancel my appointment",
+            "Under no condition am I to cancel my appointment",
+            "On no condition is this a cancellation",
+            "Under no condition cancel or reschedule my appointment",
+            "On no condition cancel, reschedule, or book",
+            "Under no conditions should you cancel or reschedule",
+            "On no condition the cancellation or the reschedule",
+            "Cancel under no condition",
+            "I will cancel on no condition",
+            "I will cancel my appointment under no conditions",
+            "I will cancel or reschedule on no condition",
+            "I will under no condition cancel my appointment",
+            "You must on no condition cancel my appointment",
+            "Please don't under no condition cancel my appointment",
+            "Please don't, on no condition, cancel my appointment",
+            "Please do not under no conditions cancel my appointment",
+            "Never on no condition cancel my appointment",
+            "Please don't under no condition go and cancel my appointment",
+            "Under no condition I refuse to cancel",
+            "Please ask the office to cancel, on no condition",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_under_or_on_no_condition_mixed_messages_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("Under no condition, please cancel my appointment", "cancel"),
+            ("On no condition please cancel my appointment", "cancel"),
+            ("Under no condition wait, please cancel my appointment", "cancel"),
+            ("On no condition Tuesday, please cancel", "cancel"),
+            ("Please cancel, under no condition wait", "cancel"),
+            ("Please cancel. On no condition reschedule", "cancel"),
+            ("Please cancel, under no condition reschedule", "cancel"),
+            ("Under no condition cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no condition, please reschedule",
+                "reschedule",
+            ),
+            ("Under no condition go, and cancel my appointment", "cancel"),
+            ("On no condition go and wait, please cancel", "cancel"),
+            ("Under no condition I will cancel my appointment", "cancel"),
+            ("On no condition, I will cancel my appointment", "cancel"),
+            ("Under no condition refuse to cancel", "no_action"),
+            ("On no condition refuse the cancellation", "no_action"),
+            ("Under no condition forget to cancel my appointment", "cancel"),
+            ("On no condition do not forget to cancel", "cancel"),
+            ("Under no condition can I cancel my appointment", "cancel"),
+            ("Under any condition cancel my appointment", "cancel"),
+            ("Under any conditions cancel my appointment", "cancel"),
+            ("On any condition cancel my appointment", "cancel"),
+            ("In no condition cancel my appointment", "cancel"),
+            ("I'm in no condition to cancel my appointment", "cancel"),
+            ("I am in no condition to cancel my appointment", "cancel"),
+            ("I have no condition, please cancel my appointment", "cancel"),
+            ("No condition cancel my appointment", "cancel"),
+            ("Under the condition, please cancel my appointment", "cancel"),
+            ("On the condition you cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says under no condition",
+                "cancel",
+            ),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",

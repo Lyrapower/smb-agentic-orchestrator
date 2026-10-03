@@ -78,6 +78,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"on\s+no\s+account(?!\w)|"
     r"by\s+no\s+means(?!\w)|"
     r"in\s+no\s+way(?!\w)|"
+    r"(?:under|on)\s+no\s+conditions?(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 # Hedge/intensifier adverbs that commonly sit between a negation and an intent
@@ -126,22 +127,25 @@ NEGATION_PREFIX_PATTERN = (
 )
 # Standalone "under no circumstances <action>" is itself a refusal. Singular
 # "under no circumstance", "in no circumstances", "on no account",
-# "by no means", and "in no way" are the same prohibition. The same phrases
-# after don't/never match via NEGATION_EMPHASIS_PATTERN. Do not add these
-# idioms to NEGATION_PREFIX_PATTERN: that would invert "Under no circumstances
-# I refuse to cancel" into an executable cancel, the same way "Don't refuse to
-# cancel" must stay executable. Do not treat "under any circumstances",
-# "by any means", "by all means", or "in any way" as this prefix; without the
-# prohibitive "no" they are affirmative. Inversion auxiliaries cover
-# "should you" / "will I" / "do I" / "am I", not "can"/"could". Extra subject
-# tokens stop before "not" so "do not forget to cancel" stays executable.
-# "Don't go and cancel" uses the go-and/come-and bridge in the shared gap,
-# not this prefix.
+# "by no means", "in no way", and "under/on no condition(s)" are the same
+# prohibition. The same phrases after don't/never match via
+# NEGATION_EMPHASIS_PATTERN. Do not add these idioms to
+# NEGATION_PREFIX_PATTERN: that would invert "Under no circumstances I refuse
+# to cancel" into an executable cancel, the same way "Don't refuse to cancel"
+# must stay executable. Do not treat "under any circumstances", "by any means",
+# "by all means", "in any way", "under/on any condition", or "in no condition"
+# as this prefix. "In no condition" is inability, not this prohibition, and
+# the "any" forms are affirmative without a separate don't/never. Inversion
+# auxiliaries cover "should you" / "will I" / "do I" / "am I", not
+# "can"/"could". Extra subject tokens stop before "not" so "do not forget to
+# cancel" stays executable. "Don't go and cancel" uses the go-and/come-and
+# bridge in the shared gap, not this prefix.
 # Trailing comma belongs to the idiom ("circumstances, cancel"). Do not eat the
 # following space; the action keyword still needs a whitespace boundary.
 UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:(?:under|in)\s+no\s+circumstances?|on\s+no\s+account|"
-    r"by\s+no\s+means|in\s+no\s+way)(?!\w)"
+    r"by\s+no\s+means|in\s+no\s+way|"
+    r"(?:under|on)\s+no\s+conditions?)(?!\w)"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -969,15 +973,17 @@ def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
 def _has_prohibitive_idiom_marker(text: str) -> bool:
     """Fast reject before the standalone prohibitive-idiom scan.
 
-    "circumstance" covers singular and plural. "no account", "no means", and
-    "no way" are tighter than "account", "means", or "way", which show up in
-    unrelated text.
+    "circumstance" covers singular and plural. "no account", "no means",
+    "no way", and "no condition" are tighter than "account", "means", "way",
+    or "condition", which show up in unrelated text. "no condition" also
+    covers the plural "no conditions".
     """
     return (
         "circumstance" in text
         or "no account" in text
         or "no means" in text
         or "no way" in text
+        or "no condition" in text
     )
 
 
