@@ -1702,6 +1702,107 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_no_event_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no event cancel my appointment",
+            "In no event, cancel my appointment",
+            "IN NO EVENT CANCEL",
+            "In no event\u2014cancel my appointment",
+            "In no event ever cancel my appointment",
+            "In no event, ever, cancel my appointment",
+            "In no event reschedule my appointment",
+            "In no event schedule an appointment",
+            "In no event call off my appointment",
+            "In no event book a new appointment",
+            "In no event the cancellation",
+            "In no event a cancellation",
+            "In no event want to cancel my appointment",
+            "In no event ask them to cancel my appointment",
+            "In no event have them cancel my appointment",
+            "In no event let them cancel my appointment",
+            "In no event go ahead and cancel my appointment",
+            "In no event go and cancel my appointment",
+            "In no event come and cancel my appointment",
+            "In no event should you cancel my appointment",
+            "In no event will I cancel my appointment",
+            "In no event do I want to cancel my appointment",
+            "In no event am I going to cancel my appointment",
+            "In no event am I to cancel my appointment",
+            "In no event is this a cancellation",
+            "In no event cancel or reschedule my appointment",
+            "In no event cancel, reschedule, or book",
+            "In no event should you cancel or reschedule",
+            "In no event the cancellation or the reschedule",
+            "Cancel in no event",
+            "I will cancel in no event",
+            "I will cancel my appointment in no event",
+            "I will cancel or reschedule in no event",
+            "I will in no event cancel my appointment",
+            "You must in no event cancel my appointment",
+            "Please don't in no event cancel my appointment",
+            "Please don't, in no event, cancel my appointment",
+            "Please do not in no event cancel my appointment",
+            "Never in no event cancel my appointment",
+            "Please don't in no event go and cancel my appointment",
+            "In no event I refuse to cancel",
+            "Please ask the office to cancel, in no event",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_event_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no event, please cancel my appointment", "cancel"),
+            ("In no event please cancel my appointment", "cancel"),
+            ("In no event wait, please cancel my appointment", "cancel"),
+            ("In no event Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no event wait", "cancel"),
+            ("Please cancel. In no event reschedule", "cancel"),
+            ("Please cancel, in no event reschedule", "cancel"),
+            ("In no event cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no event, please reschedule",
+                "reschedule",
+            ),
+            ("In no event go, and cancel my appointment", "cancel"),
+            ("In no event go and wait, please cancel", "cancel"),
+            ("In no event I will cancel my appointment", "cancel"),
+            ("In no event, I will cancel my appointment", "cancel"),
+            ("In no event refuse to cancel", "no_action"),
+            ("In no event refuse the cancellation", "no_action"),
+            ("In no event forget to cancel my appointment", "cancel"),
+            ("In no event do not forget to cancel", "cancel"),
+            ("In no event can I cancel my appointment", "cancel"),
+            ("In any event cancel my appointment", "cancel"),
+            ("Please don't in any event cancel my appointment", "cancel"),
+            ("In the event, please cancel my appointment", "cancel"),
+            ("In the event you cancel my appointment", "cancel"),
+            ("I have no event, please cancel my appointment", "cancel"),
+            ("No event cancel my appointment", "cancel"),
+            ("In no events cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says in no event",
+                "cancel",
+            ),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
