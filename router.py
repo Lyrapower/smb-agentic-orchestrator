@@ -80,6 +80,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"in\s+no\s+way(?!\w)|"
     r"(?:under|on)\s+no\s+conditions?(?!\w)|"
     r"in\s+no\s+event(?!\w)|"
+    r"in\s+no\s+case(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 # Hedge/intensifier adverbs that commonly sit between a negation and an intent
@@ -128,17 +129,19 @@ NEGATION_PREFIX_PATTERN = (
 )
 # Standalone "under no circumstances <action>" is itself a refusal. Singular
 # "under no circumstance", "in no circumstances", "on no account",
-# "by no means", "in no way", "under/on no condition(s)", and "in no event"
-# are the same prohibition. The same phrases after don't/never match via
-# NEGATION_EMPHASIS_PATTERN. Do not add these idioms to
+# "by no means", "in no way", "under/on no condition(s)", "in no event", and
+# "in no case" are the same prohibition. The same phrases after don't/never
+# match via NEGATION_EMPHASIS_PATTERN. Do not add these idioms to
 # NEGATION_PREFIX_PATTERN: that would invert "Under no circumstances I refuse
 # to cancel" into an executable cancel, the same way "Don't refuse to cancel"
 # must stay executable. Do not treat "under any circumstances", "by any means",
 # "by all means", "in any way", "under/on any condition", "in no condition",
-# or "in any event" as this prefix. "In no condition" is inability, not this
-# prohibition. "Under/on any condition" and "in any event" stay affirmative,
-# including after don't/never. "In the event" and bare "no event" are not
-# this prohibition. The idiom is singular "event", not "events".
+# "in any event", or "in any case" as this prefix. "In no condition" is
+# inability, not this prohibition. "Under/on any condition", "in any event",
+# and "in any case" stay affirmative, including after don't/never. "In the
+# event", bare "no event", "in the case", "in case", and bare "no case" are
+# not this prohibition. The idiom is singular "event"/"case", not "events"
+# or "cases".
 # Inversion auxiliaries cover "should you" / "will I" / "do I" / "am I", not
 # "can"/"could". Extra subject tokens stop before "not" so "do not forget to
 # cancel" stays executable. "Don't go and cancel" uses the go-and/come-and
@@ -149,7 +152,7 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:(?:under|in)\s+no\s+circumstances?|on\s+no\s+account|"
     r"by\s+no\s+means|in\s+no\s+way|"
     r"(?:under|on)\s+no\s+conditions?|"
-    r"in\s+no\s+event)(?!\w)"
+    r"in\s+no\s+event|in\s+no\s+case)(?!\w)"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -978,11 +981,12 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     """Fast reject before the standalone prohibitive-idiom scan.
 
     "circumstance" covers singular and plural. "no account", "no means",
-    "no way", "no condition", and "no event" are tighter than "account",
-    "means", "way", "condition", or "event", which show up in unrelated
-    text. "no condition" also covers the plural "no conditions". "no event"
-    is the singular prohibition; "events" still contains the substring but
-    the pattern keeps a word boundary.
+    "no way", "no condition", "no event", and "no case" are tighter than
+    "account", "means", "way", "condition", "event", or "case", which show
+    up in unrelated text. "no condition" also covers the plural "no
+    conditions". "no event" and "no case" are the singular prohibitions;
+    "events" and "cases" still contain those substrings but the pattern
+    keeps a word boundary. "case" alone is too common ("in case").
     """
     return (
         "circumstance" in text
@@ -991,6 +995,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no way" in text
         or "no condition" in text
         or "no event" in text
+        or "no case" in text
     )
 
 

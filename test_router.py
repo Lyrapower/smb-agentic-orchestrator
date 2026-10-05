@@ -1803,6 +1803,111 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_no_case_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no case cancel my appointment",
+            "In no case, cancel my appointment",
+            "IN NO CASE CANCEL",
+            "In no case\u2014cancel my appointment",
+            "In no case ever cancel my appointment",
+            "In no case, ever, cancel my appointment",
+            "In no case reschedule my appointment",
+            "In no case schedule an appointment",
+            "In no case call off my appointment",
+            "In no case book a new appointment",
+            "In no case the cancellation",
+            "In no case a cancellation",
+            "In no case want to cancel my appointment",
+            "In no case ask them to cancel my appointment",
+            "In no case have them cancel my appointment",
+            "In no case let them cancel my appointment",
+            "In no case go ahead and cancel my appointment",
+            "In no case go and cancel my appointment",
+            "In no case come and cancel my appointment",
+            "In no case should you cancel my appointment",
+            "In no case will I cancel my appointment",
+            "In no case do I want to cancel my appointment",
+            "In no case am I going to cancel my appointment",
+            "In no case am I to cancel my appointment",
+            "In no case is this a cancellation",
+            "In no case cancel or reschedule my appointment",
+            "In no case cancel, reschedule, or book",
+            "In no case should you cancel or reschedule",
+            "In no case the cancellation or the reschedule",
+            "Cancel in no case",
+            "I will cancel in no case",
+            "I will cancel my appointment in no case",
+            "I will cancel or reschedule in no case",
+            "I will in no case cancel my appointment",
+            "You must in no case cancel my appointment",
+            "Please don't in no case cancel my appointment",
+            "Please don't, in no case, cancel my appointment",
+            "Please do not in no case cancel my appointment",
+            "Never in no case cancel my appointment",
+            "Please don't in no case go and cancel my appointment",
+            "In no case I refuse to cancel",
+            "Please ask the office to cancel, in no case",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_case_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no case, please cancel my appointment", "cancel"),
+            ("In no case please cancel my appointment", "cancel"),
+            ("In no case wait, please cancel my appointment", "cancel"),
+            ("In no case Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no case wait", "cancel"),
+            ("Please cancel. In no case reschedule", "cancel"),
+            ("Please cancel, in no case reschedule", "cancel"),
+            ("In no case cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no case, please reschedule",
+                "reschedule",
+            ),
+            ("In no case go, and cancel my appointment", "cancel"),
+            ("In no case go and wait, please cancel", "cancel"),
+            ("In no case I will cancel my appointment", "cancel"),
+            ("In no case, I will cancel my appointment", "cancel"),
+            ("In no case refuse to cancel", "no_action"),
+            ("In no case refuse the cancellation", "no_action"),
+            ("In no case forget to cancel my appointment", "cancel"),
+            ("In no case do not forget to cancel", "cancel"),
+            ("In no case can I cancel my appointment", "cancel"),
+            ("In any case cancel my appointment", "cancel"),
+            ("Please don't in any case cancel my appointment", "cancel"),
+            ("In the case, please cancel my appointment", "cancel"),
+            ("In the case you cancel my appointment", "cancel"),
+            ("Just in case, please cancel my appointment", "cancel"),
+            ("Please cancel, just in case", "cancel"),
+            ("In case of emergency, please cancel my appointment", "cancel"),
+            ("I have no case, please cancel my appointment", "cancel"),
+            ("No case cancel my appointment", "cancel"),
+            ("In no cases cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says in no case",
+                "cancel",
+            ),
+            ("In no event cancel my appointment", "no_action"),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
