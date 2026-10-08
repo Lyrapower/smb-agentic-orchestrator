@@ -2131,6 +2131,127 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_on_no_occasion_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no occasion cancel my appointment",
+            "On no occasion, cancel my appointment",
+            "ON NO OCCASION CANCEL",
+            "On no occasion\u2014cancel my appointment",
+            "On no occasion ever cancel my appointment",
+            "On no occasion, ever, cancel my appointment",
+            "On no occasion reschedule my appointment",
+            "On no occasion schedule an appointment",
+            "On no occasion call off my appointment",
+            "On no occasion book a new appointment",
+            "On no occasion the cancellation",
+            "On no occasion a cancellation",
+            "On no occasion want to cancel my appointment",
+            "On no occasion ask them to cancel my appointment",
+            "On no occasion have them cancel my appointment",
+            "On no occasion let them cancel my appointment",
+            "On no occasion go ahead and cancel my appointment",
+            "On no occasion go and cancel my appointment",
+            "On no occasion come and cancel my appointment",
+            "On no occasion should you cancel my appointment",
+            "On no occasion will I cancel my appointment",
+            "On no occasion do I want to cancel my appointment",
+            "On no occasion am I going to cancel my appointment",
+            "On no occasion am I to cancel my appointment",
+            "On no occasion is this a cancellation",
+            "On no occasion cancel or reschedule my appointment",
+            "On no occasion cancel, reschedule, or book",
+            "On no occasion should you cancel or reschedule",
+            "On no occasion the cancellation or the reschedule",
+            "Cancel on no occasion",
+            "I will cancel on no occasion",
+            "I will cancel my appointment on no occasion",
+            "I will cancel or reschedule on no occasion",
+            "I will on no occasion cancel my appointment",
+            "You must on no occasion cancel my appointment",
+            "Please don't on no occasion cancel my appointment",
+            "Please don't, on no occasion, cancel my appointment",
+            "Please do not on no occasion cancel my appointment",
+            "Never on no occasion cancel my appointment",
+            "Please don't on no occasion go and cancel my appointment",
+            "On no occasion I refuse to cancel",
+            "Please ask the office to cancel, on no occasion",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_occasion_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no occasion, please cancel my appointment", "cancel"),
+            ("On no occasion please cancel my appointment", "cancel"),
+            ("On no occasion wait, please cancel my appointment", "cancel"),
+            ("On no occasion Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no occasion wait", "cancel"),
+            ("Please cancel. On no occasion reschedule", "cancel"),
+            ("Please cancel, on no occasion reschedule", "cancel"),
+            ("On no occasion cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no occasion, please reschedule",
+                "reschedule",
+            ),
+            ("On no occasion go, and cancel my appointment", "cancel"),
+            ("On no occasion go and wait, please cancel", "cancel"),
+            ("On no occasion I will cancel my appointment", "cancel"),
+            ("On no occasion, I will cancel my appointment", "cancel"),
+            ("On no occasion refuse to cancel", "no_action"),
+            ("On no occasion refuse the cancellation", "no_action"),
+            ("On no occasion forget to cancel my appointment", "cancel"),
+            ("On no occasion do not forget to cancel", "cancel"),
+            ("On no occasion can I cancel my appointment", "cancel"),
+            ("On any occasion cancel my appointment", "cancel"),
+            ("Please don't on any occasion cancel my appointment", "cancel"),
+            ("On the occasion, please cancel my appointment", "cancel"),
+            ("On this occasion, please cancel my appointment", "cancel"),
+            ("On that occasion, please cancel my appointment", "cancel"),
+            ("On one occasion cancel my appointment", "cancel"),
+            ("On some occasion, please cancel my appointment", "cancel"),
+            ("In no occasion cancel my appointment", "cancel"),
+            ("At no occasion cancel my appointment", "cancel"),
+            ("Upon no occasion cancel my appointment", "cancel"),
+            ("I have no occasion, please cancel my appointment", "cancel"),
+            ("There's no occasion, please cancel my appointment", "cancel"),
+            ("There is no occasion, please cancel", "cancel"),
+            ("On no occasion in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no occasion tomorrow", "cancel"),
+            ("Please don't on no occasion, please cancel", "cancel"),
+            ("No occasion cancel my appointment", "cancel"),
+            ("On no occasions cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no occasion",
+                "cancel",
+            ),
+            ("For no reason, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("For no reason forget to cancel", "no_action"),
+            ("At no point cancel my appointment", "no_action"),
+            ("At no time cancel my appointment", "no_action"),
+            ("In no case cancel my appointment", "no_action"),
+            ("In no event cancel my appointment", "no_action"),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
