@@ -84,6 +84,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"at\s+no\s+time(?!\w)|"
     r"at\s+no\s+point(?!\w)|"
     r"on\s+no\s+occasion(?!\w)|"
+    r"for\s+no\s+reason(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
 # Hedge/intensifier adverbs that commonly sit between a negation and an intent
@@ -154,8 +155,9 @@ NEGATION_PREFIX_PATTERN = (
 # "at some point" means eventually. "On this occasion" / "on that occasion"
 # mean this time / that time. The idiom is singular
 # "event"/"case"/"time"/"point"/"occasion", not "events", "cases", "times",
-# "points", or "occasions". Do not copy this prefix onto "for no reason":
-# clause-final "cancel for no reason" is an affirmative cancel.
+# "points", or "occasions". Do not add "for no reason" here. Clause-final
+# "cancel for no reason" and parenthetical "I will, for no reason, cancel"
+# are affirmative cancels, so this idiom must not use the suffix scan.
 # Inversion auxiliaries cover "should you" / "will I" / "do I" / "am I", not
 # "can"/"could". Extra subject tokens stop before "not" so "do not forget to
 # cancel" stays executable. "Don't go and cancel" uses the go-and/come-and
@@ -331,8 +333,37 @@ NO_CIRCUMSTANCES_IN_WHICH_PREFIX_PATTERN = (
 PROHIBITIVE_IDIOM_PATTERN = (
     rf"(?:{NO_CIRCUMSTANCES_IN_WHICH_IDIOM_PATTERN}|{UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN})"
 )
+# "For no reason should you cancel" / "For no reason cancel" are prohibitions.
+# Keep this out of PROHIBITIVE_IDIOM_PATTERN so clause-final "cancel for no
+# reason", "I will cancel for no reason", and "Cancel for no reason" stay
+# affirmative. Parenthetical "I will, for no reason, cancel" and "Please, for
+# no reason, cancel" stay affirmative too: a comma after the idiom means the
+# phrase is an aside, not the start of the refused action. Negative inversion
+# ("should you" / "will I") is a prohibition anywhere. Bare "for no reason
+# <action>" is a prohibition at the start of a sentence or after a comma that
+# closes an earlier clause ("Please cancel, for no reason reschedule").
+# "can"/"could" stay out, same as the other idioms. Do not add this idiom to
+# NEGATION_PREFIX_PATTERN.
+FOR_NO_REASON_IDIOM_PATTERN = r"for\s+no\s+reason(?!\w)"
+FOR_NO_REASON_INVERSION_PATTERN = (
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+)
+FOR_NO_REASON_PREFIX_PATTERN = (
+    rf"(?:"
+    rf"(?:^|(?<=[.!?]\s)){FOR_NO_REASON_IDIOM_PATTERN}(?:\s*,)?"
+    rf"(?:{FOR_NO_REASON_INVERSION_PATTERN})?"
+    rf"|(?<=,\s){FOR_NO_REASON_IDIOM_PATTERN}(?!\s*,)"
+    rf"|{FOR_NO_REASON_IDIOM_PATTERN}(?:\s*,)?{FOR_NO_REASON_INVERSION_PATTERN}"
+    rf")"
+    r"(?:\s+ever\b)?"
+    rf"{NEGATION_EMPHASIS_PATTERN}"
+)
 PROHIBITIVE_FORWARD_PREFIX_PATTERN = (
-    rf"(?:{NO_CIRCUMSTANCES_IN_WHICH_PREFIX_PATTERN}|{UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN})"
+    rf"(?:{NO_CIRCUMSTANCES_IN_WHICH_PREFIX_PATTERN}|"
+    rf"{UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}|"
+    rf"{FOR_NO_REASON_PREFIX_PATTERN})"
 )
 # Optional nested "VERB (object) to" before try-and / go-ahead / go-through-with.
 # To-taking bridges keep the existing 0-3 generic gaps. Delegated/let verbs use
@@ -1009,7 +1040,9 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     the pattern still requires "at". "no point" also occurs in "there's no
     point"; the pattern still requires "at". "no occasion" also occurs in
     "there's no occasion" and "I have no occasion"; the pattern still
-    requires "on".
+    requires "on". "for no reason" is the forward-only prohibition. Bare
+    "no reason" is the noun path ("I have no reason to cancel") and must not
+    force this scan.
     """
     return (
         "circumstance" in text
@@ -1022,6 +1055,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no time" in text
         or "no point" in text
         or "no occasion" in text
+        or "for no reason" in text
     )
 
 

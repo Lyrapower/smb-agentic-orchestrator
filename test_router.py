@@ -2252,6 +2252,110 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_for_no_reason_does_not_route_to_action(self) -> None:
+        examples = (
+            "For no reason cancel my appointment",
+            "For no reason, cancel my appointment",
+            "FOR NO REASON CANCEL",
+            "For no reason\u2014cancel my appointment",
+            "For no reason ever cancel my appointment",
+            "For no reason, ever, cancel my appointment",
+            "For no reason reschedule my appointment",
+            "For no reason schedule an appointment",
+            "For no reason call off my appointment",
+            "For no reason book a new appointment",
+            "For no reason the cancellation",
+            "For no reason a cancellation",
+            "For no reason want to cancel my appointment",
+            "For no reason ask them to cancel my appointment",
+            "For no reason have them cancel my appointment",
+            "For no reason let them cancel my appointment",
+            "For no reason go ahead and cancel my appointment",
+            "For no reason go and cancel my appointment",
+            "For no reason come and cancel my appointment",
+            "For no reason should you cancel my appointment",
+            "For no reason will I cancel my appointment",
+            "For no reason do I want to cancel my appointment",
+            "For no reason am I going to cancel my appointment",
+            "For no reason am I to cancel my appointment",
+            "For no reason is this a cancellation",
+            "For no reason do I cancel my appointment",
+            "For no reason cancel or reschedule my appointment",
+            "For no reason cancel, reschedule, or book",
+            "For no reason should you cancel or reschedule",
+            "For no reason the cancellation or the reschedule",
+            "Please don't for no reason cancel my appointment",
+            "Please don't, for no reason, cancel my appointment",
+            "Please do not for no reason cancel my appointment",
+            "Never for no reason cancel my appointment",
+            "Please don't for no reason go and cancel my appointment",
+            "And for no reason should you cancel my appointment",
+            "For no reason, should you cancel my appointment",
+            "Never for no reason should you cancel",
+            "Note: for no reason cancel my appointment",
+            "Hello, for no reason cancel my appointment",
+            "For no reason I refuse to cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_for_no_reason_affirmative_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("For no reason, please cancel my appointment", "cancel"),
+            ("For no reason please cancel my appointment", "cancel"),
+            ("For no reason wait, please cancel my appointment", "cancel"),
+            ("For no reason Tuesday, please cancel", "cancel"),
+            ("Please cancel, for no reason wait", "cancel"),
+            ("Please cancel. For no reason reschedule", "cancel"),
+            ("Please cancel, for no reason reschedule", "cancel"),
+            ("For no reason cancel, please reschedule", "reschedule"),
+            ("For no reason go, and cancel my appointment", "cancel"),
+            ("For no reason go and wait, please cancel", "cancel"),
+            ("For no reason I will cancel my appointment", "cancel"),
+            ("For no reason, I will cancel my appointment", "cancel"),
+            ("For no reason refuse to cancel", "no_action"),
+            ("For no reason refuse the cancellation", "no_action"),
+            ("For no reason forget to cancel my appointment", "no_action"),
+            ("For no reason do not forget to cancel", "no_action"),
+            ("For no reason can I cancel my appointment", "cancel"),
+            ("For any reason cancel my appointment", "cancel"),
+            ("Please don't for any reason cancel my appointment", "no_action"),
+            ("For no reasons cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("I will cancel my appointment for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will for no reason cancel my appointment", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("You must for no reason cancel my appointment", "cancel"),
+            ("You must, for no reason, cancel my appointment", "cancel"),
+            ("Please, for no reason, cancel my appointment", "cancel"),
+            ("We will, for no reason, reschedule my appointment", "reschedule"),
+            ("Please ask the office to cancel for no reason", "cancel"),
+            ("I will cancel or reschedule for no reason", "reschedule"),
+            ("Cancel or reschedule for no reason", "reschedule"),
+            ("With no reason cancel my appointment", "cancel"),
+            ("No reason cancel my appointment", "cancel"),
+            ("For some reason cancel my appointment", "cancel"),
+            ("For a reason, please cancel my appointment", "cancel"),
+            ("Please don't for no reason, please cancel", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("At no point cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
