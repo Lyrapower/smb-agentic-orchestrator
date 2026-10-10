@@ -84,6 +84,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"at\s+no\s+time(?!\w)|"
     r"at\s+no\s+point(?!\w)|"
     r"on\s+no\s+occasion(?!\w)|"
+    r"(?:on|under)\s+no\s+terms(?!\w)|"
     r"for\s+no\s+reason(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
@@ -134,30 +135,33 @@ NEGATION_PREFIX_PATTERN = (
 # Standalone "under no circumstances <action>" is itself a refusal. Singular
 # "under no circumstance", "in no circumstances", "on no account",
 # "by no means", "in no way", "under/on no condition(s)", "in no event",
-# "in no case", "at no time", "at no point", and "on no occasion" are the same
-# prohibition. The same phrases after don't/never match via
-# NEGATION_EMPHASIS_PATTERN. Do not add these idioms to
+# "in no case", "at no time", "at no point", "on no occasion", and plural
+# "on/under no terms" are the same prohibition. The same phrases after
+# don't/never match via NEGATION_EMPHASIS_PATTERN. Do not add these idioms to
 # NEGATION_PREFIX_PATTERN: that would invert "Under no circumstances I refuse
 # to cancel" into an executable cancel, the same way "Don't refuse to cancel"
 # must stay executable. Do not treat "under any circumstances", "by any
 # means", "by all means", "in any way", "under/on any condition", "in no
-# condition", "in any event", "in any case", "at any time", "at any point", or
-# "on any occasion" as this prefix. "In no condition" is inability, not this
-# prohibition. "Under/on any condition", "in any event", "in any case", "at any
-# time", "at any point", and "on any occasion" stay affirmative, including
-# after don't/never. "In the event", bare "no event", "in the case", "in
-# case", bare "no case", "in no time", "at the time", "at this time", "at one
-# time", bare "no time", "at the point", "at this point", "at that point", "at
-# one point", "at some point", bare "no point", "on the occasion", "on this
-# occasion", "on that occasion", "on one occasion", "on some occasion", "in no
-# occasion", and bare "no occasion" are not this prohibition. "In no time"
-# means very soon. "At this point" means now, "at that point" means then, and
-# "at some point" means eventually. "On this occasion" / "on that occasion"
-# mean this time / that time. The idiom is singular
-# "event"/"case"/"time"/"point"/"occasion", not "events", "cases", "times",
-# "points", or "occasions". Do not add "for no reason" here. Clause-final
+# condition", "in any event", "in any case", "at any time", "at any point",
+# "on any occasion", or "on/under any terms" as this prefix. "In no condition"
+# is inability, not this prohibition. "Under/on any condition", "in any event",
+# "in any case", "at any time", "at any point", "on any occasion", and
+# "on/under any terms" stay affirmative, including after don't/never. "In the
+# event", bare "no event", "in the case", "in case", bare "no case", "in no
+# time", "at the time", "at this time", "at one time", bare "no time", "at the
+# point", "at this point", "at that point", "at one point", "at some point",
+# bare "no point", "on the occasion", "on this occasion", "on that occasion",
+# "on one occasion", "on some occasion", "in no occasion", bare "no occasion",
+# singular "on/under no term", "in no terms", "on the terms", "on these terms",
+# and bare "no terms" are not this prohibition. "In no time" means very soon.
+# "At this point" means now, "at that point" means then, and "at some point"
+# means eventually. "On this occasion" / "on that occasion" mean this time /
+# that time. The idiom is singular "event"/"case"/"time"/"point"/"occasion"
+# and plural "terms", not "events", "cases", "times", "points", "occasions",
+# or "term". Clause-final "cancel on no terms" is a prohibition, same as
+# "cancel on no account". Do not add "for no reason" here. Clause-final
 # "cancel for no reason" and parenthetical "I will, for no reason, cancel"
-# are affirmative cancels, so this idiom must not use the suffix scan.
+# are affirmative cancels, so that idiom must not use the suffix scan.
 # Inversion auxiliaries cover "should you" / "will I" / "do I" / "am I", not
 # "can"/"could". Extra subject tokens stop before "not" so "do not forget to
 # cancel" stays executable. "Don't go and cancel" uses the go-and/come-and
@@ -169,7 +173,8 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"by\s+no\s+means|in\s+no\s+way|"
     r"(?:under|on)\s+no\s+conditions?|"
     r"in\s+no\s+event|in\s+no\s+case|"
-    r"at\s+no\s+time|at\s+no\s+point|on\s+no\s+occasion)(?!\w)"
+    r"at\s+no\s+time|at\s+no\s+point|on\s+no\s+occasion|"
+    r"(?:on|under)\s+no\s+terms)(?!\w)"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -1028,21 +1033,24 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
 
     "circumstance" covers singular and plural. "no account", "no means",
     "no way", "no condition", "no event", "no case", "no time", "no
-    point", and "no occasion" are tighter than "account", "means", "way",
-    "condition", "event", "case", "time", "point", or "occasion", which show
-    up in unrelated text. "no condition" also covers the plural "no
-    conditions". "no event", "no case", "no time", "no point", and "no
-    occasion" are the singular prohibitions; "events", "cases", "times",
-    "points", and "occasions" still contain those substrings but the pattern
-    keeps a word boundary. "case", "time", "point", and "occasion" alone are
-    too common ("in case", "at the time", "point" inside "appointment", and
-    "on this occasion"). "no time" also occurs in "in no time" (very soon);
+    point", "no occasion", and "no terms" are tighter than "account",
+    "means", "way", "condition", "event", "case", "time", "point",
+    "occasion", or "terms", which show up in unrelated text. "no condition"
+    also covers the plural "no conditions". "no event", "no case", "no time",
+    "no point", and "no occasion" are the singular prohibitions; "events",
+    "cases", "times", "points", and "occasions" still contain those
+    substrings but the pattern keeps a word boundary. "no terms" is the
+    plural prohibition; singular "no term" does not contain it. "case",
+    "time", "point", "occasion", and "terms" alone are too common ("in case",
+    "at the time", "point" inside "appointment", "on this occasion", and
+    "cancellation terms"). "no time" also occurs in "in no time" (very soon);
     the pattern still requires "at". "no point" also occurs in "there's no
     point"; the pattern still requires "at". "no occasion" also occurs in
     "there's no occasion" and "I have no occasion"; the pattern still
-    requires "on". "for no reason" is the forward-only prohibition. Bare
-    "no reason" is the noun path ("I have no reason to cancel") and must not
-    force this scan.
+    requires "on". "no terms" also occurs in "I have no terms"; the pattern
+    still requires "on" or "under". "for no reason" is the forward-only
+    prohibition. Bare "no reason" is the noun path ("I have no reason to
+    cancel") and must not force this scan.
     """
     return (
         "circumstance" in text
@@ -1055,6 +1063,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no time" in text
         or "no point" in text
         or "no occasion" in text
+        or "no terms" in text
         or "for no reason" in text
     )
 

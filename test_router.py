@@ -2356,6 +2356,140 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_on_no_terms_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no terms cancel my appointment",
+            "On no terms, cancel my appointment",
+            "ON NO TERMS CANCEL",
+            "On no terms\u2014cancel my appointment",
+            "On no terms ever cancel my appointment",
+            "On no terms, ever, cancel my appointment",
+            "On no terms reschedule my appointment",
+            "On no terms schedule an appointment",
+            "On no terms call off my appointment",
+            "On no terms book a new appointment",
+            "On no terms the cancellation",
+            "On no terms a cancellation",
+            "On no terms want to cancel my appointment",
+            "On no terms ask them to cancel my appointment",
+            "On no terms have them cancel my appointment",
+            "On no terms let them cancel my appointment",
+            "On no terms go ahead and cancel my appointment",
+            "On no terms go and cancel my appointment",
+            "On no terms come and cancel my appointment",
+            "On no terms should you cancel my appointment",
+            "On no terms, should you cancel my appointment",
+            "On no terms will I cancel my appointment",
+            "On no terms do I want to cancel my appointment",
+            "On no terms am I going to cancel my appointment",
+            "On no terms am I to cancel my appointment",
+            "On no terms is this a cancellation",
+            "On no terms cancel or reschedule my appointment",
+            "On no terms cancel, reschedule, or book",
+            "On no terms should you cancel or reschedule",
+            "On no terms the cancellation or the reschedule",
+            "Cancel on no terms",
+            "I will cancel on no terms",
+            "I will cancel my appointment on no terms",
+            "I will cancel or reschedule on no terms",
+            "I will on no terms cancel my appointment",
+            "I will, on no terms, cancel my appointment",
+            "You must on no terms cancel my appointment",
+            "Please don't on no terms cancel my appointment",
+            "Please don't, on no terms, cancel my appointment",
+            "Please do not on no terms cancel my appointment",
+            "Never on no terms cancel my appointment",
+            "Please don't on no terms go and cancel my appointment",
+            "On no terms I refuse to cancel",
+            "Please ask the office to cancel, on no terms",
+            "Under no terms cancel my appointment",
+            "Under no terms, cancel my appointment",
+            "UNDER NO TERMS CANCEL",
+            "Under no terms should you cancel my appointment",
+            "Under no terms will I cancel my appointment",
+            "I will cancel under no terms",
+            "I will under no terms cancel my appointment",
+            "Please don't under no terms cancel my appointment",
+            "Never under no terms cancel my appointment",
+            "Under no terms go and cancel my appointment",
+            "Under no terms cancel or reschedule",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_terms_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no terms, please cancel my appointment", "cancel"),
+            ("On no terms please cancel my appointment", "cancel"),
+            ("On no terms wait, please cancel my appointment", "cancel"),
+            ("On no terms Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no terms wait", "cancel"),
+            ("Please cancel. On no terms reschedule", "cancel"),
+            ("Please cancel, on no terms reschedule", "cancel"),
+            ("On no terms cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no terms, please reschedule",
+                "reschedule",
+            ),
+            ("On no terms go, and cancel my appointment", "cancel"),
+            ("On no terms go and wait, please cancel", "cancel"),
+            ("On no terms I will cancel my appointment", "cancel"),
+            ("On no terms, I will cancel my appointment", "cancel"),
+            ("On no terms refuse to cancel", "no_action"),
+            ("On no terms refuse the cancellation", "no_action"),
+            ("On no terms forget to cancel my appointment", "cancel"),
+            ("On no terms do not forget to cancel", "cancel"),
+            ("On no terms can I cancel my appointment", "cancel"),
+            ("Under no terms, please cancel my appointment", "cancel"),
+            ("Under no terms I will cancel my appointment", "cancel"),
+            ("Under no terms can I cancel my appointment", "cancel"),
+            ("Under no terms forget to cancel my appointment", "cancel"),
+            ("Under no terms do not forget to cancel", "cancel"),
+            ("On any terms cancel my appointment", "cancel"),
+            ("Please don't on any terms cancel my appointment", "cancel"),
+            ("Under any terms cancel my appointment", "cancel"),
+            ("Please don't under any terms cancel my appointment", "cancel"),
+            ("On these terms, please cancel my appointment", "cancel"),
+            ("On the terms, please cancel my appointment", "cancel"),
+            ("In no terms cancel my appointment", "cancel"),
+            ("No terms cancel my appointment", "cancel"),
+            ("On no term cancel my appointment", "cancel"),
+            ("Under no term cancel my appointment", "cancel"),
+            ("With no terms cancel my appointment", "cancel"),
+            ("By no terms cancel my appointment", "cancel"),
+            ("I have no terms, please cancel my appointment", "cancel"),
+            ("There are no terms, please cancel", "cancel"),
+            ("On no terms of service, please cancel", "cancel"),
+            ("On no terms in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no terms tomorrow", "cancel"),
+            ("Please don't on no terms, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no terms",
+                "cancel",
+            ),
+            ("What are the cancellation terms", "no_action"),
+            ("Please explain the cancellation terms", "no_action"),
+            ("For no reason, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("At no point cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
