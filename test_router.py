@@ -2490,6 +2490,140 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_on_no_grounds_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no grounds cancel my appointment",
+            "On no grounds, cancel my appointment",
+            "ON NO GROUNDS CANCEL",
+            "On no grounds\u2014cancel my appointment",
+            "On no grounds ever cancel my appointment",
+            "On no grounds, ever, cancel my appointment",
+            "On no grounds reschedule my appointment",
+            "On no grounds schedule an appointment",
+            "On no grounds call off my appointment",
+            "On no grounds book a new appointment",
+            "On no grounds the cancellation",
+            "On no grounds a cancellation",
+            "On no grounds want to cancel my appointment",
+            "On no grounds ask them to cancel my appointment",
+            "On no grounds have them cancel my appointment",
+            "On no grounds let them cancel my appointment",
+            "On no grounds go ahead and cancel my appointment",
+            "On no grounds go and cancel my appointment",
+            "On no grounds come and cancel my appointment",
+            "On no grounds should you cancel my appointment",
+            "On no grounds, should you cancel my appointment",
+            "On no grounds will I cancel my appointment",
+            "On no grounds do I want to cancel my appointment",
+            "On no grounds am I going to cancel my appointment",
+            "On no grounds am I to cancel my appointment",
+            "On no grounds is this a cancellation",
+            "On no grounds cancel or reschedule my appointment",
+            "On no grounds cancel, reschedule, or book",
+            "On no grounds should you cancel or reschedule",
+            "On no grounds the cancellation or the reschedule",
+            "Cancel on no grounds",
+            "I will cancel on no grounds",
+            "I will cancel my appointment on no grounds",
+            "I will cancel or reschedule on no grounds",
+            "I will on no grounds cancel my appointment",
+            "I will, on no grounds, cancel my appointment",
+            "You must on no grounds cancel my appointment",
+            "Please don't on no grounds cancel my appointment",
+            "Please don't, on no grounds, cancel my appointment",
+            "Please do not on no grounds cancel my appointment",
+            "Never on no grounds cancel my appointment",
+            "Please don't on no grounds go and cancel my appointment",
+            "On no grounds I refuse to cancel",
+            "Please ask the office to cancel, on no grounds",
+            "Under no grounds cancel my appointment",
+            "Under no grounds, cancel my appointment",
+            "UNDER NO GROUNDS CANCEL",
+            "Under no grounds should you cancel my appointment",
+            "Under no grounds will I cancel my appointment",
+            "I will cancel under no grounds",
+            "I will under no grounds cancel my appointment",
+            "Please don't under no grounds cancel my appointment",
+            "Never under no grounds cancel my appointment",
+            "Under no grounds go and cancel my appointment",
+            "Under no grounds cancel or reschedule",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_grounds_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no grounds, please cancel my appointment", "cancel"),
+            ("On no grounds please cancel my appointment", "cancel"),
+            ("On no grounds wait, please cancel my appointment", "cancel"),
+            ("On no grounds Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no grounds wait", "cancel"),
+            ("Please cancel. On no grounds reschedule", "cancel"),
+            ("Please cancel, on no grounds reschedule", "cancel"),
+            ("On no grounds cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no grounds, please reschedule",
+                "reschedule",
+            ),
+            ("On no grounds go, and cancel my appointment", "cancel"),
+            ("On no grounds go and wait, please cancel", "cancel"),
+            ("On no grounds I will cancel my appointment", "cancel"),
+            ("On no grounds, I will cancel my appointment", "cancel"),
+            ("On no grounds refuse to cancel", "no_action"),
+            ("On no grounds refuse the cancellation", "no_action"),
+            ("On no grounds forget to cancel my appointment", "cancel"),
+            ("On no grounds do not forget to cancel", "cancel"),
+            ("On no grounds can I cancel my appointment", "cancel"),
+            ("Under no grounds, please cancel my appointment", "cancel"),
+            ("Under no grounds I will cancel my appointment", "cancel"),
+            ("Under no grounds can I cancel my appointment", "cancel"),
+            ("Under no grounds forget to cancel my appointment", "cancel"),
+            ("Under no grounds do not forget to cancel", "cancel"),
+            ("On any grounds cancel my appointment", "cancel"),
+            ("Please don't on any grounds cancel my appointment", "cancel"),
+            ("Under any grounds cancel my appointment", "cancel"),
+            ("Please don't under any grounds cancel my appointment", "cancel"),
+            ("On these grounds, please cancel my appointment", "cancel"),
+            ("On the grounds, please cancel my appointment", "cancel"),
+            ("In no grounds cancel my appointment", "cancel"),
+            ("No grounds cancel my appointment", "cancel"),
+            ("On no ground cancel my appointment", "cancel"),
+            ("Under no ground cancel my appointment", "cancel"),
+            ("With no grounds cancel my appointment", "cancel"),
+            ("By no grounds cancel my appointment", "cancel"),
+            ("I have no grounds, please cancel my appointment", "cancel"),
+            ("There are no grounds, please cancel", "cancel"),
+            ("On no grounds of the complaint, please cancel", "cancel"),
+            ("On no grounds in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no grounds tomorrow", "cancel"),
+            ("Please don't on no grounds, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no grounds",
+                "cancel",
+            ),
+            ("What are the grounds for cancellation", "cancel"),
+            ("On no terms cancel my appointment", "no_action"),
+            ("I will cancel on no terms", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
