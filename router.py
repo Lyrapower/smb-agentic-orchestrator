@@ -87,6 +87,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"(?:on|under)\s+no\s+terms(?!\w)|"
     r"(?:on|under)\s+no\s+grounds(?!\w)|"
     r"(?:on|under)\s+no\s+pretext(?!\w)|"
+    r"(?:on|under)\s+no\s+preten[sc]e(?!\w)|"
     r"for\s+no\s+reason(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
@@ -138,8 +139,10 @@ NEGATION_PREFIX_PATTERN = (
 # "under no circumstance", "in no circumstances", "on no account",
 # "by no means", "in no way", "under/on no condition(s)", "in no event",
 # "in no case", "at no time", "at no point", "on no occasion", and plural
-# "on/under no terms", "on/under no grounds", and singular "on/under no
-# pretext" are the same prohibition. The same phrases after don't/never
+# "on/under no terms", "on/under no grounds", singular "on/under no
+# pretext", and singular "on/under no pretense" / "on/under no pretence"
+# are the same prohibition. Both spellings are required: "pretense" is not
+# a substring of "pretence". The same phrases after don't/never
 # match via NEGATION_EMPHASIS_PATTERN. Do not
 # add these idioms to NEGATION_PREFIX_PATTERN: that would invert "Under no
 # circumstances I refuse to cancel" into an executable cancel, the same way
@@ -147,10 +150,12 @@ NEGATION_PREFIX_PATTERN = (
 # circumstances", "by any means", "by all means", "in any way", "under/on any
 # condition", "in no condition", "in any event", "in any case", "at any time",
 # "at any point", "on any occasion", "on/under any terms", "on/under any
-# grounds", or "on/under any pretext" as this prefix. "In no condition" is inability, not this
+# grounds", "on/under any pretext", "on/under any pretense", or
+# "on/under any pretence" as this prefix. "In no condition" is inability, not this
 # prohibition. "Under/on any condition", "in any event", "in any case", "at any
 # time", "at any point", "on any occasion", "on/under any terms",
-# "on/under any grounds", and "on/under any pretext" stay affirmative,
+# "on/under any grounds", "on/under any pretext", "on/under any pretense",
+# and "on/under any pretence" stay affirmative,
 # including after don't/never. "In the
 # event", bare "no event", "in the case", "in case", bare "no case", "in no
 # time", "at the time", "at this time", "at one time", bare "no time", "at the
@@ -161,19 +166,26 @@ NEGATION_PREFIX_PATTERN = (
 # bare "no terms", singular "on/under no ground", "in no grounds", "on the
 # grounds", "on these grounds", "by no grounds", bare "no grounds", plural
 # "on/under no pretexts", "in no pretext", "by no pretext", "for no
-# pretext", "under the pretext", "on this pretext", and bare "no pretext"
-# are not this prohibition. "In no time" means very soon. "At this point" means now,
+# pretext", "under the pretext", "on this pretext", bare "no pretext",
+# plural "on/under no pretenses" / "on/under no pretences", "in no
+# pretense", "in no pretence", "by no pretense", "by no pretence", "for no
+# pretense", "for no pretence", "under the pretense", "under the pretence",
+# "on this pretense", "on this pretence", and bare "no pretense" / "no
+# pretence" are not this prohibition. "In no time" means very soon. "At this point" means now,
 # "at that point" means then, and "at some point" means eventually. "On this
 # occasion" / "on that occasion" mean this time / that time. The idiom is
-# singular "event"/"case"/"time"/"point"/"occasion"/"pretext" and plural
-# "terms"/"grounds", not "events", "cases", "times", "points", "occasions",
-# "pretexts", "term", or "ground". Clause-final "cancel on no pretext" is a
-# prohibition, same as "cancel on no grounds", "cancel on no terms", and
-# "cancel on no account". Do not add "for no reason" here. Clause-final
-# "cancel for no reason" and parenthetical "I will, for no reason, cancel"
-# are affirmative cancels, so that idiom must not use the suffix scan. Do
-# not add "for no pretext" either. "For no pretext cancel" and "cancel for
-# no pretext" are manner, like clause-final "for no reason", and stay
+# singular "event"/"case"/"time"/"point"/"occasion"/"pretext"/"pretense"/
+# "pretence" and plural "terms"/"grounds", not "events", "cases", "times",
+# "points", "occasions", "pretexts", "pretenses", "pretences", "term", or
+# "ground". Clause-final "cancel on no pretext" and "cancel on no pretense"
+# / "cancel under no pretence" are prohibitions, same as "cancel on no
+# grounds", "cancel on no terms", and "cancel on no account". Do not add
+# "for no reason" here. Clause-final "cancel for no reason" and parenthetical
+# "I will, for no reason, cancel" are affirmative cancels, so that idiom must
+# not use the suffix scan. Do not add "for no pretext", "for no pretense", or
+# "for no pretence" either. "For no pretext cancel", "cancel for no pretext",
+# "For no pretense cancel", and "cancel for no pretense" / "cancel for no
+# pretence" are manner, like clause-final "for no reason", and stay
 # affirmative.
 # Inversion auxiliaries cover "should you" / "will I" / "do I" / "am I", not
 # "can"/"could". Extra subject tokens stop before "not" so "do not forget to
@@ -189,7 +201,8 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"at\s+no\s+time|at\s+no\s+point|on\s+no\s+occasion|"
     r"(?:on|under)\s+no\s+terms|"
     r"(?:on|under)\s+no\s+grounds|"
-    r"(?:on|under)\s+no\s+pretext)(?!\w)"
+    r"(?:on|under)\s+no\s+pretext|"
+    r"(?:on|under)\s+no\s+preten[sc]e)(?!\w)"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -1048,20 +1061,24 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
 
     "circumstance" covers singular and plural. "no account", "no means",
     "no way", "no condition", "no event", "no case", "no time", "no
-    point", "no occasion", "no terms", "no grounds", and "no pretext" are
+    point", "no occasion", "no terms", "no grounds", "no pretext",
+    "no pretense", and "no pretence" are
     tighter than
     "account", "means", "way", "condition", "event", "case", "time",
-    "point", "occasion", "terms", "grounds", or "pretext", which show up in unrelated
+    "point", "occasion", "terms", "grounds", "pretext", "pretense", or
+    "pretence", which show up in unrelated
     text. "no condition" also covers the plural "no conditions". "no event",
     "no case", "no time", "no point", and "no occasion" are the singular
     prohibitions; "events", "cases", "times", "points", and "occasions"
     still contain those substrings but the pattern keeps a word boundary.
     "no terms" and "no grounds" are the plural prohibitions; singular "no
     term" and "no ground" do not contain them. "case", "time", "point",
-    "occasion", "terms", "grounds", and "pretext" alone are too common
+    "occasion", "terms", "grounds", "pretext", "pretense", and "pretence"
+    alone are too common
     ("in case", "at the time", "point" inside "appointment", "on this
     occasion", "cancellation terms", "on the grounds", "grounds" inside
-    "playgrounds" / "backgrounds", and "under the pretext"). "no time" also
+    "playgrounds" / "backgrounds", "under the pretext", "under the
+    pretense", and "on this pretence"). "no time" also
     occurs in "in no time"
     (very soon); the pattern still requires "at". "no point" also occurs in
     "there's no point"; the pattern still requires "at". "no occasion" also
@@ -1072,10 +1089,16 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     plural "no pretexts" contains that substring, but the pattern keeps a
     word boundary. "no pretext" also occurs in "I have no pretext" and
     "there is no pretext"; the pattern still requires "on" or "under".
+    "no pretense" and "no pretence" are the singular prohibitions for the
+    two spellings; neither spelling is a substring of the other. Plural
+    "no pretenses" / "no pretences" contain those substrings, but the
+    pattern keeps a word boundary. Both also occur in "I have no pretense"
+    and "there is no pretence"; the pattern still requires "on" or "under".
     "for no reason" is the forward-only prohibition. Bare "no reason" is
     the noun path ("I have no reason to cancel") and must not force this
-    scan. Do not fast-reject on "for no pretext": that phrase is manner,
-    not this prohibition.
+    scan. Do not fast-reject on "for no pretext", "for no pretense", or
+    "for no pretence": those phrases are manner, not this prohibition.
+    Do not fast-reject on bare "pretense" or bare "pretence".
     """
     return (
         "circumstance" in text
@@ -1091,6 +1114,8 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no terms" in text
         or "no grounds" in text
         or "no pretext" in text
+        or "no pretense" in text
+        or "no pretence" in text
         or "for no reason" in text
     )
 
