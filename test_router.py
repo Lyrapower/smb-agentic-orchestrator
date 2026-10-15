@@ -3110,6 +3110,138 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_no_respect_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no respect cancel my appointment",
+            "In no respect, cancel my appointment",
+            "IN NO RESPECT CANCEL",
+            "In no respect\u2014cancel my appointment",
+            "In no respect ever cancel my appointment",
+            "In no respect, ever, cancel my appointment",
+            "In no respect reschedule my appointment",
+            "In no respect schedule an appointment",
+            "In no respect call off my appointment",
+            "In no respect book a new appointment",
+            "In no respect the cancellation",
+            "In no respect a cancellation",
+            "In no respect want to cancel my appointment",
+            "In no respect ask them to cancel my appointment",
+            "In no respect have them cancel my appointment",
+            "In no respect let them cancel my appointment",
+            "In no respect go ahead and cancel my appointment",
+            "In no respect go and cancel my appointment",
+            "In no respect come and cancel my appointment",
+            "In no respect should you cancel my appointment",
+            "In no respect, should you cancel my appointment",
+            "In no respect will I cancel my appointment",
+            "In no respect do I want to cancel my appointment",
+            "In no respect am I going to cancel my appointment",
+            "In no respect am I to cancel my appointment",
+            "In no respect is this a cancellation",
+            "In no respect cancel or reschedule my appointment",
+            "In no respect cancel, reschedule, or book",
+            "In no respect should you cancel or reschedule",
+            "In no respect the cancellation or the reschedule",
+            "Cancel in no respect",
+            "I will cancel in no respect",
+            "I will cancel my appointment in no respect",
+            "I will cancel or reschedule in no respect",
+            "I will in no respect cancel my appointment",
+            "I will, in no respect, cancel my appointment",
+            "You must in no respect cancel my appointment",
+            "Please don't in no respect cancel my appointment",
+            "Please don't, in no respect, cancel my appointment",
+            "Please do not in no respect cancel my appointment",
+            "Never in no respect cancel my appointment",
+            "Please don't in no respect go and cancel my appointment",
+            "In no respect I refuse to cancel",
+            "Please ask the office to cancel, in no respect",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_respect_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no respect, please cancel my appointment", "cancel"),
+            ("In no respect please cancel my appointment", "cancel"),
+            ("In no respect wait, please cancel my appointment", "cancel"),
+            ("In no respect Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no respect wait", "cancel"),
+            ("Please cancel. In no respect reschedule", "cancel"),
+            ("Please cancel, in no respect reschedule", "cancel"),
+            ("In no respect cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no respect, please reschedule",
+                "reschedule",
+            ),
+            ("In no respect go, and cancel my appointment", "cancel"),
+            ("In no respect go and wait, please cancel", "cancel"),
+            ("In no respect I will cancel my appointment", "cancel"),
+            ("In no respect, I will cancel my appointment", "cancel"),
+            ("In no respect refuse to cancel", "no_action"),
+            ("In no respect refuse the cancellation", "no_action"),
+            ("In no respect forget to cancel my appointment", "cancel"),
+            ("In no respect do not forget to cancel", "cancel"),
+            ("In no respect can I cancel my appointment", "cancel"),
+            ("In any respect cancel my appointment", "cancel"),
+            ("Please don't in any respect cancel my appointment", "cancel"),
+            ("Not in any respect cancel my appointment", "cancel"),
+            ("In this respect, please cancel my appointment", "cancel"),
+            ("In this respect please cancel my appointment", "cancel"),
+            ("With all due respect, please cancel my appointment", "cancel"),
+            ("In no respects cancel my appointment", "cancel"),
+            ("On no respect cancel my appointment", "cancel"),
+            ("Under no respect cancel my appointment", "cancel"),
+            ("By no respect cancel my appointment", "cancel"),
+            ("For no respect cancel my appointment", "cancel"),
+            ("I will cancel for no respect", "cancel"),
+            ("Please cancel for no respect", "cancel"),
+            ("Cancel for no respect", "cancel"),
+            ("I will, for no respect, cancel my appointment", "cancel"),
+            ("I have no respect, please cancel my appointment", "cancel"),
+            ("There is no respect, please cancel", "cancel"),
+            ("In no respect of the law, please cancel", "cancel"),
+            ("In no respect whatsoever cancel my appointment", "cancel"),
+            ("What is the respect for cancellation", "cancel"),
+            ("In no sense cancel my appointment", "cancel"),
+            ("In no sense should you cancel my appointment", "cancel"),
+            ("I will cancel in no sense", "cancel"),
+            ("In no sense, please cancel my appointment", "cancel"),
+            ("In no sense I will cancel my appointment", "cancel"),
+            ("In no sense can I cancel my appointment", "cancel"),
+            ("In a sense, please cancel my appointment", "cancel"),
+            ("In this sense, please cancel my appointment", "cancel"),
+            ("Under no consideration should you cancel my appointment", "no_action"),
+            ("On no consideration cancel my appointment", "no_action"),
+            ("I will cancel under no consideration", "no_action"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("On consideration, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("I will cancel for no pretence", "cancel"),
+            ("On no pretense should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
