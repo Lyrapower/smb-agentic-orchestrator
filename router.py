@@ -90,6 +90,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"(?:on|under)\s+no\s+preten[sc]e(?!\w)|"
     r"(?:on|under)\s+no\s+consideration(?!\w)|"
     r"in\s+no\s+respect(?!\w)|"
+    r"in\s+no\s+sense(?!\w)|"
     r"for\s+no\s+reason(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
 )
@@ -143,8 +144,8 @@ NEGATION_PREFIX_PATTERN = (
 # "in no case", "at no time", "at no point", "on no occasion", and plural
 # "on/under no terms", "on/under no grounds", singular "on/under no
 # pretext", singular "on/under no pretense" / "on/under no pretence",
-# singular "on/under no consideration", and singular "in no respect" are
-# the same prohibition.
+# singular "on/under no consideration", singular "in no respect", and
+# singular "in no sense" are the same prohibition.
 # Both pretense spellings are required: "pretense" is not a substring of
 # "pretence". The same phrases after don't/never
 # match via NEGATION_EMPHASIS_PATTERN. Do not
@@ -155,8 +156,8 @@ NEGATION_PREFIX_PATTERN = (
 # condition", "in no condition", "in any event", "in any case", "at any time",
 # "at any point", "on any occasion", "on/under any terms", "on/under any
 # grounds", "on/under any pretext", "on/under any pretense",
-# "on/under any pretence", "on/under any consideration", or "in any
-# respect" as this prefix.
+# "on/under any pretence", "on/under any consideration", "in any
+# respect", or "in any sense" as this prefix.
 # "In no condition" is inability, not this
 # prohibition. "Under/on any condition", "in any event", "in any case", "at any
 # time", "at any point", "on any occasion", "on/under any terms",
@@ -183,18 +184,25 @@ NEGATION_PREFIX_PATTERN = (
 # "on this consideration", and bare "no consideration" are not this
 # prohibition. Singular "in no respect" is the same prohibition as "in no
 # way", including clause-final "cancel in no respect". Not plural
-# "respects". Not "in any respect", "in this respect", "in a respect",
-# "on/under/by/for no respect", or "in no sense". "In a sense" and "in this
-# sense" are not refusals. Do not fold "in no sense" into this scan. Bare
-# "no respect" and bare "respect" ("with respect", "in this respect") are
-# not this idiom. "Under consideration" means the matter is being reviewed.
+# "respects". Not "in any respect", "in this respect", "in a respect", or
+# "on/under/by/for no respect". Bare "no respect" and bare "respect"
+# ("with respect", "in this respect") are not this idiom. Singular "in no
+# sense" is the same prohibition, including clause-final "cancel in no
+# sense". Not plural "senses". Not "in any sense", "in this sense", "in a
+# sense", "in some sense", "in the sense", or "on/under/by/for no sense".
+# "In a sense" and "in this sense" are not refusals. "It makes no sense,
+# please cancel" is not this prohibition. Do not fast-reject on bare
+# "sense" ("makes sense", "common sense", "nonsense"). Do not fold "under
+# no obligation" ("cancel under no obligation" is cancel-while-not-obligated)
+# or "on no basis" into this scan. "Under consideration" means the matter is being reviewed.
 # "On consideration" means after thinking it over. "In no time" means very soon. "At this point" means now,
 # "at that point" means then, and "at some point" means eventually. "On this
 # occasion" / "on that occasion" mean this time / that time. The idiom is
 # singular "event"/"case"/"time"/"point"/"occasion"/"pretext"/"pretense"/
-# "pretence"/"consideration" and plural "terms"/"grounds", not "events",
-# "cases", "times", "points", "occasions", "pretexts", "pretenses",
-# "pretences", "considerations", "term", or "ground". Clause-final
+# "pretence"/"consideration"/"respect"/"sense" and plural "terms"/"grounds",
+# not "events", "cases", "times", "points", "occasions", "pretexts",
+# "pretenses", "pretences", "considerations", "respects", "senses", "term",
+# or "ground". Clause-final
 # "cancel on no pretext", "cancel on no pretense" / "cancel under no
 # pretence", and "cancel under no consideration" / "cancel on no
 # consideration" are prohibitions, same as "cancel on no grounds",
@@ -225,7 +233,7 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:on|under)\s+no\s+pretext|"
     r"(?:on|under)\s+no\s+preten[sc]e|"
     r"(?:on|under)\s+no\s+consideration|"
-    r"in\s+no\s+respect)(?!\w)"
+    r"in\s+no\s+respect|in\s+no\s+sense)(?!\w)"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -1085,11 +1093,11 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     "circumstance" covers singular and plural. "no account", "no means",
     "no way", "no condition", "no event", "no case", "no time", "no
     point", "no occasion", "no terms", "no grounds", "no pretext",
-    "no pretense", "no pretence", "no consideration", and "no respect" are
-    tighter than
+    "no pretense", "no pretence", "no consideration", "no respect", and
+    "no sense" are tighter than
     "account", "means", "way", "condition", "event", "case", "time",
     "point", "occasion", "terms", "grounds", "pretext", "pretense",
-    "pretence", "consideration", or "respect", which show up in unrelated
+    "pretence", "consideration", "respect", or "sense", which show up in unrelated
     text. "no condition" also covers the plural "no conditions". "no event",
     "no case", "no time", "no point", and "no occasion" are the singular
     prohibitions; "events", "cases", "times", "points", and "occasions"
@@ -1127,13 +1135,19 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     boundary. "no respect" also occurs in "I have no respect" and "there
     is no respect"; the pattern still requires "in". Do not fast-reject
     on bare "respect" ("with respect", "in this respect", "respectfully").
-    Do not fast-reject on "in no sense". "for no reason" is the
+    "no sense" is the singular prohibition; plural "no senses" contains
+    that substring, but the pattern keeps a word boundary. "no sense" also
+    occurs in "it makes no sense", "I have no sense", and "there is no
+    sense"; the pattern still requires "in". Do not fast-reject on bare
+    "sense" ("makes sense", "common sense", "in a sense", "in this sense",
+    "nonsense"). "for no reason" is the
     forward-only prohibition. Bare "no
     reason" is the noun path ("I have no reason to cancel") and must not
     force this scan. Do not fast-reject on "for no pretext", "for no
     pretense", "for no pretence", or "for no consideration": those phrases
     are manner, not this prohibition. Do not fast-reject on bare
-    "pretense", bare "pretence", bare "consideration", or bare "respect".
+    "pretense", bare "pretence", bare "consideration", bare "respect",
+    or bare "sense".
     """
     return (
         "circumstance" in text
@@ -1153,6 +1167,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no pretence" in text
         or "no consideration" in text
         or "no respect" in text
+        or "no sense" in text
         or "for no reason" in text
     )
 
