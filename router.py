@@ -77,6 +77,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"in\s+no\s+circumstances?(?!\w)|"
     r"on\s+no\s+account(?!\w)|"
     r"by\s+no\s+means(?!\w)|"
+    r"by\s+no\s+manner\s+of\s+means(?!\w)|"
     r"in\s+no\s+way(?!\w)|"
     r"(?:under|on)\s+no\s+conditions?(?!\w)|"
     r"in\s+no\s+event(?!\w)|"
@@ -143,7 +144,7 @@ NEGATION_PREFIX_PATTERN = (
 )
 # Standalone "under no circumstances <action>" is itself a refusal. Singular
 # "under no circumstance", "in no circumstances", "on no account",
-# "by no means", "in no way", "under/on no condition(s)", "in no event",
+# "by no means", "by no manner of means", "in no way", "under/on no condition(s)", "in no event",
 # "in no case", "at no time", "at no point", "on no occasion", and plural
 # "on/under no terms", "on/under no grounds", singular "on/under no
 # pretext", singular "on/under no pretense" / "on/under no pretence",
@@ -161,8 +162,8 @@ NEGATION_PREFIX_PATTERN = (
 # "at any point", "on any occasion", "on/under any terms", "on/under any
 # grounds", "on/under any pretext", "on/under any pretense",
 # "on/under any pretence", "on/under any consideration", "in any
-# respect", "in any sense", "in any manner", "in any wise", or "in any
-# fashion" as this prefix.
+# respect", "in any sense", "in any manner", "in any wise", "in any
+# fashion", or "by any manner of means" as this prefix.
 # "In no condition" is inability, not this
 # prohibition. "Under/on any condition", "in any event", "in any case", "at any
 # time", "at any point", "on any occasion", "on/under any terms",
@@ -214,11 +215,18 @@ NEGATION_PREFIX_PATTERN = (
 # fashion". "In a fashion" and "in this fashion" are not refusals. Do not
 # fast-reject on bare "fashion" ("fashionable", "old-fashioned", "in a
 # fashion", "in this fashion"). "no fashionable" contains "no fashion";
-# the pattern keeps a word boundary. Do not fold "by no manner of means"
-# into this scan. Do not fold "under
+# the pattern keeps a word boundary. "By no manner of means" is the same
+# prohibition as "by no means", including clause-final "cancel by no
+# manner of means". Not plural "manners". Not "by no manner" without
+# "of means". Not "by any manner of means". Not "in/on/under/for no
+# manner of means". "By no manner of means, please cancel" is an aside.
+# "By no manner of means can I cancel" stays executable because can/could
+# are not inversion auxiliaries. Do not fast-reject beyond the existing
+# "no manner" marker. Do not fold "under
 # no obligation" ("cancel under no obligation" is cancel-while-not-obligated)
 # or "on no basis" into this scan. Do not fold "in no shape" ("I'm in no
-# shape" is physical condition). "Under consideration" means the matter is being reviewed.
+# shape" is physical condition). Do not fold "by no stretch" without the
+# intervening "of the imagination". "Under consideration" means the matter is being reviewed.
 # "On consideration" means after thinking it over. "In no time" means very soon. "At this point" means now,
 # "at that point" means then, and "at some point" means eventually. "On this
 # occasion" / "on that occasion" mean this time / that time. The idiom is
@@ -249,7 +257,7 @@ NEGATION_PREFIX_PATTERN = (
 # following space; the action keyword still needs a whitespace boundary.
 UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:(?:under|in)\s+no\s+circumstances?|on\s+no\s+account|"
-    r"by\s+no\s+means|in\s+no\s+way|"
+    r"by\s+no\s+means|by\s+no\s+manner\s+of\s+means|in\s+no\s+way|"
     r"(?:under|on)\s+no\s+conditions?|"
     r"in\s+no\s+event|in\s+no\s+case|"
     r"at\s+no\s+time|at\s+no\s+point|on\s+no\s+occasion|"
@@ -1169,9 +1177,12 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     "nonsense"). "no manner" is the singular prohibition; plural "no
     manners" contains that substring, but the pattern keeps a word
     boundary. "no manner" also occurs in "I have no manner", "there is no
-    manner", and "by no manner of means"; the pattern still requires
-    "in". Do not fast-reject on bare "manner" ("in a manner", "in this
-    manner", "manners"). "no wise" is the singular prohibition; "no
+    manner", and "by no manner of means". Bare "no manner" still requires
+    "in", except the separate "by no manner of means" alternative. "By no
+    manner" without "of means", plural "by no manners of means", and "by
+    any manner of means" are not that alternative. Do not add a fast reject
+    beyond "no manner". Do not fast-reject on bare "manner" ("in a manner",
+    "in this manner", "manners"). "no wise" is the singular prohibition; "no
     wiser" and "no wises" contain that substring, but the pattern keeps a
     word boundary. "no wise" also occurs in "I have no wise" and "there is
     no wise"; the pattern still requires "in". Do not fast-reject on bare
@@ -1181,9 +1192,9 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     fashion" also occurs in "I have no fashion" and "there is no fashion";
     the pattern still requires "in". Do not fast-reject on bare "fashion"
     ("fashionable", "old-fashioned", "in a fashion", "in this fashion").
-    Do not fast-reject on "by no manner of means" beyond the existing
-    "no manner" marker, and do not treat that longer idiom as "in no
-    fashion". "for no reason" is the
+    "by no manner of means" uses the existing "no manner" marker; do not
+    add another fast reject, and do not treat that phrase as "in no
+    fashion" or as bare "by no manner". "for no reason" is the
     forward-only prohibition. Bare "no
     reason" is the noun path ("I have no reason to cancel") and must not
     force this scan. Do not fast-reject on "for no pretext", "for no
