@@ -4111,6 +4111,140 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_at_no_stage_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no stage cancel my appointment",
+            "At no stage, cancel my appointment",
+            "AT NO STAGE CANCEL",
+            "At no stage\u2014cancel my appointment",
+            "At no stage ever cancel my appointment",
+            "At no stage, ever, cancel my appointment",
+            "At no stage reschedule my appointment",
+            "At no stage schedule an appointment",
+            "At no stage call off my appointment",
+            "At no stage book a new appointment",
+            "At no stage the cancellation",
+            "At no stage a cancellation",
+            "At no stage want to cancel my appointment",
+            "At no stage ask them to cancel my appointment",
+            "At no stage have them cancel my appointment",
+            "At no stage let them cancel my appointment",
+            "At no stage go ahead and cancel my appointment",
+            "At no stage go and cancel my appointment",
+            "At no stage come and cancel my appointment",
+            "At no stage should you cancel my appointment",
+            "At no stage will I cancel my appointment",
+            "At no stage do I want to cancel my appointment",
+            "At no stage am I going to cancel my appointment",
+            "At no stage am I to cancel my appointment",
+            "At no stage is this a cancellation",
+            "At no stage cancel or reschedule my appointment",
+            "At no stage cancel, reschedule, or book",
+            "At no stage should you cancel or reschedule",
+            "At no stage the cancellation or the reschedule",
+            "Cancel at no stage",
+            "I will cancel at no stage",
+            "I will cancel my appointment at no stage",
+            "I will cancel or reschedule at no stage",
+            "I will at no stage cancel my appointment",
+            "I will, at no stage, cancel my appointment",
+            "You must at no stage cancel my appointment",
+            "Please don't at no stage cancel my appointment",
+            "Please don't, at no stage, cancel my appointment",
+            "Please do not at no stage cancel my appointment",
+            "Never at no stage cancel my appointment",
+            "Please don't at no stage go and cancel my appointment",
+            "At no stage I refuse to cancel",
+            "Please ask the office to cancel, at no stage",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_stage_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no stage, please cancel my appointment", "cancel"),
+            ("At no stage please cancel my appointment", "cancel"),
+            ("At no stage wait, please cancel my appointment", "cancel"),
+            ("At no stage Tuesday, please cancel", "cancel"),
+            ("Please cancel, at no stage wait", "cancel"),
+            ("Please cancel. At no stage reschedule", "cancel"),
+            ("Please cancel, at no stage reschedule", "cancel"),
+            ("At no stage cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no stage, please reschedule",
+                "reschedule",
+            ),
+            ("At no stage go, and cancel my appointment", "cancel"),
+            ("At no stage go and wait, please cancel", "cancel"),
+            ("At no stage I will cancel my appointment", "cancel"),
+            ("At no stage, I will cancel my appointment", "cancel"),
+            ("At no stage refuse to cancel", "no_action"),
+            ("At no stage refuse the cancellation", "no_action"),
+            ("At no stage forget to cancel my appointment", "cancel"),
+            ("At no stage do not forget to cancel", "cancel"),
+            ("At no stage can I cancel my appointment", "cancel"),
+            ("At no stage could I cancel my appointment", "cancel"),
+            ("At any stage cancel my appointment", "cancel"),
+            ("Please don't at any stage cancel my appointment", "cancel"),
+            ("Not at any stage cancel my appointment", "cancel"),
+            ("At the stage, please cancel my appointment", "cancel"),
+            ("At this stage, please cancel my appointment", "cancel"),
+            ("At that stage, please cancel my appointment", "cancel"),
+            ("At one stage, please cancel my appointment", "cancel"),
+            ("At some stage, please cancel my appointment", "cancel"),
+            ("In no stage should you cancel my appointment", "cancel"),
+            ("On no stage should you cancel my appointment", "cancel"),
+            ("By no stage should you cancel my appointment", "cancel"),
+            ("Under no stage cancel my appointment", "cancel"),
+            ("For no stage cancel my appointment", "cancel"),
+            ("I will cancel for no stage", "cancel"),
+            ("Please cancel for no stage", "cancel"),
+            ("I have no stage, please cancel my appointment", "cancel"),
+            ("There is no stage, please cancel", "cancel"),
+            ("No stage cancel my appointment", "cancel"),
+            ("At no stages should you cancel my appointment", "cancel"),
+            ("At no stage whatsoever cancel my appointment", "cancel"),
+            ("At no stage cancel or reschedule or book", "schedule"),
+            ("At no stage in the process, please cancel", "cancel"),
+            ("Please cancel my appointment at no stage tomorrow", "cancel"),
+            ("Please don't at no stage, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says at no stage",
+                "cancel",
+            ),
+            ("Home stage, please cancel my appointment", "cancel"),
+            ("Staging, please cancel my appointment", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no score cancel my appointment", "cancel"),
+            ("In no degree should you cancel my appointment", "cancel"),
+            ("To no extent should you cancel my appointment", "cancel"),
+            ("By no stretch of the imagination should you cancel my appointment", "no_action"),
+            ("By no stretch of the imagination, please cancel my appointment", "cancel"),
+            ("At no point should you cancel my appointment", "no_action"),
+            ("At no time should you cancel my appointment", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",

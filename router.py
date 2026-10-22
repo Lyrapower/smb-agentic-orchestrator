@@ -85,6 +85,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"in\s+no\s+case(?!\w)|"
     r"at\s+no\s+time(?!\w)|"
     r"at\s+no\s+point(?!\w)|"
+    r"at\s+no\s+stage(?!\w)|"
     r"on\s+no\s+occasion(?!\w)|"
     r"(?:on|under)\s+no\s+terms(?!\w)|"
     r"(?:on|under)\s+no\s+grounds(?!\w)|"
@@ -147,7 +148,8 @@ NEGATION_PREFIX_PATTERN = (
 # "under no circumstance", "in no circumstances", "on no account",
 # "by no means", "by no manner of means", "by no stretch of the imagination",
 # "in no way", "under/on no condition(s)", "in no event",
-# "in no case", "at no time", "at no point", "on no occasion", and plural
+# "in no case", "at no time", "at no point", "at no stage", "on no occasion",
+# and plural
 # "on/under no terms", "on/under no grounds", singular "on/under no
 # pretext", singular "on/under no pretense" / "on/under no pretence",
 # singular "on/under no consideration", singular "in no respect",
@@ -161,15 +163,15 @@ NEGATION_PREFIX_PATTERN = (
 # "Don't refuse to cancel" must stay executable. Do not treat "under any
 # circumstances", "by any means", "by all means", "in any way", "under/on any
 # condition", "in no condition", "in any event", "in any case", "at any time",
-# "at any point", "on any occasion", "on/under any terms", "on/under any
-# grounds", "on/under any pretext", "on/under any pretense",
+# "at any point", "at any stage", "on any occasion", "on/under any terms",
+# "on/under any grounds", "on/under any pretext", "on/under any pretense",
 # "on/under any pretence", "on/under any consideration", "in any
 # respect", "in any sense", "in any manner", "in any wise", "in any
 # fashion", "by any manner of means", or "by any stretch of the
 # imagination" as this prefix.
 # "In no condition" is inability, not this
 # prohibition. "Under/on any condition", "in any event", "in any case", "at any
-# time", "at any point", "on any occasion", "on/under any terms",
+# time", "at any point", "at any stage", "on any occasion", "on/under any terms",
 # "on/under any grounds", "on/under any pretext", "on/under any pretense",
 # "on/under any pretence", and "on/under any consideration" stay affirmative,
 # including after don't/never. "In the
@@ -234,17 +236,28 @@ NEGATION_PREFIX_PATTERN = (
 # the imagination". "By no stretch of the imagination, please cancel" is an
 # aside. "By no stretch of the imagination can I cancel" stays executable
 # because can/could are not inversion auxiliaries. Fast reject is "no
-# stretch", not bare "stretch" and not the full phrase. Do not fold "under
-# no obligation" ("cancel under no obligation" is cancel-while-not-obligated)
-# or "on no basis" into this scan. Do not fold "in no shape" ("I'm in no
-# shape" is physical condition). "Under consideration" means the matter is being reviewed.
+# stretch", not bare "stretch" and not the full phrase. Singular "at no
+# stage" is the same prohibition as "at no point", including clause-final
+# "cancel at no stage". Not plural "stages". Not "at any stage", "at this
+# stage", "at the stage", "at one stage", "at some stage", "at that stage",
+# or "in/on/under/by/for no stage". "At this stage" means now. "At no
+# stage, please cancel" is an aside. "At no stage I will cancel" and "At
+# no stage can I cancel" stay executable because the subject-first form
+# and can/could are not inversion auxiliaries. Fast reject is "no stage",
+# not bare "stage". "no stages" contains "no stage"; the pattern keeps a
+# word boundary. Do not add "for no stage" to the suffix scan. Do not fold
+# "under no obligation" ("cancel under no obligation" is
+# cancel-while-not-obligated) or "on no basis" into this scan. Do not fold
+# "in no shape" ("I'm in no shape" is physical condition). Do not fold "on
+# no score", "in no degree", or "to no extent". "Under consideration" means the matter is being reviewed.
 # "On consideration" means after thinking it over. "In no time" means very soon. "At this point" means now,
 # "at that point" means then, and "at some point" means eventually. "On this
 # occasion" / "on that occasion" mean this time / that time. The idiom is
-# singular "event"/"case"/"time"/"point"/"occasion"/"pretext"/"pretense"/
-# "pretence"/"consideration"/"respect"/"sense"/"manner"/"wise"/"fashion"
-# and plural "terms"/"grounds", not "events", "cases", "times", "points",
-# "occasions", "pretexts", "pretenses", "pretences", "considerations",
+# singular "event"/"case"/"time"/"point"/"stage"/"occasion"/"pretext"/
+# "pretense"/"pretence"/"consideration"/"respect"/"sense"/"manner"/"wise"/
+# "fashion" and plural "terms"/"grounds", not "events", "cases", "times",
+# "points", "stages", "occasions", "pretexts", "pretenses", "pretences",
+# "considerations",
 # "respects", "senses", "manners", "wises", "wiser", "fashions",
 # "fashionable", "term", or "ground". Clause-final
 # "cancel on no pretext", "cancel on no pretense" / "cancel under no
@@ -272,7 +285,7 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"by\s+no\s+stretch\s+of\s+the\s+imagination|in\s+no\s+way|"
     r"(?:under|on)\s+no\s+conditions?|"
     r"in\s+no\s+event|in\s+no\s+case|"
-    r"at\s+no\s+time|at\s+no\s+point|on\s+no\s+occasion|"
+    r"at\s+no\s+time|at\s+no\s+point|at\s+no\s+stage|on\s+no\s+occasion|"
     r"(?:on|under)\s+no\s+terms|"
     r"(?:on|under)\s+no\s+grounds|"
     r"(?:on|under)\s+no\s+pretext|"
@@ -1140,13 +1153,15 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     "no way", "no condition", "no event", "no case", "no time", "no
     point", "no occasion", "no terms", "no grounds", "no pretext",
     "no pretense", "no pretence", "no consideration", "no respect",
-    "no sense", "no manner", "no wise", "no fashion", and "no stretch" are tighter than
+    "no sense", "no manner", "no wise", "no fashion", "no stretch", and
+    "no stage" are tighter than
     "account", "means", "way", "condition", "event", "case", "time",
     "point", "occasion", "terms", "grounds", "pretext", "pretense",
-    "pretence", "consideration", "respect", "sense", "manner", "wise", "fashion", or "stretch", which show up in unrelated
+    "pretence", "consideration", "respect", "sense", "manner", "wise",
+    "fashion", "stretch", or "stage", which show up in unrelated
     text. "no condition" also covers the plural "no conditions". "no event",
-    "no case", "no time", "no point", and "no occasion" are the singular
-    prohibitions; "events", "cases", "times", "points", and "occasions"
+    "no case", "no time", "no point", "no stage", and "no occasion" are the singular
+    prohibitions; "events", "cases", "times", "points", "stages", and "occasions"
     still contain those substrings but the pattern keeps a word boundary.
     "no terms" and "no grounds" are the plural prohibitions; singular "no
     term" and "no ground" do not contain them. "case", "time", "point",
@@ -1214,15 +1229,22 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     pattern still requires "by" and "of the imagination". Do not
     fast-reject on bare "stretch" ("home stretch", "stretching"). Do not
     treat "by any stretch of the imagination" or "in/on/under/for no
-    stretch of the imagination" as this idiom. "for no reason" is the
+    stretch of the imagination" as this idiom. "no stage" is the singular
+    prohibition for "at no stage"; plural "no stages" contains that
+    substring, but the pattern keeps a word boundary. "no stage" also
+    occurs in "I have no stage" and "there is no stage"; the pattern still
+    requires "at". Do not fast-reject on bare "stage" ("at this stage",
+    "at the stage", "staging"). Do not treat "at any stage", "at this
+    stage", "in/on/under/by/for no stage", or bare "for no stage" as this
+    idiom. "for no reason" is the
     forward-only prohibition. Bare "no
     reason" is the noun path ("I have no reason to cancel") and must not
     force this scan. Do not fast-reject on "for no pretext", "for no
     pretense", "for no pretence", or "for no consideration": those phrases
     are manner, not this prohibition. Do not fast-reject on bare
     "pretense", bare "pretence", bare "consideration", bare "respect",
-    bare "sense", bare "manner", bare "wise", bare "fashion", or bare
-    "stretch".
+    bare "sense", bare "manner", bare "wise", bare "fashion", bare
+    "stretch", or bare "stage".
     """
     return (
         "circumstance" in text
@@ -1247,6 +1269,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no wise" in text
         or "no fashion" in text
         or "no stretch" in text
+        or "no stage" in text
         or "for no reason" in text
     )
 
