@@ -4530,6 +4530,136 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_no_way_shape_or_form_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no way, shape, or form cancel my appointment",
+            "In no way, shape, or form, cancel my appointment",
+            "IN NO WAY, SHAPE, OR FORM CANCEL",
+            "In no way\u2014shape, or form\u2014cancel my appointment",
+            "In no way, shape or form cancel my appointment",
+            "In no way shape or form cancel my appointment",
+            "In no way, shape, or form ever cancel my appointment",
+            "In no way, shape, or form, ever, cancel my appointment",
+            "In no way, shape, or form reschedule my appointment",
+            "In no way, shape, or form schedule an appointment",
+            "In no way, shape, or form call off my appointment",
+            "In no way, shape, or form book a new appointment",
+            "In no way, shape, or form the cancellation",
+            "In no way, shape, or form a cancellation",
+            "In no way, shape, or form want to cancel my appointment",
+            "In no way, shape, or form ask them to cancel my appointment",
+            "In no way, shape, or form have them cancel my appointment",
+            "In no way, shape, or form let them cancel my appointment",
+            "In no way, shape, or form go ahead and cancel my appointment",
+            "In no way, shape, or form go and cancel my appointment",
+            "In no way, shape, or form come and cancel my appointment",
+            "In no way, shape, or form should you cancel my appointment",
+            "In no way, shape, or form, should you cancel my appointment",
+            "In no way, shape or form should you cancel my appointment",
+            "In no way shape or form should you cancel my appointment",
+            "In no way, shape, or form will I cancel my appointment",
+            "In no way, shape, or form do I want to cancel my appointment",
+            "In no way, shape, or form am I going to cancel my appointment",
+            "In no way, shape, or form am I to cancel my appointment",
+            "In no way, shape, or form is this a cancellation",
+            "In no way, shape, or form cancel or reschedule my appointment",
+            "In no way, shape, or form cancel, reschedule, or book",
+            "In no way, shape, or form should you cancel or reschedule",
+            "In no way, shape, or form the cancellation or the reschedule",
+            "Cancel in no way, shape, or form",
+            "I will cancel in no way, shape, or form",
+            "I will cancel my appointment in no way, shape, or form",
+            "I will cancel or reschedule in no way, shape, or form",
+            "I will in no way, shape, or form cancel my appointment",
+            "I will, in no way, shape, or form, cancel my appointment",
+            "You must in no way, shape, or form cancel my appointment",
+            "Please don't in no way, shape, or form cancel my appointment",
+            "Please don't, in no way, shape, or form, cancel my appointment",
+            "Please do not in no way, shape, or form cancel my appointment",
+            "Never in no way, shape, or form cancel my appointment",
+            "Please don't in no way, shape, or form go and cancel my appointment",
+            "In no way, shape, or form I refuse to cancel",
+            "Please ask the office to cancel, in no way, shape, or form",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_way_shape_or_form_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no way, shape, or form, please cancel my appointment", "cancel"),
+            ("In no way, shape, or form please cancel my appointment", "cancel"),
+            ("In no way, shape or form, please cancel my appointment", "cancel"),
+            ("In no way shape or form, please cancel my appointment", "cancel"),
+            ("In no way, shape, or form wait, please cancel my appointment", "cancel"),
+            ("In no way, shape, or form Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no way, shape, or form wait", "cancel"),
+            ("Please cancel. In no way, shape, or form reschedule", "cancel"),
+            ("Please cancel, in no way, shape, or form reschedule", "cancel"),
+            ("In no way, shape, or form cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no way, shape, or form, please reschedule",
+                "reschedule",
+            ),
+            ("In no way, shape, or form go, and cancel my appointment", "cancel"),
+            ("In no way, shape, or form go and wait, please cancel", "cancel"),
+            ("In no way, shape, or form I will cancel my appointment", "cancel"),
+            ("In no way, shape, or form, I will cancel my appointment", "cancel"),
+            ("In no way, shape, or form refuse to cancel", "no_action"),
+            ("In no way, shape, or form refuse the cancellation", "no_action"),
+            ("In no way, shape, or form forget to cancel my appointment", "cancel"),
+            ("In no way, shape, or form do not forget to cancel", "cancel"),
+            ("In no way, shape, or form can I cancel my appointment", "cancel"),
+            ("In no way, shape, or form could I cancel my appointment", "cancel"),
+            ("In any way, shape, or form should you cancel my appointment", "cancel"),
+            ("Please don't in any way, shape, or form cancel my appointment", "cancel"),
+            ("Not in any way, shape, or form cancel my appointment", "cancel"),
+            ("No way, shape, or form should you cancel my appointment", "cancel"),
+            ("No way, shape, or form, please cancel my appointment", "cancel"),
+            ("I have no way, shape, or form to cancel my appointment", "cancel"),
+            ("There is no way, shape, or form to cancel my appointment", "cancel"),
+            ("In no ways, shape, or form should you cancel my appointment", "cancel"),
+            ("In no way, shapes, or form should you cancel my appointment", "cancel"),
+            ("In no way, shape, or forms should you cancel my appointment", "cancel"),
+            ("In no way, shape, or form whatsoever cancel my appointment", "cancel"),
+            ("In no way, shape, or form of the process should you cancel", "cancel"),
+            ("In no way, shape, or form cancel or reschedule or book", "schedule"),
+            ("In no way, shape, please cancel my appointment", "cancel"),
+            ("In no way, please cancel my appointment", "cancel"),
+            ("In no way should you cancel my appointment", "no_action"),
+            ("I will cancel in no way", "no_action"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("In no measure should you cancel my appointment", "cancel"),
+            ("I will cancel in no measure", "cancel"),
+            ("In no small measure, please cancel my appointment", "cancel"),
+            ("In no small measure should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no score cancel my appointment", "cancel"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("To no extent, please cancel my appointment", "cancel"),
+            ("I will cancel to no extent", "no_action"),
+            ("In no degree should you cancel my appointment", "no_action"),
+            ("At no stage should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
