@@ -79,7 +79,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"by\s+no\s+means(?!\w)|"
     r"by\s+no\s+manner\s+of\s+means(?!\w)|"
     r"by\s+no\s+stretch\s+of\s+the\s+imagination(?!\w)|"
-    r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*or\s+form(?!\w)|"
+    r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*(?:or|and|nor)\s+form(?!\w)|"
     r"in\s+no\s+way(?!\w)|"
     r"(?:under|on)\s+no\s+conditions?(?!\w)|"
     r"in\s+no\s+event(?!\w)|"
@@ -268,18 +268,24 @@ NEGATION_PREFIX_PATTERN = (
 # stay executable because the subject-first form and can/could are not
 # inversion auxiliaries. Fast reject is "no extent", not bare "extent".
 # "no extents" contains "no extent"; the pattern keeps a word boundary. Do
-# not add "for no extent" to the suffix scan. "In no way, shape, or form"
-# is the same prohibition as "in no way", including inversion ("should
-# you"), don't/never emphasis, and clause-final "cancel in no way, shape,
-# or form". The continuation is only the frozen list "shape or form", with
-# commas optional. It is not a wider shared gap: "of the process",
-# "whatsoever", and a bare "shape" still do not reach the action. Not
-# plural "ways", "shapes", or "forms". Not "and". Not "in no shape", "in
-# no shape or form", "in any way, shape, or form", "not in any way, shape,
-# or form", or bare "no way, shape, or form". "In no way, shape, or form,
-# please cancel" is an aside. "In no way, shape, or form I will cancel"
-# and "In no way, shape, or form can I cancel" stay executable because the
-# subject-first form and can/could are not inversion auxiliaries. Do not
+# not add "for no extent" to the suffix scan. "In no way, shape, or form",
+# "in no way, shape, and form", and "in no way, shape, nor form" are the
+# same prohibition as "in no way", including inversion ("should you"),
+# don't/never emphasis, and clause-final "cancel in no way, shape, and
+# form" / "cancel in no way, shape, nor form". The continuation is only
+# the frozen list "shape" plus or/and/nor plus "form", with commas
+# optional, and only on "in no way". It is not a wider shared gap: "of
+# the process", "whatsoever", and a bare "shape" still do not reach the
+# action. Not plural "ways", "shapes", or "forms". Not "in no shape",
+# "in no shape or form", "in no shape and form", "in no shape nor form",
+# "in any way, shape, or form", "in any way, shape, and form", "not in
+# any way, shape, or form", "not in any way, shape, and form", or bare
+# "no way, shape, or form" / "no way, shape, and form" / "no way, shape,
+# nor form". "In no way, shape, and form, please cancel" and "In no way,
+# shape, nor form, please cancel" are asides. "In no way, shape, and form
+# I will cancel" and "In no way, shape, and form can I cancel" stay
+# executable because the subject-first form and can/could are not
+# inversion auxiliaries. Do not
 # fold "in no measure" without excluding "in no small measure". Do not fold "under no
 # obligation" ("cancel under no obligation" is cancel-while-not-obligated)
 # or "on no basis" into this scan. Do not fold "in no shape" ("I'm in no
@@ -317,7 +323,7 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:(?:under|in)\s+no\s+circumstances?|on\s+no\s+account|"
     r"by\s+no\s+means|by\s+no\s+manner\s+of\s+means|"
     r"by\s+no\s+stretch\s+of\s+the\s+imagination|"
-    r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*or\s+form|in\s+no\s+way|"
+    r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*(?:or|and|nor)\s+form|in\s+no\s+way|"
     r"(?:under|on)\s+no\s+conditions?|"
     r"in\s+no\s+event|in\s+no\s+case|"
     r"at\s+no\s+time|at\s+no\s+point|at\s+no\s+stage|on\s+no\s+occasion|"
@@ -1285,10 +1291,13 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     not fast-reject on bare "extent" ("to some extent", "to an extent",
     "to the extent"). Do not treat "to any extent", "to some extent", "to
     an extent", "in/on/by/for no extent", or bare "for no extent" as this
-    idiom. "in no way, shape, or form" reuses this "no way" marker. Do not
+    idiom. "in no way, shape, or form", "in no way, shape, and form", and
+    "in no way, shape, nor form" reuse this "no way" marker. Do not
     fast-reject on bare "shape" or bare "form", and do not treat "in no
-    shape", "in no shape or form", "in any way, shape, or form", or bare
-    "no way, shape, or form" as that list. Do not fold "in no shape", "under no obligation", "on no basis",
+    shape", "in no shape or form", "in no shape and form", "in no shape
+    nor form", "in any way, shape, or form", "in any way, shape, and
+    form", or bare "no way, shape, or form" / "no way, shape, and form" /
+    "no way, shape, nor form" as that list. Do not fold "in no shape", "under no obligation", "on no basis",
     or "on no score" into this marker. "for no reason" is the
     forward-only prohibition. Bare "no
     reason" is the noun path ("I have no reason to cancel") and must not
