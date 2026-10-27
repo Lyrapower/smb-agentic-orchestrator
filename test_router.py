@@ -4822,6 +4822,105 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_at_no_point_in_time_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no point in time cancel my appointment",
+            "At no point in time, cancel my appointment",
+            "AT NO POINT IN TIME CANCEL",
+            "At no point in time\u2014cancel my appointment",
+            "At no point in time ever cancel my appointment",
+            "At no point in time reschedule my appointment",
+            "At no point in time schedule an appointment",
+            "At no point in time call off my appointment",
+            "At no point in time book a new appointment",
+            "At no point in time the cancellation",
+            "At no point in time want to cancel my appointment",
+            "At no point in time ask them to cancel my appointment",
+            "At no point in time have them cancel my appointment",
+            "At no point in time let them cancel my appointment",
+            "At no point in time go ahead and cancel my appointment",
+            "At no point in time go and cancel my appointment",
+            "At no point in time come and cancel my appointment",
+            "At no point in time should you cancel my appointment",
+            "At no point in time, should you cancel my appointment",
+            "At no point in time will I cancel my appointment",
+            "At no point in time do I want to cancel my appointment",
+            "At no point in time am I going to cancel my appointment",
+            "At no point in time cancel or reschedule my appointment",
+            "At no point in time cancel, reschedule, or book",
+            "At no point in time should you cancel or reschedule",
+            "Cancel at no point in time",
+            "I will cancel at no point in time",
+            "I will cancel my appointment at no point in time",
+            "I will cancel or reschedule at no point in time",
+            "I will at no point in time cancel my appointment",
+            "You must at no point in time cancel my appointment",
+            "Please don't at no point in time cancel my appointment",
+            "Please don't, at no point in time, cancel my appointment",
+            "Please do not at no point in time cancel my appointment",
+            "Never at no point in time cancel my appointment",
+            "Please don't at no point in time go and cancel my appointment",
+            "At no point in time I refuse to cancel",
+            "Please ask the office to cancel, at no point in time",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_point_in_time_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no point in time, please cancel my appointment", "cancel"),
+            ("At no point in time please cancel my appointment", "cancel"),
+            ("Please cancel, at no point in time reschedule", "cancel"),
+            ("At no point in time cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no point in time, please reschedule",
+                "reschedule",
+            ),
+            ("At no point in time I will cancel my appointment", "cancel"),
+            ("At no point in time, I will cancel my appointment", "cancel"),
+            ("At no point in time refuse to cancel", "no_action"),
+            ("At no point in time refuse the cancellation", "no_action"),
+            ("At no point in time forget to cancel my appointment", "cancel"),
+            ("At no point in time do not forget to cancel", "cancel"),
+            ("At no point in time can I cancel my appointment", "cancel"),
+            ("At no point in time could I cancel my appointment", "cancel"),
+            ("At any point in time, please cancel my appointment", "cancel"),
+            ("Please don't at any point in time cancel my appointment", "cancel"),
+            ("At this point in time, please cancel my appointment", "cancel"),
+            ("At that point in time, please cancel my appointment", "cancel"),
+            ("At some point in time, please cancel my appointment", "cancel"),
+            ("At one point in time, please cancel my appointment", "cancel"),
+            ("At no points in time should you cancel my appointment", "cancel"),
+            ("At no point in times should you cancel my appointment", "cancel"),
+            ("At no point of time should you cancel my appointment", "cancel"),
+            ("I will cancel at no point of time", "cancel"),
+            ("At no point in the process should you cancel my appointment", "cancel"),
+            ("At no point in the process, please cancel", "cancel"),
+            ("At no point in time of the process should you cancel", "cancel"),
+            ("At no point in time whatsoever should you cancel", "cancel"),
+            ("At no point in time cancel or reschedule or book", "schedule"),
+            ("Please cancel in no time", "cancel"),
+            ("In no time, please cancel my appointment", "cancel"),
+            ("At no point should you cancel my appointment", "no_action"),
+            ("I will cancel at no point", "no_action"),
+            ("At no time should you cancel my appointment", "no_action"),
+            ("In no way, shape, and form should you cancel my appointment", "no_action"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
