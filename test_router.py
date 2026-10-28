@@ -4896,8 +4896,8 @@ class RouterTests(unittest.TestCase):
             ("At one point in time, please cancel my appointment", "cancel"),
             ("At no points in time should you cancel my appointment", "cancel"),
             ("At no point in times should you cancel my appointment", "cancel"),
-            ("At no point of time should you cancel my appointment", "cancel"),
-            ("I will cancel at no point of time", "cancel"),
+            ("At no point of time should you cancel my appointment", "no_action"),
+            ("I will cancel at no point of time", "no_action"),
             ("At no point in the process should you cancel my appointment", "cancel"),
             ("At no point in the process, please cancel", "cancel"),
             ("At no point in time of the process should you cancel", "cancel"),
@@ -4908,6 +4908,106 @@ class RouterTests(unittest.TestCase):
             ("At no point should you cancel my appointment", "no_action"),
             ("I will cancel at no point", "no_action"),
             ("At no time should you cancel my appointment", "no_action"),
+            ("In no way, shape, and form should you cancel my appointment", "no_action"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_at_no_point_of_time_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no point of time cancel my appointment",
+            "At no point of time, cancel my appointment",
+            "AT NO POINT OF TIME CANCEL",
+            "At no point of time\u2014cancel my appointment",
+            "At no point of time ever cancel my appointment",
+            "At no point of time reschedule my appointment",
+            "At no point of time schedule an appointment",
+            "At no point of time call off my appointment",
+            "At no point of time book a new appointment",
+            "At no point of time the cancellation",
+            "At no point of time want to cancel my appointment",
+            "At no point of time ask them to cancel my appointment",
+            "At no point of time have them cancel my appointment",
+            "At no point of time let them cancel my appointment",
+            "At no point of time go ahead and cancel my appointment",
+            "At no point of time go and cancel my appointment",
+            "At no point of time come and cancel my appointment",
+            "At no point of time should you cancel my appointment",
+            "At no point of time, should you cancel my appointment",
+            "At no point of time will I cancel my appointment",
+            "At no point of time do I want to cancel my appointment",
+            "At no point of time am I going to cancel my appointment",
+            "At no point of time cancel or reschedule my appointment",
+            "At no point of time cancel, reschedule, or book",
+            "At no point of time should you cancel or reschedule",
+            "Cancel at no point of time",
+            "I will cancel at no point of time",
+            "I will cancel my appointment at no point of time",
+            "I will cancel or reschedule at no point of time",
+            "I will at no point of time cancel my appointment",
+            "You must at no point of time cancel my appointment",
+            "Please don't at no point of time cancel my appointment",
+            "Please don't, at no point of time, cancel my appointment",
+            "Please do not at no point of time cancel my appointment",
+            "Never at no point of time cancel my appointment",
+            "Please don't at no point of time go and cancel my appointment",
+            "At no point of time I refuse to cancel",
+            "Please ask the office to cancel, at no point of time",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_point_of_time_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no point of time, please cancel my appointment", "cancel"),
+            ("At no point of time please cancel my appointment", "cancel"),
+            ("Please cancel, at no point of time reschedule", "cancel"),
+            ("At no point of time cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no point of time, please reschedule",
+                "reschedule",
+            ),
+            ("At no point of time I will cancel my appointment", "cancel"),
+            ("At no point of time, I will cancel my appointment", "cancel"),
+            ("At no point of time refuse to cancel", "no_action"),
+            ("At no point of time refuse the cancellation", "no_action"),
+            ("At no point of time forget to cancel my appointment", "cancel"),
+            ("At no point of time do not forget to cancel", "cancel"),
+            ("At no point of time can I cancel my appointment", "cancel"),
+            ("At no point of time could I cancel my appointment", "cancel"),
+            ("At any point of time, please cancel my appointment", "cancel"),
+            ("Please don't at any point of time cancel my appointment", "cancel"),
+            ("At this point of time, please cancel my appointment", "cancel"),
+            ("At that point of time, please cancel my appointment", "cancel"),
+            ("At some point of time, please cancel my appointment", "cancel"),
+            ("At one point of time, please cancel my appointment", "cancel"),
+            ("At no points of time should you cancel my appointment", "cancel"),
+            ("At no point of times should you cancel my appointment", "cancel"),
+            ("At no point of the process should you cancel my appointment", "cancel"),
+            ("At no point of time of the process should you cancel", "cancel"),
+            ("At no point of time whatsoever should you cancel", "cancel"),
+            ("At no point of time cancel or reschedule or book", "schedule"),
+            ("At no point in time should you cancel my appointment", "no_action"),
+            ("I will cancel at no point in time", "no_action"),
+            ("At no point in the process should you cancel my appointment", "cancel"),
+            ("At no point in time of the process should you cancel", "cancel"),
+            ("At no point in time whatsoever should you cancel", "cancel"),
+            ("At this point in time, please cancel my appointment", "cancel"),
+            ("Please cancel in no time", "cancel"),
+            ("In no time, please cancel my appointment", "cancel"),
+            ("At no point should you cancel my appointment", "no_action"),
             ("In no way, shape, and form should you cancel my appointment", "no_action"),
             ("To no extent should you cancel my appointment", "no_action"),
             ("Don't go and cancel my appointment", "no_action"),

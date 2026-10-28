@@ -85,7 +85,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"in\s+no\s+event(?!\w)|"
     r"in\s+no\s+case(?!\w)|"
     r"at\s+no\s+time(?!\w)|"
-    r"at\s+no\s+point\s+in\s+time(?!\w)|"
+    r"at\s+no\s+point\s+(?:in|of)\s+time(?!\w)|"
     r"at\s+no\s+point(?!\w)|"
     r"at\s+no\s+stage(?!\w)|"
     r"on\s+no\s+occasion(?!\w)|"
@@ -242,19 +242,21 @@ NEGATION_PREFIX_PATTERN = (
 # aside. "By no stretch of the imagination can I cancel" stays executable
 # because can/could are not inversion auxiliaries. Fast reject is "no
 # stretch", not bare "stretch" and not the full phrase. "At no point in
-# time" is the same prohibition as "at no point", including inversion
-# ("should you"), don't/never emphasis, and clause-final "cancel at no
-# point in time". The continuation is only the frozen "in time", and only
-# on "at no point". It is not a wider shared gap: "in the process", "of
-# time", and "whatsoever" still do not reach the action. Not plural
-# "points" or "times". Not "at any point in time", "at this point in
-# time", "at that point in time", "at some point in time", or "at one
-# point in time". "At this point in time" means now. "At no point in
-# time, please cancel" is an aside. "At no point in time I will cancel"
-# and "At no point in time can I cancel" stay executable because the
-# subject-first form and can/could are not inversion auxiliaries. Fast
-# reject stays "no point". Do not fast-reject on bare "point" or bare
-# "time". "In no time" means very soon and is not this continuation.
+# time" and "at no point of time" are the same prohibition as "at no
+# point", including inversion ("should you"), don't/never emphasis, and
+# clause-final "cancel at no point in time" / "cancel at no point of
+# time". The continuation is only the frozen "in time" or "of time", and
+# only on "at no point". It is not a wider shared gap: "in the process"
+# and "whatsoever" still do not reach the action. Not plural "points" or
+# "times". Not "at any/this/that/some/one point in time" and not
+# "at any/this/that/some/one point of time". "At this point in time" and
+# "at this point of time" mean now. "At no point in time, please cancel"
+# and "At no point of time, please cancel" are asides. "At no point of
+# time I will cancel" and "At no point of time can I cancel" stay
+# executable because the subject-first form and can/could are not
+# inversion auxiliaries. Fast reject stays "no point". Do not fast-reject
+# on bare "point" or bare "time". "In no time" means very soon and is not
+# this continuation.
 # Singular "at no stage" is the same prohibition as "at no point", including
 # clause-final
 # "cancel at no stage". Not plural "stages". Not "at any stage", "at this
@@ -341,7 +343,7 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*(?:or|and|nor)\s+form|in\s+no\s+way|"
     r"(?:under|on)\s+no\s+conditions?|"
     r"in\s+no\s+event|in\s+no\s+case|"
-    r"at\s+no\s+time|at\s+no\s+point\s+in\s+time|at\s+no\s+point|at\s+no\s+stage|on\s+no\s+occasion|"
+    r"at\s+no\s+time|at\s+no\s+point\s+(?:in|of)\s+time|at\s+no\s+point|at\s+no\s+stage|on\s+no\s+occasion|"
     r"(?:on|under)\s+no\s+terms|"
     r"(?:on|under)\s+no\s+grounds|"
     r"(?:on|under)\s+no\s+pretext|"
@@ -1231,10 +1233,11 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     occurs in "in no time"
     (very soon); the pattern still requires "at". "no point" also occurs in
     "there's no point"; the pattern still requires "at". "at no point in
-    time" reuses this "no point" marker. The continuation is only the
-    frozen "in time" on "at no point", not "of time", "in the process",
-    "whatsoever", plural "points"/"times", or "at this/that/some/any/one
-    point in time". Do not fast-reject on bare "point" or bare "time".
+    time" and "at no point of time" reuse this "no point" marker. The
+    continuation is only the frozen "in time" or "of time" on "at no
+    point", not "in the process", "whatsoever", plural "points"/"times",
+    or "at this/that/some/any/one point in time" / "point of time". Do
+    not fast-reject on bare "point" or bare "time".
     "no occasion" also
     occurs in "there's no occasion" and "I have no occasion"; the pattern
     still requires "on". "no terms" also occurs in "I have no terms" and
