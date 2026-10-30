@@ -98,6 +98,7 @@ NEGATION_EMPHASIS_PATTERN = (
     r"in\s+no\s+sense(?!\w)|"
     r"in\s+no\s+manner(?!\w)|"
     r"in\s+no\s+wise(?!\w)|"
+    r"in\s+no\s+form\s*,?\s*(?:or|and|nor)\s+fashion(?!\w)|"
     r"in\s+no\s+fashion(?!\w)|"
     r"in\s+no\s+degree(?!\w)|"
     r"to\s+no\s+extent(?!\w)|"
@@ -225,7 +226,22 @@ NEGATION_PREFIX_PATTERN = (
 # fashion". "In a fashion" and "in this fashion" are not refusals. Do not
 # fast-reject on bare "fashion" ("fashionable", "old-fashioned", "in a
 # fashion", "in this fashion"). "no fashionable" contains "no fashion";
-# the pattern keeps a word boundary. "By no manner of means" is the same
+# the pattern keeps a word boundary. "In no form or fashion", "in no form
+# and fashion", and "in no form nor fashion" are the same prohibition as
+# "in no fashion", including inversion ("should you"), don't/never
+# emphasis, and clause-final "cancel in no form or fashion". The
+# continuation is only or/and/nor plus "fashion", with an optional comma,
+# and only on "in no form". Not bare "in no form". Not plural "forms" or
+# "fashions". Not "fashionable". Not "in any form or/and/nor fashion",
+# "not in any form or fashion", "in no fashion or form", or "in no way,
+# shape, or fashion" (that list stays frozen on "form"). "In no form or
+# fashion, please cancel" is an aside. "In no form or fashion I will
+# cancel" and "In no form or fashion can I cancel" stay executable
+# because the subject-first form and can/could are not inversion
+# auxiliaries. Fast reject is "no form", not bare "form". "no formal",
+# "no format", "no formula", and "no formation" contain "no form"; the
+# pattern still requires or/and/nor fashion. Do not add this idiom to
+# NEGATION_PREFIX_PATTERN. "By no manner of means" is the same
 # prohibition as "by no means", including clause-final "cancel by no
 # manner of means". Not plural "manners". Not "by no manner" without
 # "of means". Not "by any manner of means". Not "in/on/under/for no
@@ -350,7 +366,8 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:on|under)\s+no\s+preten[sc]e|"
     r"(?:on|under)\s+no\s+consideration|"
     r"in\s+no\s+respect|in\s+no\s+sense|in\s+no\s+manner|in\s+no\s+wise|"
-    r"in\s+no\s+fashion|in\s+no\s+degree|to\s+no\s+extent)(?!\w)"
+    r"in\s+no\s+form\s*,?\s*(?:or|and|nor)\s+fashion|in\s+no\s+fashion|"
+    r"in\s+no\s+degree|to\s+no\s+extent)(?!\w)"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -1211,12 +1228,12 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     "no way", "no condition", "no event", "no case", "no time", "no
     point", "no occasion", "no terms", "no grounds", "no pretext",
     "no pretense", "no pretence", "no consideration", "no respect",
-    "no sense", "no manner", "no wise", "no fashion", "no degree",
+    "no sense", "no manner", "no wise", "no fashion", "no form", "no degree",
     "no extent", "no stretch", and "no stage" are tighter than
     "account", "means", "way", "condition", "event", "case", "time",
     "point", "occasion", "terms", "grounds", "pretext", "pretense",
     "pretence", "consideration", "respect", "sense", "manner", "wise",
-    "fashion", "degree", "extent", "stretch", or "stage", which show up in unrelated
+    "fashion", "form", "degree", "extent", "stretch", or "stage", which show up in unrelated
     text. "no condition" also covers the plural "no conditions". "no event",
     "no case", "no time", "no point", "no stage", and "no occasion" are the singular
     prohibitions; "events", "cases", "times", "points", "stages", and "occasions"
@@ -1283,7 +1300,15 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     fashion" also occurs in "I have no fashion" and "there is no fashion";
     the pattern still requires "in". Do not fast-reject on bare "fashion"
     ("fashionable", "old-fashioned", "in a fashion", "in this fashion").
-    "by no manner of means" uses the existing "no manner" marker; do not
+    "no form" is the marker for "in no form or/and/nor fashion". Bare
+    "in no form" without that conjunction, plural "no forms", and "no
+    formal" / "no format" / "no formula" / "no formation" contain that
+    substring, but the pattern keeps the conjunction and a word boundary.
+    "no form" also occurs in "I'm in no form" and "I have no form"; the
+    pattern still requires "in" plus or/and/nor fashion. Do not
+    fast-reject on bare "form". Do not treat "in any form or fashion",
+    "in no fashion or form", or "in no way, shape, or fashion" as this
+    idiom. "by no manner of means" uses the existing "no manner" marker; do not
     add another fast reject, and do not treat that phrase as "in no
     fashion" or as bare "by no manner". "no stretch" is the marker for
     "by no stretch of the imagination". Bare "by no stretch" without
@@ -1329,7 +1354,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     are manner, not this prohibition. Do not fast-reject on bare
     "pretense", bare "pretence", bare "consideration", bare "respect",
     bare "sense", bare "manner", bare "wise", bare "fashion", bare
-    "degree", bare "extent", bare "stretch", or bare "stage".
+    "form", bare "degree", bare "extent", bare "stretch", or bare "stage".
     """
     return (
         "circumstance" in text
@@ -1353,6 +1378,7 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no manner" in text
         or "no wise" in text
         or "no fashion" in text
+        or "no form" in text
         or "no degree" in text
         or "no extent" in text
         or "no stretch" in text

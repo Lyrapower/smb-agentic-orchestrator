@@ -5021,6 +5021,127 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_no_form_or_fashion_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no form or fashion cancel my appointment",
+            "In no form or fashion, cancel my appointment",
+            "IN NO FORM OR FASHION CANCEL",
+            "In no form or fashion\u2014cancel my appointment",
+            "In no form, or fashion cancel my appointment",
+            "In no form, or fashion, cancel my appointment",
+            "In no form or fashion ever cancel my appointment",
+            "In no form or fashion, ever, cancel my appointment",
+            "In no form or fashion reschedule my appointment",
+            "In no form or fashion schedule an appointment",
+            "In no form or fashion call off my appointment",
+            "In no form or fashion book a new appointment",
+            "In no form or fashion the cancellation",
+            "In no form or fashion a cancellation",
+            "In no form or fashion want to cancel my appointment",
+            "In no form or fashion ask them to cancel my appointment",
+            "In no form or fashion have them cancel my appointment",
+            "In no form or fashion let them cancel my appointment",
+            "In no form or fashion go ahead and cancel my appointment",
+            "In no form or fashion go and cancel my appointment",
+            "In no form or fashion come and cancel my appointment",
+            "In no form or fashion should you cancel my appointment",
+            "In no form or fashion, should you cancel my appointment",
+            "In no form, or fashion should you cancel my appointment",
+            "In no form and fashion should you cancel my appointment",
+            "In no form nor fashion should you cancel my appointment",
+            "In no form, and fashion should you cancel my appointment",
+            "In no form, nor fashion should you cancel my appointment",
+            "In no form or fashion will I cancel my appointment",
+            "In no form or fashion do I want to cancel my appointment",
+            "In no form or fashion am I going to cancel my appointment",
+            "In no form or fashion am I to cancel my appointment",
+            "In no form or fashion cancel or reschedule my appointment",
+            "In no form or fashion cancel, reschedule, or book",
+            "In no form or fashion should you cancel or reschedule",
+            "In no form and fashion cancel or reschedule",
+            "In no form nor fashion the cancellation or the reschedule",
+            "Cancel in no form or fashion",
+            "I will cancel in no form or fashion",
+            "I will cancel my appointment in no form or fashion",
+            "I will cancel or reschedule in no form or fashion",
+            "I will cancel in no form and fashion",
+            "I will cancel in no form nor fashion",
+            "I will in no form or fashion cancel my appointment",
+            "I will, in no form or fashion, cancel my appointment",
+            "You must in no form or fashion cancel my appointment",
+            "Please don't in no form or fashion cancel my appointment",
+            "Please don't, in no form or fashion, cancel my appointment",
+            "Please do not in no form or fashion cancel my appointment",
+            "Never in no form or fashion cancel my appointment",
+            "Please don't in no form and fashion cancel my appointment",
+            "Never in no form nor fashion cancel my appointment",
+            "Please don't in no form or fashion go and cancel my appointment",
+            "In no form or fashion I refuse to cancel",
+            "Please ask the office to cancel, in no form or fashion",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_form_or_fashion_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no form or fashion, please cancel my appointment", "cancel"),
+            ("In no form or fashion please cancel my appointment", "cancel"),
+            ("In no form and fashion, please cancel my appointment", "cancel"),
+            ("In no form nor fashion, please cancel my appointment", "cancel"),
+            ("Please cancel, in no form or fashion reschedule", "cancel"),
+            ("In no form or fashion cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no form or fashion, please reschedule",
+                "reschedule",
+            ),
+            ("In no form or fashion I will cancel my appointment", "cancel"),
+            ("In no form or fashion, I will cancel my appointment", "cancel"),
+            ("In no form or fashion refuse to cancel", "no_action"),
+            ("In no form or fashion refuse the cancellation", "no_action"),
+            ("In no form or fashion forget to cancel my appointment", "cancel"),
+            ("In no form or fashion do not forget to cancel", "cancel"),
+            ("In no form or fashion can I cancel my appointment", "cancel"),
+            ("In no form or fashion could I cancel my appointment", "cancel"),
+            ("In any form or fashion, please cancel my appointment", "cancel"),
+            ("In any form or fashion should you cancel my appointment", "cancel"),
+            ("Not in any form or fashion cancel my appointment", "cancel"),
+            ("In no forms or fashion should you cancel my appointment", "cancel"),
+            ("In no form or fashions should you cancel my appointment", "cancel"),
+            ("In no form or fashionable way, please cancel", "cancel"),
+            ("In no form should you cancel my appointment", "cancel"),
+            ("I'm in no form, please cancel my appointment", "cancel"),
+            ("I have no formal request, please cancel my appointment", "cancel"),
+            ("There is no format, please cancel my appointment", "cancel"),
+            ("No formula, please cancel my appointment", "cancel"),
+            ("For no form or fashion should you cancel", "cancel"),
+            ("On no form or fashion should you cancel", "cancel"),
+            ("In no fashion or form should you cancel my appointment", "cancel"),
+            ("In no way, shape, or fashion should you cancel", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("In no form or fashion of the process should you cancel", "cancel"),
+            ("In no form or fashion whatsoever should you cancel", "cancel"),
+            ("In no form or fashion cancel or reschedule or book", "schedule"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("In no way, shape, or form should you cancel my appointment", "no_action"),
+            ("In no way, shape, and form should you cancel my appointment", "no_action"),
+            ("At no point of time should you cancel my appointment", "no_action"),
+            ("At no point in time should you cancel my appointment", "no_action"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
         examples = (
             "Don't go and cancel my appointment",
