@@ -1,0 +1,7082 @@
+import unittest
+from unittest import mock
+
+import router
+from router import route_intent
+
+
+class RouterTests(unittest.TestCase):
+    def test_negated_cancel_with_reschedule_routes_to_reschedule(self) -> None:
+        examples = (
+            "Please don't cancel my appointment, just reschedule it",
+            "Please don't cancel my appointment, reschedule it instead",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "reschedule")
+
+    def test_cannot_make_with_reschedule_routes_to_reschedule(self) -> None:
+        intent, _ = route_intent("I cannot make it tomorrow, please reschedule")
+
+        self.assertEqual(intent, "reschedule")
+
+    def test_cannot_make_with_negated_cancel_does_not_route_to_cancel(self) -> None:
+        examples = (
+            "I cannot make it tomorrow, please don't cancel",
+            "I can't make it, do not cancel my appointment",
+            "I cannot make it tomorrow, please don't remove appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_cannot_make_with_positive_cancel_still_routes_to_cancel(self) -> None:
+        intent, _ = route_intent("I cannot make it tomorrow, please cancel")
+
+        self.assertEqual(intent, "cancel")
+
+    def test_plain_cancel_still_routes_to_cancel(self) -> None:
+        intent, _ = route_intent("Please cancel my appointment tomorrow")
+
+        self.assertEqual(intent, "cancel")
+
+    def test_absent_keywords_do_not_trigger_negation_scans(self) -> None:
+        with mock.patch(
+            "router._is_negated_keyword",
+            wraps=router._is_negated_keyword,
+        ) as negated_keyword:
+            intent, _ = route_intent("Please cancel my appointment tomorrow")
+
+        self.assertEqual(intent, "cancel")
+        checked_keywords = [call.args[2] for call in negated_keyword.call_args_list]
+        self.assertEqual(checked_keywords, ["cancel", "cancel"])
+
+    def test_negated_cancel_synonyms_do_not_route_to_cancel(self) -> None:
+        examples = (
+            "Please don\u2019t cancel my appointment",
+            "Please don\u2018t cancel my appointment",
+            "Please don\u02bct cancel my appointment",
+            "Please don\uff07t cancel my appointment",
+            "Please don`t cancel my appointment",
+            "Please don\u00b4t cancel my appointment",
+            "Please don't ever cancel my appointment",
+            "Please do not ever cancel my appointment",
+            "Never ever cancel my appointment",
+            "Please do not, under any circumstances, cancel my appointment",
+            "Please don't, under any circumstances, cancel my appointment",
+            "Please do not for any reason cancel my appointment",
+            "Please don't ever, ever cancel my appointment",
+            "Please never, ever cancel my appointment",
+            "Please confirm you won't cancel my appointment",
+            "Please confirm you wont cancel my appointment",
+            "I shouldn't cancel my appointment",
+            "I shouldnt cancel my appointment",
+            "I mustn't cancel my appointment",
+            "I mustnt cancel my appointment",
+            "I needn't cancel my appointment",
+            "I neednt cancel my appointment",
+            "I shan't cancel my appointment",
+            "I shant cancel my appointment",
+            "I oughtn't cancel my appointment",
+            "I oughtnt cancel my appointment",
+            "I daren't cancel my appointment",
+            "I darent cancel my appointment",
+            "I mayn't cancel my appointment",
+            "I maynt cancel my appointment",
+            "I mightn't cancel my appointment",
+            "I mightnt cancel my appointment",
+            "I wouldn't cancel my appointment",
+            "I wouldnt cancel my appointment",
+            "I couldn't cancel my appointment",
+            "I couldnt cancel my appointment",
+            "I didn't cancel my appointment",
+            "I didnt cancel my appointment",
+            "I didn't want to cancel my appointment",
+            "I didnt want to cancel my appointment",
+            "I didn't ask you to cancel my appointment",
+            "I didn't tell them to cancel my appointment",
+            "Please don't call off my appointment",
+            "Please do not drop appointment tomorrow",
+            "Please never remove appointment from my calendar",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_remove_appointment_routes_to_cancel_not_reschedule(self) -> None:
+        intent, _ = route_intent("Please remove appointment tomorrow")
+
+        self.assertEqual(intent, "cancel")
+
+    def test_move_inside_remove_does_not_route_to_reschedule(self) -> None:
+        intent, _ = route_intent("Please do not remove appointment tomorrow")
+
+        self.assertEqual(intent, "no_action")
+
+    def test_coordinated_negated_cancel_synonyms_do_not_route_to_cancel(self) -> None:
+        examples = (
+            "Please do not cancel or remove appointment tomorrow",
+            "Don't call off or remove appointment tomorrow",
+            "Do not drop appointment or remove appointment tomorrow",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_intent_to_cancel_does_not_route_to_cancel(self) -> None:
+        examples = (
+            "I don't want to cancel my appointment",
+            "I don't wanna cancel my appointment",
+            "I do not wanna cancel my appointment",
+            "I'm not gonna cancel my appointment",
+            "I am not gonna cancel my appointment",
+            "I don't want you to cancel my appointment",
+            "Please tell them not to cancel my appointment",
+            "Please make sure not to cancel my appointment",
+            "Please remind them never to cancel my appointment",
+            "Please do not let anyone cancel my appointment",
+            "Please do not allow the office to cancel my appointment",
+            "Please do not allow my care team to cancel my appointment",
+            "I do not want to remove appointment tomorrow",
+            "I do not need anyone to remove appointment tomorrow",
+            "I don't, under any circumstances, want to cancel my appointment",
+            "I don't ever want to cancel my appointment",
+            "I am not trying to cancel my appointment",
+            "I'm not looking to cancel my appointment",
+            "I am not seeking to cancel my appointment",
+            "I never want to cancel my appointment",
+            "I would not like to cancel my appointment",
+            "I wouldn't like to cancel my appointment",
+            "I don't like to cancel my appointment",
+            "I wouldn't like you to cancel my appointment",
+            "Please don't want you to cancel or remove appointment",
+            "Please don't ask the office to cancel my appointment",
+            "Please do not tell the clinic to cancel my appointment",
+            "Never authorize anyone to cancel my appointment",
+            "Please don't ask Dr. Smith to cancel my appointment",
+            "Please do not tell front-desk staff to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_no_intent_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "I have no plans to cancel my appointment",
+            "I have no plan to cancel my appointment",
+            "I have no intention to cancel my appointment",
+            "I have no intent to cancel my appointment",
+            "I have no desire to cancel my appointment",
+            "I have no wish to cancel my appointment",
+            "I have no need to cancel my appointment",
+            "There is no plan to cancel my appointment",
+            "There are no plans to reschedule my appointment",
+            "I have no intention to reschedule my appointment",
+            "I have no desire to book a new appointment",
+            "No need to schedule an appointment",
+            "I have no need for a new appointment",
+            "No need for a new appointment",
+            "No need to cancel my appointment",
+            "No plans to cancel my appointment",
+            "No reschedule is needed",
+            "No new appointment is needed",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_belief_or_need_do_not_route_to_action(self) -> None:
+        examples = (
+            "I don't think I need to cancel my appointment",
+            "I do not believe I should cancel my appointment",
+            "I don't think there is any reason to cancel my appointment",
+            "I don't feel there is any need to reschedule my appointment",
+            "I don't think I have to move my appointment",
+            "I don't think I need to book a new appointment",
+            "I do not believe a new appointment is needed",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_reschedule_synonyms_do_not_route_to_reschedule(self) -> None:
+        examples = (
+            "Please don\u2019t reschedule my appointment",
+            "Please don\u02bct reschedule my appointment",
+            "Please don\uff07t reschedule my appointment",
+            "Please don't reschedule my appointment",
+            "Please don't ever reschedule my appointment",
+            "Please do not under any circumstances reschedule my appointment",
+            "Please don't for any reason reschedule my appointment",
+            "I don't want you to move my appointment",
+            "I asked not to reschedule my appointment",
+            "I am not looking to reschedule my appointment",
+            "I'm not seeking to move my appointment",
+            "I don't wanna reschedule my appointment",
+            "I'm not gonna reschedule my appointment",
+            "I don't wanna move my appointment",
+            "I'm not gonna move my appointment",
+            "Please do not change time tomorrow",
+            "Please do not let the front desk reschedule my appointment",
+            "I never want to rebook this appointment",
+            "Please don't instruct the office to reschedule my appointment",
+            "Please do not request anyone to move my appointment",
+            "Never direct the clinic to rebook this appointment",
+            "Please don't ask the on-call office manager to reschedule my appointment",
+            "Please do not request Nurse Jones, to move my appointment",
+            "Please confirm you won't reschedule my appointment",
+            "Please confirm you wont move my appointment",
+            "I shouldn't reschedule my appointment",
+            "I mustn't move my appointment",
+            "I needn't reschedule my appointment",
+            "I shan't reschedule my appointment",
+            "I oughtn't reschedule my appointment",
+            "I daren't reschedule my appointment",
+            "I mayn't reschedule my appointment",
+            "I mightn't reschedule my appointment",
+            "I wouldn't rebook this appointment",
+            "I couldn't reschedule my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_cancel_with_negated_reschedule_routes_to_cancel(self) -> None:
+        examples = (
+            "Please cancel, don't reschedule",
+            "I don't want to reschedule my appointment, please cancel it",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
+    def test_informational_cancellation_questions_do_not_route_to_cancel(self) -> None:
+        examples = (
+            "What is your cancellation policy?",
+            "Can you explain the cancellation fee?",
+            "Where can I find the cancellation rules?",
+            "What is your cancellation process?",
+            "How does cancellation work?",
+            "What is the cancellation deadline?",
+            "Can you explain the cancellation procedure?",
+            "Where can I find cancellation instructions?",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_informational_action_process_questions_do_not_route_to_action(self) -> None:
+        examples = (
+            "Where can I find instructions to cancel an appointment?",
+            "Please tell me the steps to cancel an appointment",
+            "What is the process to cancel an appointment?",
+            "Can you tell me how to cancel my appointment?",
+            "How do I reschedule my appointment?",
+            "What are the steps to schedule a new appointment?",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_appointment_cancellation_noun_still_routes_to_cancel(self) -> None:
+        examples = (
+            "I need cancellation of my appointment",
+            "Please process my appointment cancellation",
+            "Please start the cancellation process for my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
+    def test_negated_cancellation_processing_does_not_route_to_cancel(self) -> None:
+        examples = (
+            "Please do not process cancellation of my appointment",
+            "Please do not process my appointment cancellation",
+            "Please do not proceed with cancellation of my appointment",
+            "Please do not initiate cancellation of my appointment",
+            "Please do not submit a cancellation request for my appointment",
+            "Please do not start the cancellation process for my appointment",
+            "Please do not complete cancellation of my appointment",
+            "Please do not handle my appointment cancellation",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_appositive_inside_negated_processing_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not process my request, which is to cancel my appointment",
+            "Please do not process my request, which is to reschedule my appointment",
+            "Please do not process my request, which is to schedule a new appointment",
+            "Please do not handle my request, that is to cancel my appointment",
+            "Please do not process my request (which is to cancel my appointment)",
+            "Please do not process my request (which is to reschedule my appointment)",
+            "Please do not process my request - which is to cancel my appointment",
+            "Please do not process my request – which is to reschedule my appointment",
+            "Please do not process my request — which is to schedule a new appointment",
+            "Please do not process my request -- which is to cancel my appointment",
+            "Please do not process my request: which is to cancel my appointment",
+            "Please do not process my request; which is to cancel my appointment",
+            "Please do not process my request [which is to cancel my appointment]",
+            "Please do not process my request {which is to cancel my appointment}",
+            "Please do not process my request <which is to cancel my appointment>",
+            "Please do not process my request... which is to cancel my appointment",
+            "Please do not process my request… which is to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_processing_in_prior_clause_does_not_hide_cancel_request(self) -> None:
+        examples = (
+            "I do not process claims but please cancel my appointment",
+            "I do not process claims, please cancel my appointment",
+            "I do not process claims, cancel my appointment",
+            "I do not process claims - cancel my appointment",
+            "I do not process claims — cancel my appointment",
+            "I do not process claims -- cancel my appointment",
+            "I do not process claims: cancel my appointment",
+            "I do not process claims; cancel my appointment",
+            "Please do not handle this, cancel my appointment",
+            "Please do not handle this - cancel my appointment",
+            "Please do not handle billing, cancel my appointment",
+            "Do not process this request, cancel my appointment",
+            "I did not process the note, please start cancellation of my appointment",
+            "I did not start the paperwork. Please process cancellation of my appointment",
+            "I did not complete the form; please initiate cancellation of my appointment",
+            "I did not handle that request; instead cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
+    def test_negated_processing_in_prior_clause_does_not_hide_other_actions(self) -> None:
+        examples = (
+            ("Do not handle the claim, reschedule my appointment", "reschedule"),
+            ("Do not process billing, schedule a new appointment", "schedule"),
+            ("Please do not submit anything, book a new appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_negated_delegation_in_prior_clause_does_not_hide_action_request(self) -> None:
+        examples = (
+            ("I did not make the payment, please cancel my appointment", "cancel"),
+            ("I did not ask the office, please cancel my appointment", "cancel"),
+            ("I did not ask for help but please cancel my appointment", "cancel"),
+            ("Please do not ask questions, cancel my appointment", "cancel"),
+            ("Please do not ask Sarah, cancel my appointment", "cancel"),
+            ("Please do not tell anyone, cancel my appointment", "cancel"),
+            ("I did not tell them. Please reschedule my appointment", "reschedule"),
+            ("Do not ask them anything, reschedule my appointment", "reschedule"),
+            ("I do not allow cookies, please schedule a new appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_appositive_inside_negated_delegation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not ask Sarah, my assistant, to cancel my appointment",
+            "Please do not ask Sarah, my assistant, to reschedule my appointment",
+            "Please do not ask Sarah, my assistant, to book a new appointment",
+            "Please do not tell Dr. Smith, my cardiologist, to cancel my appointment",
+            "Please do not ask Sarah (my assistant) to cancel my appointment",
+            "Please do not ask Sarah (my assistant) to reschedule my appointment",
+            "Please do not tell Dr. Smith (my cardiologist) to cancel my appointment",
+            "Please do not ask Sarah - my assistant - to cancel my appointment",
+            "Please do not ask Sarah – my assistant – to reschedule my appointment",
+            "Please do not ask Sarah — my assistant — to book a new appointment",
+            "Please do not ask Sarah—my assistant—to cancel my appointment",
+            "Please do not ask Sarah -- my assistant -- to cancel my appointment",
+            "Please do not ask Sarah--my assistant--to cancel my appointment",
+            "Please do not ask Sarah; my assistant; to cancel my appointment",
+            "Please do not ask Sarah; my assistant; to reschedule my appointment",
+            'Please do not ask "Sarah" to cancel my appointment',
+            'Please do not tell the "front desk" to reschedule my appointment',
+            "Please do not ask Sarah [my assistant] to cancel my appointment",
+            "Please do not ask Sarah {my assistant} to cancel my appointment",
+            "Please do not ask Sarah <my assistant> to cancel my appointment",
+            "Please do not ask Sarah <my assistant> to reschedule my appointment",
+            "Please do not ask Sarah <my assistant> to book a new appointment",
+            "Please do not ask <Sarah> to cancel my appointment",
+            "Please do not ask Sarah/my assistant to cancel my appointment",
+            "Please do not ask Sarah / my assistant to cancel my appointment",
+            "Please do not ask Sarah... to cancel my appointment",
+            "Please do not ask Sarah… to cancel my appointment",
+            "Please do not ask Mary-Jane to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_emphasis_inside_negated_delegation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not ask the office, under any circumstances, to cancel my appointment",
+            "Please do not ask the office, under no circumstances, to cancel my appointment",
+            "Please do not tell the office, for any reason, to reschedule my appointment",
+            "Please do not tell the office, under no circumstances, to reschedule my appointment",
+            "Please do not permit the clinic, ever, to book a new appointment",
+            "Please do not permit the clinic, under no circumstances, to book a new appointment",
+            "Please do not ask them please to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_markdown_emphasis_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do *not* cancel my appointment",
+            "Please do *not* reschedule my appointment",
+            "Please do *not* schedule an appointment",
+            "Please do **not** cancel my appointment",
+            "Please do _not_ cancel my appointment",
+            "Please do __not__ reschedule my appointment",
+            "Please do `not` cancel my appointment",
+            "Please do `not` reschedule my appointment",
+            "Please do ``not`` cancel my appointment",
+            "Please do ```not``` cancel my appointment",
+            "Please do ```not``` reschedule my appointment",
+            "Please do ```not``` schedule an appointment",
+            "Please ```do not``` cancel my appointment",
+            "Please do ````not```` cancel my appointment",
+            "Please do ~~not~~ cancel my appointment",
+            "Please do ~~not~~ reschedule my appointment",
+            "Please do ~~not~~ schedule an appointment",
+            "Please ~~do not~~ cancel my appointment",
+            "Please do ~not~ cancel my appointment",
+            "Please *do not* cancel my appointment",
+            "Please _do not_ book a new appointment",
+            "I do *not* want to cancel my appointment",
+            "Please do *not* ask Sarah to cancel my appointment",
+            "Please do not ask `Sarah` to cancel my appointment",
+            "Please don`t cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_html_emphasis_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do <b>not</b> cancel my appointment",
+            "Please do <b>not</b> reschedule my appointment",
+            "Please do <b>not</b> schedule an appointment",
+            "Please do <em>not</em> cancel my appointment",
+            "Please do <i>not</i> reschedule my appointment",
+            "Please do <strong>not</strong> cancel my appointment",
+            "Please <b>do not</b> cancel my appointment",
+            "Please <em>do not</em> schedule an appointment",
+            "Please do<span>not</span> cancel my appointment",
+            "Please do <span>not</span> cancel my appointment",
+            "Please do <b class=\"x\">not</b> cancel my appointment",
+            "Please do <B>NOT</B> cancel my appointment",
+            "Please do not ask Sarah <b>my assistant</b> to cancel my appointment",
+            "Please do not ask Sarah <em>my assistant</em> to reschedule my appointment",
+            "I do <b>not</b> want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_zero_width_glue_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not\u200bcancel my appointment",
+            "Please do not\u200b cancel my appointment",
+            "Please do\u200bnot cancel my appointment",
+            "Please don't\u200bcancel my appointment",
+            "Please don't\u200bwant to cancel my appointment",
+            "Please never\u200bcancel my appointment",
+            "Please do not ever\u200bcancel my appointment",
+            "Please do not\u200breschedule my appointment",
+            "Please do not\u200bschedule an appointment",
+            "Please do not\u200ccancel my appointment",
+            "Please do not\u200dcancel my appointment",
+            "Please do not\ufeffcancel my appointment",
+            "Please do not\u2060cancel my appointment",
+            "Please do\u200b not\u200b\u200bcancel my appointment",
+            # Bidirectional marks and isolates from email/chat RTL paste.
+            "Please do not\u200ecancel my appointment",
+            "Please do not\u200fcancel my appointment",
+            "Please do not\u202acancel my appointment",
+            "Please do not\u202bcancel my appointment",
+            "Please do not\u202ccancel my appointment",
+            "Please do not\u202dcancel my appointment",
+            "Please do not\u202ecancel my appointment",
+            "Please do not\u2066cancel my appointment",
+            "Please do not\u2067cancel my appointment",
+            "Please do not\u2068cancel my appointment",
+            "Please do not\u2069cancel my appointment",
+            "Please do not\u2061cancel my appointment",
+            "Please do not\u2062cancel my appointment",
+            "Please don't\u200ewant to cancel my appointment",
+            "Please do not\u200ereschedule my appointment",
+            "Please do not\u200eschedule an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_combining_mark_glue_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            # Combining diacritics from mobile/OCR paste on negation tokens.
+            "Please do not\u0301 cancel my appointment",
+            "Please do not\u0301cancel my appointment",
+            "Please do not\u0327 cancel my appointment",
+            "Please don't\u0301 cancel my appointment",
+            "Please never\u0301 cancel my appointment",
+            # Emoji/text variation selectors (Mn) after negation.
+            "Please do not\ufe0f cancel my appointment",
+            "Please do not\ufe0fcancel my appointment",
+            "Please don't\ufe0f want to cancel my appointment",
+            # Same class of glue on other appointment actions.
+            "Please do not\u0301 reschedule my appointment",
+            "Please do not\ufe0f schedule an appointment",
+            # Precomposed accented letters that NFD-fold into Mn marks.
+            "Please do n\u00f3t cancel my appointment",
+            "Please do n\u00f2t cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_fullwidth_and_soft_hyphen_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            # Fullwidth Latin from CJK/IME paste on negation tokens.
+            "Please do \uff4e\uff4f\uff54 cancel my appointment",
+            "Please do \uff4e\uff4f\uff54 reschedule my appointment",
+            "Please do \uff4e\uff4f\uff54 schedule an appointment",
+            "Please do not \uff43\uff41\uff4e\uff43\uff45\uff4c my appointment",
+            "Please \uff44\uff4f\uff4e\uff07\uff54 cancel my appointment",
+            # Soft-hyphen between do/not strips to "donot"; keep it negated.
+            "Please do\u00adnot cancel my appointment",
+            "Please do\u00adnot reschedule my appointment",
+            "Please do\u00adnot schedule an appointment",
+            "Please donot cancel my appointment",
+            # Fullwidth punctuation appositives fold via NFKC.
+            "Please do not ask Sarah\uff0c my assistant\uff0c to cancel my appointment",
+            'Please do not ask \uff02Sarah\uff02 to cancel my appointment',
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_guillemet_and_cjk_bracket_negation_does_not_route_to_action(self) -> None:
+        examples = (
+            # European guillemets / low quotes around delegated actors.
+            "Please do not ask \u00abSarah\u00bb to cancel my appointment",
+            "Please do not ask \u2039Sarah\u203a to cancel my appointment",
+            "Please do not ask \u201eSarah\u201c to cancel my appointment",
+            "Please do not ask \u201aSarah\u2018 to cancel my appointment",
+            "Please do not ask \u201fSarah\u201f to cancel my appointment",
+            "Please do not ask \u00abSarah, my assistant\u00bb to cancel my appointment",
+            # CJK corner / lenticular / angle brackets from chat paste.
+            "Please do not ask \u300cSarah\u300d to cancel my appointment",
+            "Please do not ask \u300eSarah\u300f to cancel my appointment",
+            "Please do not ask \u3010Sarah\u3011 to cancel my appointment",
+            "Please do not ask \u300aSarah\u300b to cancel my appointment",
+            "Please do not ask \u3008Sarah\u3009 to cancel my appointment",
+            "Please do not ask \u3016Sarah\u3017 to cancel my appointment",
+            "Please do not ask \u3014Sarah\u3015 to cancel my appointment",
+            # Halfwidth corners NFKC-fold into CJK corner brackets.
+            "Please do not ask \uff62Sarah\uff63 to cancel my appointment",
+            "Please do not ask \u300cSarah\u300d to reschedule my appointment",
+            "Please do not ask \u00abSarah\u00bb to schedule an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_direct_action_questions_still_route_to_action(self) -> None:
+        examples = (
+            ("Can you cancel my appointment?", "cancel"),
+            ("Can you reschedule my appointment?", "reschedule"),
+            ("Can you schedule a new appointment?", "schedule"),
+            ("I'm looking to cancel my appointment", "cancel"),
+            ("I am seeking to reschedule my appointment", "reschedule"),
+            ("I'm looking to book a new appointment", "schedule"),
+            ("I wanna cancel my appointment", "cancel"),
+            ("I wanna reschedule my appointment", "reschedule"),
+            ("I'm gonna cancel my appointment", "cancel"),
+            ("I'm gonna schedule an appointment", "schedule"),
+            ("I want a new appointment", "schedule"),
+            ("I need a new appointment", "schedule"),
+            ("Please ask Dr. Smith to cancel my appointment", "cancel"),
+            ("Please tell front-desk staff to reschedule my appointment", "reschedule"),
+            ("Please request Nurse Jones, to book a new appointment", "schedule"),
+            ("No, please cancel my appointment", "cancel"),
+            ("No - please reschedule my appointment", "reschedule"),
+            ("No, please schedule a new appointment", "schedule"),
+            ("Please <b>cancel</b> my appointment", "cancel"),
+            ("Please <em>reschedule</em> my appointment", "reschedule"),
+            ("I want to <strong>schedule</strong> an appointment", "schedule"),
+            ("Please\u200bcancel my appointment", "cancel"),
+            ("Please cancel\u200b my appointment", "cancel"),
+            ("Please\u200breschedule my appointment", "reschedule"),
+            ("Please\u200bschedule an appointment", "schedule"),
+            ("Please\u200ecancel my appointment", "cancel"),
+            ("Please cancel\u200e my appointment", "cancel"),
+            ("Please\u2066reschedule my appointment", "reschedule"),
+            ("Please\u202aschedule an appointment", "schedule"),
+            ("Please can\u00adcel my appointment", "cancel"),
+            ("Please can\u0301cel my appointment", "cancel"),
+            ("Please ca\u0144cel my appointment", "cancel"),
+            ("Please\ufe0f cancel my appointment", "cancel"),
+            ("Please cancel\u0301 my appointment", "cancel"),
+            ("Please reschedule\u0301 my appointment", "reschedule"),
+            ("Please schedule\ufe0f an appointment", "schedule"),
+            ("Please \uff43\uff41\uff4e\uff43\uff45\uff4c my appointment", "cancel"),
+            ("Please \uff52\uff45\uff53\uff43\uff48\uff45\uff44\uff55\uff4c\uff45 my appointment", "reschedule"),
+            ("Please \uff53\uff43\uff48\uff45\uff44\uff55\uff4c\uff45 an appointment", "schedule"),
+            ('Please ask \uff02Sarah\uff02 to cancel my appointment', "cancel"),
+            ("Please ask \u00abSarah\u00bb to cancel my appointment", "cancel"),
+            ("Please ask \u300cSarah\u300d to reschedule my appointment", "reschedule"),
+            ("Please ask \u3010Sarah\u3011 to schedule an appointment", "schedule"),
+            ("Please ask \uff62Sarah\uff63 to cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_negated_schedule_synonyms_do_not_route_to_schedule(self) -> None:
+        examples = (
+            "Please don\u2019t schedule an appointment",
+            "Please don\u02bct schedule an appointment",
+            "Please don\uff07t schedule an appointment",
+            "Please do not schedule an appointment",
+            "Please don't ever schedule an appointment",
+            "Please don't under any circumstances schedule an appointment",
+            "Please do not for any reason book an appointment",
+            "I don't want you to book an appointment",
+            "I don't want a new appointment",
+            "I don't need a new appointment",
+            "I do not wish for a new appointment",
+            "I'm not looking to schedule an appointment",
+            "I am not seeking to book a new appointment",
+            "I don't wanna schedule an appointment",
+            "I'm not gonna schedule an appointment",
+            "I don't wanna book a new appointment",
+            "I'm not gonna book a new appointment",
+            "Please make sure not to schedule a new appointment",
+            "Please do not permit the scheduling staff to book a new appointment",
+            "Never arrange a new appointment",
+            "Please don't ask the office to schedule an appointment",
+            "Please do not tell anyone to book a new appointment",
+            "Never authorize the clinic to arrange a new appointment",
+            "Please don't ask Dr. Smith to schedule an appointment",
+            "Please do not request Nurse Jones, to book a new appointment",
+            "Please confirm you won't schedule an appointment",
+            "Please confirm you wont book a new appointment",
+            "I shouldn't schedule an appointment",
+            "I mustn't book a new appointment",
+            "I needn't schedule an appointment",
+            "I shan't schedule an appointment",
+            "I oughtn't schedule an appointment",
+            "I daren't schedule an appointment",
+            "I mayn't schedule an appointment",
+            "I mightn't schedule an appointment",
+            "I wouldn't schedule an appointment right now",
+            "I couldn't arrange a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_modal_contraction_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I shouldn't cancel my appointment",
+            "I mustn't cancel my appointment",
+            "I needn't cancel my appointment",
+            "I shan't cancel my appointment",
+            "I oughtn't cancel my appointment",
+            "I daren't cancel my appointment",
+            "I mayn't cancel my appointment",
+            "I mightn't cancel my appointment",
+            "I wouldn't cancel my appointment",
+            "I couldn't cancel my appointment",
+            "I shouldn't reschedule my appointment",
+            "I wouldn't schedule an appointment right now",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_neednt_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I needn't cancel my appointment",
+            "I needn\u2019t cancel my appointment",
+            "I neednt cancel my appointment",
+            "You needn't cancel my appointment",
+            "He needn't cancel my appointment",
+            "I need not cancel my appointment",
+            "I don't need to cancel my appointment",
+            "I needn't reschedule my appointment",
+            "I needn't schedule an appointment",
+            "I needn't book a new appointment",
+            "I needn't call off my appointment",
+            "I needn't drop appointment",
+            "I needn't remove appointment",
+            "Please confirm you needn't cancel my appointment",
+            "I needn't try to cancel my appointment",
+            "I needn't have them cancel my appointment",
+            "I needn't ask them to cancel my appointment",
+            "I needn't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_shant_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I shan't cancel my appointment",
+            "I shan\u2019t cancel my appointment",
+            "I shant cancel my appointment",
+            "You shan't cancel my appointment",
+            "He shan't cancel my appointment",
+            "I shall not cancel my appointment",
+            "I shan't reschedule my appointment",
+            "I shan't schedule an appointment",
+            "I shan't book a new appointment",
+            "I shan't call off my appointment",
+            "I shan't drop appointment",
+            "I shan't remove appointment",
+            "Please confirm you shan't cancel my appointment",
+            "I shan't try to cancel my appointment",
+            "I shan't have them cancel my appointment",
+            "I shan't ask them to cancel my appointment",
+            "I shan't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_oughtnt_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I oughtn't cancel my appointment",
+            "I oughtn\u2019t cancel my appointment",
+            "I oughtnt cancel my appointment",
+            "You oughtn't cancel my appointment",
+            "He oughtn't cancel my appointment",
+            "I ought not cancel my appointment",
+            "I ought not to cancel my appointment",
+            "I oughtn't reschedule my appointment",
+            "I oughtn't schedule an appointment",
+            "I oughtn't book a new appointment",
+            "I oughtn't call off my appointment",
+            "I oughtn't drop appointment",
+            "I oughtn't remove appointment",
+            "Please confirm you oughtn't cancel my appointment",
+            "I oughtn't try to cancel my appointment",
+            "I oughtn't have them cancel my appointment",
+            "I oughtn't ask them to cancel my appointment",
+            "I oughtn't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_darent_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I daren't cancel my appointment",
+            "I daren\u2019t cancel my appointment",
+            "I darent cancel my appointment",
+            "You daren't cancel my appointment",
+            "He daren't cancel my appointment",
+            "I dare not cancel my appointment",
+            "I dare not to cancel my appointment",
+            "I daren't reschedule my appointment",
+            "I daren't schedule an appointment",
+            "I daren't book a new appointment",
+            "I daren't call off my appointment",
+            "I daren't drop appointment",
+            "I daren't remove appointment",
+            "Please confirm you daren't cancel my appointment",
+            "I daren't try to cancel my appointment",
+            "I daren't have them cancel my appointment",
+            "I daren't ask them to cancel my appointment",
+            "I daren't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_maynt_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I mayn't cancel my appointment",
+            "I mayn\u2019t cancel my appointment",
+            "I maynt cancel my appointment",
+            "You mayn't cancel my appointment",
+            "He mayn't cancel my appointment",
+            "I may not cancel my appointment",
+            "I may not to cancel my appointment",
+            "I mayn't reschedule my appointment",
+            "I mayn't schedule an appointment",
+            "I mayn't book a new appointment",
+            "I mayn't call off my appointment",
+            "I mayn't drop appointment",
+            "I mayn't remove appointment",
+            "Please confirm you mayn't cancel my appointment",
+            "I mayn't try to cancel my appointment",
+            "I mayn't have them cancel my appointment",
+            "I mayn't ask them to cancel my appointment",
+            "I mayn't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_mightnt_modals_do_not_route_to_action(self) -> None:
+        examples = (
+            "I mightn't cancel my appointment",
+            "I mightn\u2019t cancel my appointment",
+            "I mightnt cancel my appointment",
+            "You mightn't cancel my appointment",
+            "He mightn't cancel my appointment",
+            "I might not cancel my appointment",
+            "I might not to cancel my appointment",
+            "I mightn't reschedule my appointment",
+            "I mightn't schedule an appointment",
+            "I mightn't book a new appointment",
+            "I mightn't call off my appointment",
+            "I mightn't drop appointment",
+            "I mightn't remove appointment",
+            "Please confirm you mightn't cancel my appointment",
+            "I mightn't try to cancel my appointment",
+            "I mightn't have them cancel my appointment",
+            "I mightn't ask them to cancel my appointment",
+            "I mightn't go ahead and cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_speech_act_refuse_decline_does_not_route_to_action(self) -> None:
+        examples = (
+            "I refuse to cancel my appointment",
+            "I decline to cancel my appointment",
+            "We refuse to cancel my appointment",
+            "He refuses to cancel my appointment",
+            "She declined to cancel my appointment",
+            "They are refusing to cancel my appointment",
+            "They are declining to reschedule my appointment",
+            "I refused to reschedule my appointment",
+            "I refuse to schedule an appointment",
+            "I refuse to book a new appointment",
+            "I decline to call off my appointment",
+            "I refuse to drop appointment",
+            "I refuse to remove appointment",
+            "Please confirm you refuse to cancel my appointment",
+            "I refuse to try to cancel my appointment",
+            "I refuse to try and cancel my appointment",
+            "I refuse to have them cancel my appointment",
+            "I refuse to ask them to cancel my appointment",
+            "I refuse to go ahead and cancel my appointment",
+            "I decline to let them cancel my appointment",
+            "I refuse to really cancel my appointment",
+            "I refuse to cancel or reschedule my appointment",
+            "I decline to reschedule or book a new appointment",
+            "I refuse to cancel my appointment or reschedule it",
+            "I refuse to schedule, cancel, or reschedule anything",
+            "I refuse to cancel because I can't make it",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_speech_act_noun_object_refuse_decline_does_not_route_to_action(self) -> None:
+        examples = (
+            "I refuse the cancellation",
+            "I decline the cancellation",
+            "I decline the cancellation of my appointment",
+            "I refuse a cancellation",
+            "I decline cancellation",
+            "I refuse this cancellation",
+            "I decline that cancellation",
+            "I refuse any cancellation",
+            "I refuse another cancellation",
+            "I refuse my cancellation",
+            "I refuse their cancellation",
+            "We declined a cancellation",
+            "She declines the cancellation",
+            "He refused the cancellation",
+            "They are refusing the cancellation",
+            "They are declining the cancellation",
+            "Please decline the cancellation",
+            "Please refuse the cancellation",
+            "Please confirm you refuse the cancellation",
+            "I refuse the reschedule",
+            "She refused the reschedule",
+            "I decline the rebook",
+            "I refuse the postpone",
+            "I refuse the new appointment",
+            "I would refuse the cancellation",
+            "I'm going to refuse the cancellation",
+            "I want to decline the cancellation",
+            "I want them to refuse the cancellation",
+            "Please do not forget to decline the cancellation",
+            "I refuse the cancellation or reschedule",
+            "I refuse the cancellation or the reschedule",
+            "I decline the cancellation of my appointment or reschedule it",
+            "I refuse the cancellation, the reschedule, or the rebook",
+            "I refuse cancellation, reschedule, or rebook",
+            "I refuse the cancellation or reschedule my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_speech_act_noun_object_still_routes_to_action(self) -> None:
+        examples = (
+            ("Don't decline the cancellation", "cancel"),
+            ("Please do not refuse the cancellation", "cancel"),
+            ("Don't you refuse the cancellation", "cancel"),
+            ("Please don't ever refuse the cancellation", "cancel"),
+            (
+                "Please don't under any circumstances refuse the cancellation",
+                "cancel",
+            ),
+            ("Never refuse the cancellation", "cancel"),
+            ("I cannot refuse the cancellation", "cancel"),
+            ("I can't decline the cancellation", "cancel"),
+            ("I can not refuse the cancellation", "cancel"),
+            ("I'm not able to refuse the cancellation", "cancel"),
+            ("I am unable to decline the cancellation", "cancel"),
+            ("I don't think I should refuse the cancellation", "cancel"),
+            ("Please don't ask the office to refuse the cancellation", "cancel"),
+            ("Please do not allow the office to refuse the cancellation", "cancel"),
+            ("I won't refuse the cancellation", "cancel"),
+            ("I didn't refuse the cancellation", "cancel"),
+            ("I would not refuse the cancellation", "cancel"),
+            ("I must not refuse the cancellation", "cancel"),
+            ("I'm not going to refuse the cancellation", "cancel"),
+            ("Don't refuse the cancellation or reschedule", "reschedule"),
+            ("I refuse the cancellation, please reschedule it", "reschedule"),
+            ("I decline the cancellation, please reschedule", "reschedule"),
+            ("I refuse, please cancel my appointment", "cancel"),
+            ("I refuse the wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I refuse the cancellation", "cancel"),
+            ("Please reschedule, I decline the cancellation", "reschedule"),
+            ("Please process my appointment cancellation", "cancel"),
+            ("I need cancellation of my appointment", "cancel"),
+            ("Please go ahead with the cancellation", "cancel"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("I refuse to cancel my appointment", "no_action"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("I mightn't cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_under_no_circumstances_does_not_route_to_action(self) -> None:
+        examples = (
+            "Under no circumstances cancel my appointment",
+            "Under no circumstances, cancel my appointment",
+            "UNDER NO CIRCUMSTANCES CANCEL",
+            "Under no circumstances\u2014cancel my appointment",
+            "Under no circumstances ever cancel my appointment",
+            "Under no circumstances, ever, cancel my appointment",
+            "Under no circumstances reschedule my appointment",
+            "Under no circumstances schedule an appointment",
+            "Under no circumstances call off my appointment",
+            "Under no circumstances book a new appointment",
+            "Under no circumstances drop appointment tomorrow",
+            "Under no circumstances the cancellation",
+            "Under no circumstances a cancellation",
+            "Under no circumstances want to cancel my appointment",
+            "Under no circumstances ask them to cancel my appointment",
+            "Under no circumstances go ahead and cancel my appointment",
+            "Under no circumstances should you cancel my appointment",
+            "Under no circumstances will I cancel my appointment",
+            "Under no circumstances do I want to cancel my appointment",
+            "Under no circumstances am I going to cancel my appointment",
+            "Under no circumstances would I reschedule my appointment",
+            "Under no circumstances must the office cancel my appointment",
+            "Under no circumstances cancel or reschedule my appointment",
+            "Under no circumstances cancel, reschedule, or book",
+            "Under no circumstances the cancellation or the reschedule",
+            "Cancel under no circumstances",
+            "I will cancel under no circumstances",
+            "I will cancel my appointment under no circumstances",
+            "I will cancel, under no circumstances",
+            "I will cancel or reschedule under no circumstances",
+            "I will cancel, reschedule, or book under no circumstances",
+            "Please ask the office to cancel, under no circumstances",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_under_no_circumstances_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("Under no circumstances, please cancel my appointment", "cancel"),
+            ("Under no circumstances wait, please cancel my appointment", "cancel"),
+            ("Under no circumstances Tuesday, please cancel", "cancel"),
+            ("Please cancel, under no circumstances wait", "cancel"),
+            ("Please cancel. Under no circumstances reschedule", "cancel"),
+            ("Please cancel, under no circumstances reschedule", "cancel"),
+            ("Please cancel, under no circumstances, reschedule", "cancel"),
+            ("Under no circumstances cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment under no circumstances, please reschedule",
+                "reschedule",
+            ),
+            ("Please don't go, and cancel my appointment", "cancel"),
+            ("Please don't come, and cancel my appointment", "cancel"),
+            ("Under no circumstances go, and cancel my appointment", "cancel"),
+            ("Please don't go and wait, please cancel", "cancel"),
+            ("Don't go and cancel, please reschedule", "reschedule"),
+            ("Under no circumstances I refuse to cancel", "no_action"),
+            ("Under no circumstances, I refuse to cancel", "no_action"),
+            ("Under no circumstances refuse to cancel", "no_action"),
+            ("Under no circumstances refuse the cancellation", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Don't refuse the cancellation", "cancel"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("Under no circumstances forget to cancel my appointment", "cancel"),
+            ("Under no circumstances do not forget to cancel", "cancel"),
+            ("Under no circumstances should you not forget to cancel", "cancel"),
+            ("I'm not going to refuse the cancellation", "cancel"),
+            ("Please don't under any circumstances cancel my appointment", "no_action"),
+            (
+                "Please do not ask the office, under no circumstances, to cancel my appointment",
+                "no_action",
+            ),
+            ("I might cancel my appointment", "cancel"),
+            ("No, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says under no circumstances",
+                "cancel",
+            ),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_related_prohibitive_idioms_do_not_route_to_action(self) -> None:
+        examples = (
+            "Under no circumstance cancel my appointment",
+            "Under no circumstance, cancel my appointment",
+            "UNDER NO CIRCUMSTANCE CANCEL",
+            "Under no circumstance\u2014cancel my appointment",
+            "Under no circumstance ever cancel my appointment",
+            "Under no circumstance, ever, cancel my appointment",
+            "Under no circumstance reschedule my appointment",
+            "Under no circumstance schedule an appointment",
+            "Under no circumstance call off my appointment",
+            "Under no circumstance book a new appointment",
+            "Under no circumstance drop appointment tomorrow",
+            "Under no circumstance the cancellation",
+            "Under no circumstance want to cancel my appointment",
+            "Under no circumstance ask them to cancel my appointment",
+            "Under no circumstance go ahead and cancel my appointment",
+            "Under no circumstance go and cancel my appointment",
+            "Under no circumstance should you cancel my appointment",
+            "Under no circumstance will I cancel my appointment",
+            "Under no circumstance do I want to cancel my appointment",
+            "Under no circumstance am I going to cancel my appointment",
+            "Under no circumstance cancel or reschedule my appointment",
+            "Under no circumstance cancel, reschedule, or book",
+            "Cancel under no circumstance",
+            "I will cancel under no circumstance",
+            "I will cancel my appointment under no circumstance",
+            "I will cancel or reschedule under no circumstance",
+            "In no circumstances cancel my appointment",
+            "In no circumstances, cancel my appointment",
+            "In no circumstance cancel my appointment",
+            "In no circumstances ever cancel my appointment",
+            "In no circumstances reschedule my appointment",
+            "In no circumstances schedule an appointment",
+            "In no circumstances the cancellation",
+            "In no circumstances want to cancel my appointment",
+            "In no circumstances go and cancel my appointment",
+            "In no circumstances come and cancel my appointment",
+            "In no circumstances should you cancel my appointment",
+            "In no circumstances will I cancel my appointment",
+            "In no circumstances cancel or reschedule",
+            "Cancel in no circumstances",
+            "I will cancel in no circumstances",
+            "I will cancel my appointment in no circumstances",
+            "On no account cancel my appointment",
+            "On no account, cancel my appointment",
+            "ON NO ACCOUNT CANCEL",
+            "On no account\u2014cancel my appointment",
+            "On no account ever cancel my appointment",
+            "On no account reschedule my appointment",
+            "On no account schedule an appointment",
+            "On no account call off my appointment",
+            "On no account book a new appointment",
+            "On no account the cancellation",
+            "On no account want to cancel my appointment",
+            "On no account ask them to cancel my appointment",
+            "On no account go and cancel my appointment",
+            "On no account come and cancel my appointment",
+            "On no account should you cancel my appointment",
+            "On no account will I cancel my appointment",
+            "On no account do I want to cancel my appointment",
+            "On no account am I going to cancel my appointment",
+            "On no account cancel or reschedule my appointment",
+            "On no account cancel, reschedule, or book",
+            "Cancel on no account",
+            "I will cancel on no account",
+            "I will cancel my appointment on no account",
+            "I will cancel or reschedule on no account",
+            "Please don't under no circumstance cancel my appointment",
+            "Please don't, under no circumstance, cancel my appointment",
+            "Please don't under any circumstance cancel my appointment",
+            "Please do not in no circumstances cancel my appointment",
+            "Please don't on no account cancel my appointment",
+            "Please don't, on no account, cancel my appointment",
+            "Never on no account cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_related_prohibitive_idioms_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("Under no circumstance, please cancel my appointment", "cancel"),
+            ("Under no circumstance wait, please cancel my appointment", "cancel"),
+            ("In no circumstances, please cancel my appointment", "cancel"),
+            ("In no circumstances wait, please cancel", "cancel"),
+            ("On no account, please cancel my appointment", "cancel"),
+            ("On no account wait, please cancel my appointment", "cancel"),
+            ("On no account Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no account wait", "cancel"),
+            ("Please cancel. On no account reschedule", "cancel"),
+            ("Please cancel, on no account reschedule", "cancel"),
+            ("Please cancel, under no circumstance reschedule", "cancel"),
+            ("Please cancel, in no circumstances reschedule", "cancel"),
+            ("On no account cancel, please reschedule", "reschedule"),
+            ("Under no circumstance cancel, please reschedule", "reschedule"),
+            ("In no circumstances cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no account, please reschedule",
+                "reschedule",
+            ),
+            ("On no account go, and cancel my appointment", "cancel"),
+            ("Under no circumstance go, and cancel my appointment", "cancel"),
+            ("On no account go and wait, please cancel", "cancel"),
+            ("On no account I refuse to cancel", "no_action"),
+            ("Under no circumstance I refuse to cancel", "no_action"),
+            ("In no circumstances I refuse to cancel", "no_action"),
+            ("On no account refuse to cancel", "no_action"),
+            ("On no account refuse the cancellation", "no_action"),
+            ("On no account forget to cancel my appointment", "cancel"),
+            ("Under no circumstance forget to cancel my appointment", "cancel"),
+            ("On no account do not forget to cancel", "cancel"),
+            ("Under no circumstance do not forget to cancel", "cancel"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("Under any circumstance cancel my appointment", "cancel"),
+            ("Under any circumstances cancel my appointment", "cancel"),
+            ("In any circumstances cancel my appointment", "cancel"),
+            ("On no account can I cancel my appointment", "cancel"),
+            ("Under no circumstances can I cancel my appointment", "cancel"),
+            ("There are no circumstances in which I want to cancel", "no_action"),
+            ("I have no account, please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no account",
+                "cancel",
+            ),
+            ("Please go and cancel my appointment", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Under no circumstances cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_no_circumstances_in_which_does_not_route_to_action(self) -> None:
+        examples = (
+            "There are no circumstances in which I want to cancel my appointment",
+            "There are no circumstances in which I want to cancel",
+            "THERE ARE NO CIRCUMSTANCES IN WHICH I WANT TO CANCEL",
+            "There are no circumstances in which, I want to cancel",
+            "There is no circumstance in which I want to cancel",
+            "There is no circumstance in which I would cancel",
+            "There are no circumstances under which I will cancel",
+            "There are no circumstances where I want to cancel",
+            "There's no circumstance in which I want to cancel",
+            "There're no circumstances in which I want to cancel",
+            "There aren't any circumstances in which I want to cancel",
+            "There isn't any circumstance in which I want to cancel",
+            "There are not any circumstances in which I want to cancel",
+            "No circumstances in which I want to cancel",
+            "No circumstance under which I would cancel",
+            "There are no circumstances in which to cancel",
+            "There are no circumstances in which I want to reschedule",
+            "There are no circumstances in which I want to schedule an appointment",
+            "There are no circumstances in which I want to call off my appointment",
+            "There are no circumstances in which I want to book a new appointment",
+            "There are no circumstances in which I want the cancellation",
+            "There are no circumstances in which the cancellation",
+            "There are no circumstances in which I ask them to cancel",
+            "There are no circumstances in which I go and cancel",
+            "There are no circumstances in which I want to go and cancel",
+            "There are no circumstances in which I come and cancel",
+            "There were no circumstances in which I wanted to cancel",
+            "There are no circumstances in which I am going to cancel",
+            "There are no circumstances in which I'd cancel",
+            "There are no circumstances in which I'll cancel",
+            "There are no circumstances in which I'm going to cancel",
+            "There are no circumstances in which I should cancel",
+            "There are no circumstances in which, ever, I want to cancel",
+            "There are no circumstances in which ever I want to cancel",
+            "There are no circumstances in which I ever want to cancel",
+            "There are no circumstances in which I want to cancel or reschedule",
+            "There are no circumstances in which I want to cancel, reschedule, or book",
+            "There are no circumstances in which I refuse to cancel",
+            "There are no circumstances\u2014in which I want to cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_no_circumstances_in_which_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("There are no circumstances, please cancel my appointment", "cancel"),
+            ("There are no circumstances in which I want to wait, please cancel", "cancel"),
+            ("There are circumstances in which I want to cancel", "cancel"),
+            ("There is a circumstance in which I want to cancel", "cancel"),
+            ("Under any circumstances cancel my appointment", "cancel"),
+            ("In any circumstances cancel my appointment", "cancel"),
+            (
+                "There are no circumstances in which I want to cancel, please reschedule",
+                "reschedule",
+            ),
+            (
+                "Please cancel, there are no circumstances in which I want to reschedule",
+                "cancel",
+            ),
+            (
+                "Please cancel. There are no circumstances in which I want to reschedule",
+                "cancel",
+            ),
+            ("There are no circumstances in which I can cancel", "cancel"),
+            ("There are no circumstances in which I could cancel", "cancel"),
+            ("Under no circumstances can I cancel my appointment", "cancel"),
+            ("On no account can I cancel my appointment", "cancel"),
+            ("There are no circumstances in which I do not forget to cancel", "cancel"),
+            ("There are no circumstances in which do not forget to cancel", "cancel"),
+            ("On no account, please cancel my appointment", "cancel"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("There are no circumstances in which I refuse to cancel", "no_action"),
+            ("Under no circumstances cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_by_no_means_does_not_route_to_action(self) -> None:
+        examples = (
+            "By no means cancel my appointment",
+            "By no means, cancel my appointment",
+            "BY NO MEANS CANCEL",
+            "By no means\u2014cancel my appointment",
+            "By no means ever cancel my appointment",
+            "By no means, ever, cancel my appointment",
+            "By no means reschedule my appointment",
+            "By no means schedule an appointment",
+            "By no means call off my appointment",
+            "By no means book a new appointment",
+            "By no means the cancellation",
+            "By no means a cancellation",
+            "By no means want to cancel my appointment",
+            "By no means ask them to cancel my appointment",
+            "By no means have them cancel my appointment",
+            "By no means let them cancel my appointment",
+            "By no means go ahead and cancel my appointment",
+            "By no means go and cancel my appointment",
+            "By no means come and cancel my appointment",
+            "By no means should you cancel my appointment",
+            "By no means will I cancel my appointment",
+            "By no means do I want to cancel my appointment",
+            "By no means am I going to cancel my appointment",
+            "By no means am I to cancel my appointment",
+            "By no means is this a cancellation",
+            "By no means cancel or reschedule my appointment",
+            "By no means cancel, reschedule, or book",
+            "By no means the cancellation or the reschedule",
+            "Cancel by no means",
+            "I will cancel by no means",
+            "I will cancel my appointment by no means",
+            "I will cancel or reschedule by no means",
+            "I will by no means cancel my appointment",
+            "You must by no means cancel my appointment",
+            "Please don't by no means cancel my appointment",
+            "Please don't, by no means, cancel my appointment",
+            "Please do not by no means cancel my appointment",
+            "Never by no means cancel my appointment",
+            "Please don't by no means go and cancel my appointment",
+            "By no means I refuse to cancel",
+            "Please ask the office to cancel, by no means",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_by_no_means_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("By no means, please cancel my appointment", "cancel"),
+            ("By no means please cancel my appointment", "cancel"),
+            ("By no means wait, please cancel my appointment", "cancel"),
+            ("By no means Tuesday, please cancel", "cancel"),
+            ("Please cancel, by no means wait", "cancel"),
+            ("Please cancel. By no means reschedule", "cancel"),
+            ("Please cancel, by no means reschedule", "cancel"),
+            ("By no means cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment by no means, please reschedule",
+                "reschedule",
+            ),
+            ("By no means go, and cancel my appointment", "cancel"),
+            ("By no means go and wait, please cancel", "cancel"),
+            ("By no means I will cancel my appointment", "cancel"),
+            ("By no means, I will cancel my appointment", "cancel"),
+            ("By no means refuse to cancel", "no_action"),
+            ("By no means refuse the cancellation", "no_action"),
+            ("By no means forget to cancel my appointment", "cancel"),
+            ("By no means do not forget to cancel", "cancel"),
+            ("By no means can I cancel my appointment", "cancel"),
+            ("By all means cancel my appointment", "cancel"),
+            ("By all means, please cancel my appointment", "cancel"),
+            ("By any means cancel my appointment", "cancel"),
+            ("I have no means to cancel my appointment", "cancel"),
+            ("I have no means, please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says by no means",
+                "cancel",
+            ),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_way_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no way cancel my appointment",
+            "In no way, cancel my appointment",
+            "IN NO WAY CANCEL",
+            "In no way\u2014cancel my appointment",
+            "In no way ever cancel my appointment",
+            "In no way, ever, cancel my appointment",
+            "In no way reschedule my appointment",
+            "In no way schedule an appointment",
+            "In no way call off my appointment",
+            "In no way book a new appointment",
+            "In no way the cancellation",
+            "In no way a cancellation",
+            "In no way want to cancel my appointment",
+            "In no way ask them to cancel my appointment",
+            "In no way have them cancel my appointment",
+            "In no way let them cancel my appointment",
+            "In no way go ahead and cancel my appointment",
+            "In no way go and cancel my appointment",
+            "In no way come and cancel my appointment",
+            "In no way should you cancel my appointment",
+            "In no way will I cancel my appointment",
+            "In no way do I want to cancel my appointment",
+            "In no way am I going to cancel my appointment",
+            "In no way am I to cancel my appointment",
+            "In no way is this a cancellation",
+            "In no way cancel or reschedule my appointment",
+            "In no way cancel, reschedule, or book",
+            "In no way the cancellation or the reschedule",
+            "Cancel in no way",
+            "I will cancel in no way",
+            "I will cancel my appointment in no way",
+            "I will cancel or reschedule in no way",
+            "I will in no way cancel my appointment",
+            "You must in no way cancel my appointment",
+            "Please don't in no way cancel my appointment",
+            "Please don't, in no way, cancel my appointment",
+            "Please do not in no way cancel my appointment",
+            "Never in no way cancel my appointment",
+            "Please don't in no way go and cancel my appointment",
+            "In no way I refuse to cancel",
+            "Please ask the office to cancel, in no way",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_way_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no way, please cancel my appointment", "cancel"),
+            ("In no way please cancel my appointment", "cancel"),
+            ("In no way wait, please cancel my appointment", "cancel"),
+            ("In no way Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no way wait", "cancel"),
+            ("Please cancel. In no way reschedule", "cancel"),
+            ("Please cancel, in no way reschedule", "cancel"),
+            ("In no way cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no way, please reschedule",
+                "reschedule",
+            ),
+            ("In no way go, and cancel my appointment", "cancel"),
+            ("In no way go and wait, please cancel", "cancel"),
+            ("In no way I will cancel my appointment", "cancel"),
+            ("In no way, I will cancel my appointment", "cancel"),
+            ("In no way refuse to cancel", "no_action"),
+            ("In no way refuse the cancellation", "no_action"),
+            ("In no way forget to cancel my appointment", "cancel"),
+            ("In no way do not forget to cancel", "cancel"),
+            ("In no way can I cancel my appointment", "cancel"),
+            ("In any way cancel my appointment", "cancel"),
+            ("In some way, please cancel my appointment", "cancel"),
+            ("There's no way I can cancel my appointment", "cancel"),
+            ("There is no way to cancel my appointment", "cancel"),
+            ("I have no way to cancel my appointment", "cancel"),
+            ("No way cancel my appointment", "cancel"),
+            ("No way, please cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says in no way",
+                "cancel",
+            ),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_under_or_on_no_condition_does_not_route_to_action(self) -> None:
+        examples = (
+            "Under no condition cancel my appointment",
+            "Under no conditions cancel my appointment",
+            "On no condition cancel my appointment",
+            "On no conditions cancel my appointment",
+            "Under no condition, cancel my appointment",
+            "On no condition, cancel my appointment",
+            "UNDER NO CONDITION CANCEL",
+            "Under no condition\u2014cancel my appointment",
+            "Under no condition ever cancel my appointment",
+            "On no condition, ever, cancel my appointment",
+            "Under no condition reschedule my appointment",
+            "On no condition schedule an appointment",
+            "Under no condition call off my appointment",
+            "On no condition book a new appointment",
+            "Under no condition the cancellation",
+            "On no condition a cancellation",
+            "Under no condition want to cancel my appointment",
+            "On no condition ask them to cancel my appointment",
+            "Under no condition have them cancel my appointment",
+            "On no condition let them cancel my appointment",
+            "Under no condition go ahead and cancel my appointment",
+            "On no condition go and cancel my appointment",
+            "Under no condition come and cancel my appointment",
+            "Under no condition should you cancel my appointment",
+            "On no condition will I cancel my appointment",
+            "Under no condition do I want to cancel my appointment",
+            "On no condition am I going to cancel my appointment",
+            "Under no condition am I to cancel my appointment",
+            "On no condition is this a cancellation",
+            "Under no condition cancel or reschedule my appointment",
+            "On no condition cancel, reschedule, or book",
+            "Under no conditions should you cancel or reschedule",
+            "On no condition the cancellation or the reschedule",
+            "Cancel under no condition",
+            "I will cancel on no condition",
+            "I will cancel my appointment under no conditions",
+            "I will cancel or reschedule on no condition",
+            "I will under no condition cancel my appointment",
+            "You must on no condition cancel my appointment",
+            "Please don't under no condition cancel my appointment",
+            "Please don't, on no condition, cancel my appointment",
+            "Please do not under no conditions cancel my appointment",
+            "Never on no condition cancel my appointment",
+            "Please don't under no condition go and cancel my appointment",
+            "Under no condition I refuse to cancel",
+            "Please ask the office to cancel, on no condition",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_under_or_on_no_condition_mixed_messages_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("Under no condition, please cancel my appointment", "cancel"),
+            ("On no condition please cancel my appointment", "cancel"),
+            ("Under no condition wait, please cancel my appointment", "cancel"),
+            ("On no condition Tuesday, please cancel", "cancel"),
+            ("Please cancel, under no condition wait", "cancel"),
+            ("Please cancel. On no condition reschedule", "cancel"),
+            ("Please cancel, under no condition reschedule", "cancel"),
+            ("Under no condition cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no condition, please reschedule",
+                "reschedule",
+            ),
+            ("Under no condition go, and cancel my appointment", "cancel"),
+            ("On no condition go and wait, please cancel", "cancel"),
+            ("Under no condition I will cancel my appointment", "cancel"),
+            ("On no condition, I will cancel my appointment", "cancel"),
+            ("Under no condition refuse to cancel", "no_action"),
+            ("On no condition refuse the cancellation", "no_action"),
+            ("Under no condition forget to cancel my appointment", "cancel"),
+            ("On no condition do not forget to cancel", "cancel"),
+            ("Under no condition can I cancel my appointment", "cancel"),
+            ("Under any condition cancel my appointment", "cancel"),
+            ("Under any conditions cancel my appointment", "cancel"),
+            ("On any condition cancel my appointment", "cancel"),
+            ("In no condition cancel my appointment", "cancel"),
+            ("I'm in no condition to cancel my appointment", "cancel"),
+            ("I am in no condition to cancel my appointment", "cancel"),
+            ("I have no condition, please cancel my appointment", "cancel"),
+            ("No condition cancel my appointment", "cancel"),
+            ("Under the condition, please cancel my appointment", "cancel"),
+            ("On the condition you cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says under no condition",
+                "cancel",
+            ),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_event_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no event cancel my appointment",
+            "In no event, cancel my appointment",
+            "IN NO EVENT CANCEL",
+            "In no event\u2014cancel my appointment",
+            "In no event ever cancel my appointment",
+            "In no event, ever, cancel my appointment",
+            "In no event reschedule my appointment",
+            "In no event schedule an appointment",
+            "In no event call off my appointment",
+            "In no event book a new appointment",
+            "In no event the cancellation",
+            "In no event a cancellation",
+            "In no event want to cancel my appointment",
+            "In no event ask them to cancel my appointment",
+            "In no event have them cancel my appointment",
+            "In no event let them cancel my appointment",
+            "In no event go ahead and cancel my appointment",
+            "In no event go and cancel my appointment",
+            "In no event come and cancel my appointment",
+            "In no event should you cancel my appointment",
+            "In no event will I cancel my appointment",
+            "In no event do I want to cancel my appointment",
+            "In no event am I going to cancel my appointment",
+            "In no event am I to cancel my appointment",
+            "In no event is this a cancellation",
+            "In no event cancel or reschedule my appointment",
+            "In no event cancel, reschedule, or book",
+            "In no event should you cancel or reschedule",
+            "In no event the cancellation or the reschedule",
+            "Cancel in no event",
+            "I will cancel in no event",
+            "I will cancel my appointment in no event",
+            "I will cancel or reschedule in no event",
+            "I will in no event cancel my appointment",
+            "You must in no event cancel my appointment",
+            "Please don't in no event cancel my appointment",
+            "Please don't, in no event, cancel my appointment",
+            "Please do not in no event cancel my appointment",
+            "Never in no event cancel my appointment",
+            "Please don't in no event go and cancel my appointment",
+            "In no event I refuse to cancel",
+            "Please ask the office to cancel, in no event",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_event_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no event, please cancel my appointment", "cancel"),
+            ("In no event please cancel my appointment", "cancel"),
+            ("In no event wait, please cancel my appointment", "cancel"),
+            ("In no event Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no event wait", "cancel"),
+            ("Please cancel. In no event reschedule", "cancel"),
+            ("Please cancel, in no event reschedule", "cancel"),
+            ("In no event cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no event, please reschedule",
+                "reschedule",
+            ),
+            ("In no event go, and cancel my appointment", "cancel"),
+            ("In no event go and wait, please cancel", "cancel"),
+            ("In no event I will cancel my appointment", "cancel"),
+            ("In no event, I will cancel my appointment", "cancel"),
+            ("In no event refuse to cancel", "no_action"),
+            ("In no event refuse the cancellation", "no_action"),
+            ("In no event forget to cancel my appointment", "cancel"),
+            ("In no event do not forget to cancel", "cancel"),
+            ("In no event can I cancel my appointment", "cancel"),
+            ("In any event cancel my appointment", "cancel"),
+            ("Please don't in any event cancel my appointment", "cancel"),
+            ("In the event, please cancel my appointment", "cancel"),
+            ("In the event you cancel my appointment", "cancel"),
+            ("I have no event, please cancel my appointment", "cancel"),
+            ("No event cancel my appointment", "cancel"),
+            ("In no events cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says in no event",
+                "cancel",
+            ),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_case_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no case cancel my appointment",
+            "In no case, cancel my appointment",
+            "IN NO CASE CANCEL",
+            "In no case\u2014cancel my appointment",
+            "In no case ever cancel my appointment",
+            "In no case, ever, cancel my appointment",
+            "In no case reschedule my appointment",
+            "In no case schedule an appointment",
+            "In no case call off my appointment",
+            "In no case book a new appointment",
+            "In no case the cancellation",
+            "In no case a cancellation",
+            "In no case want to cancel my appointment",
+            "In no case ask them to cancel my appointment",
+            "In no case have them cancel my appointment",
+            "In no case let them cancel my appointment",
+            "In no case go ahead and cancel my appointment",
+            "In no case go and cancel my appointment",
+            "In no case come and cancel my appointment",
+            "In no case should you cancel my appointment",
+            "In no case will I cancel my appointment",
+            "In no case do I want to cancel my appointment",
+            "In no case am I going to cancel my appointment",
+            "In no case am I to cancel my appointment",
+            "In no case is this a cancellation",
+            "In no case cancel or reschedule my appointment",
+            "In no case cancel, reschedule, or book",
+            "In no case should you cancel or reschedule",
+            "In no case the cancellation or the reschedule",
+            "Cancel in no case",
+            "I will cancel in no case",
+            "I will cancel my appointment in no case",
+            "I will cancel or reschedule in no case",
+            "I will in no case cancel my appointment",
+            "You must in no case cancel my appointment",
+            "Please don't in no case cancel my appointment",
+            "Please don't, in no case, cancel my appointment",
+            "Please do not in no case cancel my appointment",
+            "Never in no case cancel my appointment",
+            "Please don't in no case go and cancel my appointment",
+            "In no case I refuse to cancel",
+            "Please ask the office to cancel, in no case",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_case_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no case, please cancel my appointment", "cancel"),
+            ("In no case please cancel my appointment", "cancel"),
+            ("In no case wait, please cancel my appointment", "cancel"),
+            ("In no case Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no case wait", "cancel"),
+            ("Please cancel. In no case reschedule", "cancel"),
+            ("Please cancel, in no case reschedule", "cancel"),
+            ("In no case cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no case, please reschedule",
+                "reschedule",
+            ),
+            ("In no case go, and cancel my appointment", "cancel"),
+            ("In no case go and wait, please cancel", "cancel"),
+            ("In no case I will cancel my appointment", "cancel"),
+            ("In no case, I will cancel my appointment", "cancel"),
+            ("In no case refuse to cancel", "no_action"),
+            ("In no case refuse the cancellation", "no_action"),
+            ("In no case forget to cancel my appointment", "cancel"),
+            ("In no case do not forget to cancel", "cancel"),
+            ("In no case can I cancel my appointment", "cancel"),
+            ("In any case cancel my appointment", "cancel"),
+            ("Please don't in any case cancel my appointment", "cancel"),
+            ("In the case, please cancel my appointment", "cancel"),
+            ("In the case you cancel my appointment", "cancel"),
+            ("Just in case, please cancel my appointment", "cancel"),
+            ("Please cancel, just in case", "cancel"),
+            ("In case of emergency, please cancel my appointment", "cancel"),
+            ("I have no case, please cancel my appointment", "cancel"),
+            ("No case cancel my appointment", "cancel"),
+            ("In no cases cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says in no case",
+                "cancel",
+            ),
+            ("In no event cancel my appointment", "no_action"),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_at_no_time_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no time cancel my appointment",
+            "At no time, cancel my appointment",
+            "AT NO TIME CANCEL",
+            "At no time\u2014cancel my appointment",
+            "At no time ever cancel my appointment",
+            "At no time, ever, cancel my appointment",
+            "At no time reschedule my appointment",
+            "At no time schedule an appointment",
+            "At no time call off my appointment",
+            "At no time book a new appointment",
+            "At no time the cancellation",
+            "At no time a cancellation",
+            "At no time want to cancel my appointment",
+            "At no time ask them to cancel my appointment",
+            "At no time have them cancel my appointment",
+            "At no time let them cancel my appointment",
+            "At no time go ahead and cancel my appointment",
+            "At no time go and cancel my appointment",
+            "At no time come and cancel my appointment",
+            "At no time should you cancel my appointment",
+            "At no time will I cancel my appointment",
+            "At no time do I want to cancel my appointment",
+            "At no time am I going to cancel my appointment",
+            "At no time am I to cancel my appointment",
+            "At no time is this a cancellation",
+            "At no time cancel or reschedule my appointment",
+            "At no time cancel, reschedule, or book",
+            "At no time should you cancel or reschedule",
+            "At no time the cancellation or the reschedule",
+            "Cancel at no time",
+            "I will cancel at no time",
+            "I will cancel my appointment at no time",
+            "I will cancel or reschedule at no time",
+            "I will at no time cancel my appointment",
+            "You must at no time cancel my appointment",
+            "Please don't at no time cancel my appointment",
+            "Please don't, at no time, cancel my appointment",
+            "Please do not at no time cancel my appointment",
+            "Never at no time cancel my appointment",
+            "Please don't at no time go and cancel my appointment",
+            "At no time I refuse to cancel",
+            "Please ask the office to cancel, at no time",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_time_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no time, please cancel my appointment", "cancel"),
+            ("At no time please cancel my appointment", "cancel"),
+            ("At no time wait, please cancel my appointment", "cancel"),
+            ("At no time Tuesday, please cancel", "cancel"),
+            ("Please cancel, at no time wait", "cancel"),
+            ("Please cancel. At no time reschedule", "cancel"),
+            ("Please cancel, at no time reschedule", "cancel"),
+            ("At no time cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no time, please reschedule",
+                "reschedule",
+            ),
+            ("At no time go, and cancel my appointment", "cancel"),
+            ("At no time go and wait, please cancel", "cancel"),
+            ("At no time I will cancel my appointment", "cancel"),
+            ("At no time, I will cancel my appointment", "cancel"),
+            ("At no time refuse to cancel", "no_action"),
+            ("At no time refuse the cancellation", "no_action"),
+            ("At no time forget to cancel my appointment", "cancel"),
+            ("At no time do not forget to cancel", "cancel"),
+            ("At no time can I cancel my appointment", "cancel"),
+            ("At any time cancel my appointment", "cancel"),
+            ("Please don't at any time cancel my appointment", "cancel"),
+            ("At the time, please cancel my appointment", "cancel"),
+            ("At this time, please cancel my appointment", "cancel"),
+            ("At one time cancel my appointment", "cancel"),
+            ("In no time cancel my appointment", "cancel"),
+            ("In no time, please cancel my appointment", "cancel"),
+            ("Please cancel in no time", "cancel"),
+            ("I have no time, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment at no time tomorrow", "cancel"),
+            ("No time cancel my appointment", "cancel"),
+            ("At no times cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says at no time",
+                "cancel",
+            ),
+            ("In no case cancel my appointment", "no_action"),
+            ("In no event cancel my appointment", "no_action"),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_at_no_point_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no point cancel my appointment",
+            "At no point, cancel my appointment",
+            "AT NO POINT CANCEL",
+            "At no point\u2014cancel my appointment",
+            "At no point ever cancel my appointment",
+            "At no point, ever, cancel my appointment",
+            "At no point reschedule my appointment",
+            "At no point schedule an appointment",
+            "At no point call off my appointment",
+            "At no point book a new appointment",
+            "At no point the cancellation",
+            "At no point a cancellation",
+            "At no point want to cancel my appointment",
+            "At no point ask them to cancel my appointment",
+            "At no point have them cancel my appointment",
+            "At no point let them cancel my appointment",
+            "At no point go ahead and cancel my appointment",
+            "At no point go and cancel my appointment",
+            "At no point come and cancel my appointment",
+            "At no point should you cancel my appointment",
+            "At no point will I cancel my appointment",
+            "At no point do I want to cancel my appointment",
+            "At no point am I going to cancel my appointment",
+            "At no point am I to cancel my appointment",
+            "At no point is this a cancellation",
+            "At no point cancel or reschedule my appointment",
+            "At no point cancel, reschedule, or book",
+            "At no point should you cancel or reschedule",
+            "At no point the cancellation or the reschedule",
+            "Cancel at no point",
+            "I will cancel at no point",
+            "I will cancel my appointment at no point",
+            "I will cancel or reschedule at no point",
+            "I will at no point cancel my appointment",
+            "You must at no point cancel my appointment",
+            "Please don't at no point cancel my appointment",
+            "Please don't, at no point, cancel my appointment",
+            "Please do not at no point cancel my appointment",
+            "Never at no point cancel my appointment",
+            "Please don't at no point go and cancel my appointment",
+            "At no point I refuse to cancel",
+            "Please ask the office to cancel, at no point",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_point_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no point, please cancel my appointment", "cancel"),
+            ("At no point please cancel my appointment", "cancel"),
+            ("At no point wait, please cancel my appointment", "cancel"),
+            ("At no point Tuesday, please cancel", "cancel"),
+            ("Please cancel, at no point wait", "cancel"),
+            ("Please cancel. At no point reschedule", "cancel"),
+            ("Please cancel, at no point reschedule", "cancel"),
+            ("At no point cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no point, please reschedule",
+                "reschedule",
+            ),
+            ("At no point go, and cancel my appointment", "cancel"),
+            ("At no point go and wait, please cancel", "cancel"),
+            ("At no point I will cancel my appointment", "cancel"),
+            ("At no point, I will cancel my appointment", "cancel"),
+            ("At no point refuse to cancel", "no_action"),
+            ("At no point refuse the cancellation", "no_action"),
+            ("At no point forget to cancel my appointment", "cancel"),
+            ("At no point do not forget to cancel", "cancel"),
+            ("At no point can I cancel my appointment", "cancel"),
+            ("At any point cancel my appointment", "cancel"),
+            ("Please don't at any point cancel my appointment", "cancel"),
+            ("At the point, please cancel my appointment", "cancel"),
+            ("At this point, please cancel my appointment", "cancel"),
+            ("At that point, please cancel my appointment", "cancel"),
+            ("At one point cancel my appointment", "cancel"),
+            ("At some point, please cancel my appointment", "cancel"),
+            ("In no point cancel my appointment", "cancel"),
+            ("I have no point, please cancel my appointment", "cancel"),
+            ("There's no point, please cancel my appointment", "cancel"),
+            ("There is no point, please cancel", "cancel"),
+            ("What's the point, please cancel", "cancel"),
+            ("To the point, please cancel", "cancel"),
+            ("At no point in the process, please cancel", "cancel"),
+            ("Please cancel my appointment at no point tomorrow", "cancel"),
+            ("Please don't at no point, please cancel", "cancel"),
+            ("No point cancel my appointment", "cancel"),
+            ("At no points cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says at no point",
+                "cancel",
+            ),
+            ("At no time cancel my appointment", "no_action"),
+            ("In no case cancel my appointment", "no_action"),
+            ("In no event cancel my appointment", "no_action"),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_on_no_occasion_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no occasion cancel my appointment",
+            "On no occasion, cancel my appointment",
+            "ON NO OCCASION CANCEL",
+            "On no occasion\u2014cancel my appointment",
+            "On no occasion ever cancel my appointment",
+            "On no occasion, ever, cancel my appointment",
+            "On no occasion reschedule my appointment",
+            "On no occasion schedule an appointment",
+            "On no occasion call off my appointment",
+            "On no occasion book a new appointment",
+            "On no occasion the cancellation",
+            "On no occasion a cancellation",
+            "On no occasion want to cancel my appointment",
+            "On no occasion ask them to cancel my appointment",
+            "On no occasion have them cancel my appointment",
+            "On no occasion let them cancel my appointment",
+            "On no occasion go ahead and cancel my appointment",
+            "On no occasion go and cancel my appointment",
+            "On no occasion come and cancel my appointment",
+            "On no occasion should you cancel my appointment",
+            "On no occasion will I cancel my appointment",
+            "On no occasion do I want to cancel my appointment",
+            "On no occasion am I going to cancel my appointment",
+            "On no occasion am I to cancel my appointment",
+            "On no occasion is this a cancellation",
+            "On no occasion cancel or reschedule my appointment",
+            "On no occasion cancel, reschedule, or book",
+            "On no occasion should you cancel or reschedule",
+            "On no occasion the cancellation or the reschedule",
+            "Cancel on no occasion",
+            "I will cancel on no occasion",
+            "I will cancel my appointment on no occasion",
+            "I will cancel or reschedule on no occasion",
+            "I will on no occasion cancel my appointment",
+            "You must on no occasion cancel my appointment",
+            "Please don't on no occasion cancel my appointment",
+            "Please don't, on no occasion, cancel my appointment",
+            "Please do not on no occasion cancel my appointment",
+            "Never on no occasion cancel my appointment",
+            "Please don't on no occasion go and cancel my appointment",
+            "On no occasion I refuse to cancel",
+            "Please ask the office to cancel, on no occasion",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_occasion_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no occasion, please cancel my appointment", "cancel"),
+            ("On no occasion please cancel my appointment", "cancel"),
+            ("On no occasion wait, please cancel my appointment", "cancel"),
+            ("On no occasion Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no occasion wait", "cancel"),
+            ("Please cancel. On no occasion reschedule", "cancel"),
+            ("Please cancel, on no occasion reschedule", "cancel"),
+            ("On no occasion cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no occasion, please reschedule",
+                "reschedule",
+            ),
+            ("On no occasion go, and cancel my appointment", "cancel"),
+            ("On no occasion go and wait, please cancel", "cancel"),
+            ("On no occasion I will cancel my appointment", "cancel"),
+            ("On no occasion, I will cancel my appointment", "cancel"),
+            ("On no occasion refuse to cancel", "no_action"),
+            ("On no occasion refuse the cancellation", "no_action"),
+            ("On no occasion forget to cancel my appointment", "cancel"),
+            ("On no occasion do not forget to cancel", "cancel"),
+            ("On no occasion can I cancel my appointment", "cancel"),
+            ("On any occasion cancel my appointment", "cancel"),
+            ("Please don't on any occasion cancel my appointment", "cancel"),
+            ("On the occasion, please cancel my appointment", "cancel"),
+            ("On this occasion, please cancel my appointment", "cancel"),
+            ("On that occasion, please cancel my appointment", "cancel"),
+            ("On one occasion cancel my appointment", "cancel"),
+            ("On some occasion, please cancel my appointment", "cancel"),
+            ("In no occasion cancel my appointment", "cancel"),
+            ("At no occasion cancel my appointment", "cancel"),
+            ("Upon no occasion cancel my appointment", "cancel"),
+            ("I have no occasion, please cancel my appointment", "cancel"),
+            ("There's no occasion, please cancel my appointment", "cancel"),
+            ("There is no occasion, please cancel", "cancel"),
+            ("On no occasion in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no occasion tomorrow", "cancel"),
+            ("Please don't on no occasion, please cancel", "cancel"),
+            ("No occasion cancel my appointment", "cancel"),
+            ("On no occasions cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no occasion",
+                "cancel",
+            ),
+            ("For no reason, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("For no reason forget to cancel", "no_action"),
+            ("At no point cancel my appointment", "no_action"),
+            ("At no time cancel my appointment", "no_action"),
+            ("In no case cancel my appointment", "no_action"),
+            ("In no event cancel my appointment", "no_action"),
+            ("Under no condition cancel my appointment", "no_action"),
+            ("In no way cancel my appointment", "no_action"),
+            ("By no means cancel my appointment", "no_action"),
+            ("On no account cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_for_no_reason_does_not_route_to_action(self) -> None:
+        examples = (
+            "For no reason cancel my appointment",
+            "For no reason, cancel my appointment",
+            "FOR NO REASON CANCEL",
+            "For no reason\u2014cancel my appointment",
+            "For no reason ever cancel my appointment",
+            "For no reason, ever, cancel my appointment",
+            "For no reason reschedule my appointment",
+            "For no reason schedule an appointment",
+            "For no reason call off my appointment",
+            "For no reason book a new appointment",
+            "For no reason the cancellation",
+            "For no reason a cancellation",
+            "For no reason want to cancel my appointment",
+            "For no reason ask them to cancel my appointment",
+            "For no reason have them cancel my appointment",
+            "For no reason let them cancel my appointment",
+            "For no reason go ahead and cancel my appointment",
+            "For no reason go and cancel my appointment",
+            "For no reason come and cancel my appointment",
+            "For no reason should you cancel my appointment",
+            "For no reason will I cancel my appointment",
+            "For no reason do I want to cancel my appointment",
+            "For no reason am I going to cancel my appointment",
+            "For no reason am I to cancel my appointment",
+            "For no reason is this a cancellation",
+            "For no reason do I cancel my appointment",
+            "For no reason cancel or reschedule my appointment",
+            "For no reason cancel, reschedule, or book",
+            "For no reason should you cancel or reschedule",
+            "For no reason the cancellation or the reschedule",
+            "Please don't for no reason cancel my appointment",
+            "Please don't, for no reason, cancel my appointment",
+            "Please do not for no reason cancel my appointment",
+            "Never for no reason cancel my appointment",
+            "Please don't for no reason go and cancel my appointment",
+            "And for no reason should you cancel my appointment",
+            "For no reason, should you cancel my appointment",
+            "Never for no reason should you cancel",
+            "Note: for no reason cancel my appointment",
+            "Hello, for no reason cancel my appointment",
+            "For no reason I refuse to cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_for_no_reason_affirmative_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("For no reason, please cancel my appointment", "cancel"),
+            ("For no reason please cancel my appointment", "cancel"),
+            ("For no reason wait, please cancel my appointment", "cancel"),
+            ("For no reason Tuesday, please cancel", "cancel"),
+            ("Please cancel, for no reason wait", "cancel"),
+            ("Please cancel. For no reason reschedule", "cancel"),
+            ("Please cancel, for no reason reschedule", "cancel"),
+            ("For no reason cancel, please reschedule", "reschedule"),
+            ("For no reason go, and cancel my appointment", "cancel"),
+            ("For no reason go and wait, please cancel", "cancel"),
+            ("For no reason I will cancel my appointment", "cancel"),
+            ("For no reason, I will cancel my appointment", "cancel"),
+            ("For no reason refuse to cancel", "no_action"),
+            ("For no reason refuse the cancellation", "no_action"),
+            ("For no reason forget to cancel my appointment", "no_action"),
+            ("For no reason do not forget to cancel", "no_action"),
+            ("For no reason can I cancel my appointment", "cancel"),
+            ("For any reason cancel my appointment", "cancel"),
+            ("Please don't for any reason cancel my appointment", "no_action"),
+            ("For no reasons cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("I will cancel my appointment for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will for no reason cancel my appointment", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("You must for no reason cancel my appointment", "cancel"),
+            ("You must, for no reason, cancel my appointment", "cancel"),
+            ("Please, for no reason, cancel my appointment", "cancel"),
+            ("We will, for no reason, reschedule my appointment", "reschedule"),
+            ("Please ask the office to cancel for no reason", "cancel"),
+            ("I will cancel or reschedule for no reason", "reschedule"),
+            ("Cancel or reschedule for no reason", "reschedule"),
+            ("With no reason cancel my appointment", "cancel"),
+            ("No reason cancel my appointment", "cancel"),
+            ("For some reason cancel my appointment", "cancel"),
+            ("For a reason, please cancel my appointment", "cancel"),
+            ("Please don't for no reason, please cancel", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("At no point cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_on_no_terms_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no terms cancel my appointment",
+            "On no terms, cancel my appointment",
+            "ON NO TERMS CANCEL",
+            "On no terms\u2014cancel my appointment",
+            "On no terms ever cancel my appointment",
+            "On no terms, ever, cancel my appointment",
+            "On no terms reschedule my appointment",
+            "On no terms schedule an appointment",
+            "On no terms call off my appointment",
+            "On no terms book a new appointment",
+            "On no terms the cancellation",
+            "On no terms a cancellation",
+            "On no terms want to cancel my appointment",
+            "On no terms ask them to cancel my appointment",
+            "On no terms have them cancel my appointment",
+            "On no terms let them cancel my appointment",
+            "On no terms go ahead and cancel my appointment",
+            "On no terms go and cancel my appointment",
+            "On no terms come and cancel my appointment",
+            "On no terms should you cancel my appointment",
+            "On no terms, should you cancel my appointment",
+            "On no terms will I cancel my appointment",
+            "On no terms do I want to cancel my appointment",
+            "On no terms am I going to cancel my appointment",
+            "On no terms am I to cancel my appointment",
+            "On no terms is this a cancellation",
+            "On no terms cancel or reschedule my appointment",
+            "On no terms cancel, reschedule, or book",
+            "On no terms should you cancel or reschedule",
+            "On no terms the cancellation or the reschedule",
+            "Cancel on no terms",
+            "I will cancel on no terms",
+            "I will cancel my appointment on no terms",
+            "I will cancel or reschedule on no terms",
+            "I will on no terms cancel my appointment",
+            "I will, on no terms, cancel my appointment",
+            "You must on no terms cancel my appointment",
+            "Please don't on no terms cancel my appointment",
+            "Please don't, on no terms, cancel my appointment",
+            "Please do not on no terms cancel my appointment",
+            "Never on no terms cancel my appointment",
+            "Please don't on no terms go and cancel my appointment",
+            "On no terms I refuse to cancel",
+            "Please ask the office to cancel, on no terms",
+            "Under no terms cancel my appointment",
+            "Under no terms, cancel my appointment",
+            "UNDER NO TERMS CANCEL",
+            "Under no terms should you cancel my appointment",
+            "Under no terms will I cancel my appointment",
+            "I will cancel under no terms",
+            "I will under no terms cancel my appointment",
+            "Please don't under no terms cancel my appointment",
+            "Never under no terms cancel my appointment",
+            "Under no terms go and cancel my appointment",
+            "Under no terms cancel or reschedule",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_terms_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no terms, please cancel my appointment", "cancel"),
+            ("On no terms please cancel my appointment", "cancel"),
+            ("On no terms wait, please cancel my appointment", "cancel"),
+            ("On no terms Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no terms wait", "cancel"),
+            ("Please cancel. On no terms reschedule", "cancel"),
+            ("Please cancel, on no terms reschedule", "cancel"),
+            ("On no terms cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no terms, please reschedule",
+                "reschedule",
+            ),
+            ("On no terms go, and cancel my appointment", "cancel"),
+            ("On no terms go and wait, please cancel", "cancel"),
+            ("On no terms I will cancel my appointment", "cancel"),
+            ("On no terms, I will cancel my appointment", "cancel"),
+            ("On no terms refuse to cancel", "no_action"),
+            ("On no terms refuse the cancellation", "no_action"),
+            ("On no terms forget to cancel my appointment", "cancel"),
+            ("On no terms do not forget to cancel", "cancel"),
+            ("On no terms can I cancel my appointment", "cancel"),
+            ("Under no terms, please cancel my appointment", "cancel"),
+            ("Under no terms I will cancel my appointment", "cancel"),
+            ("Under no terms can I cancel my appointment", "cancel"),
+            ("Under no terms forget to cancel my appointment", "cancel"),
+            ("Under no terms do not forget to cancel", "cancel"),
+            ("On any terms cancel my appointment", "cancel"),
+            ("Please don't on any terms cancel my appointment", "cancel"),
+            ("Under any terms cancel my appointment", "cancel"),
+            ("Please don't under any terms cancel my appointment", "cancel"),
+            ("On these terms, please cancel my appointment", "cancel"),
+            ("On the terms, please cancel my appointment", "cancel"),
+            ("In no terms cancel my appointment", "cancel"),
+            ("No terms cancel my appointment", "cancel"),
+            ("On no term cancel my appointment", "cancel"),
+            ("Under no term cancel my appointment", "cancel"),
+            ("With no terms cancel my appointment", "cancel"),
+            ("By no terms cancel my appointment", "cancel"),
+            ("I have no terms, please cancel my appointment", "cancel"),
+            ("There are no terms, please cancel", "cancel"),
+            ("On no terms of service, please cancel", "cancel"),
+            ("On no terms in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no terms tomorrow", "cancel"),
+            ("Please don't on no terms, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no terms",
+                "cancel",
+            ),
+            ("What are the cancellation terms", "no_action"),
+            ("Please explain the cancellation terms", "no_action"),
+            ("For no reason, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("At no point cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_on_no_grounds_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no grounds cancel my appointment",
+            "On no grounds, cancel my appointment",
+            "ON NO GROUNDS CANCEL",
+            "On no grounds\u2014cancel my appointment",
+            "On no grounds ever cancel my appointment",
+            "On no grounds, ever, cancel my appointment",
+            "On no grounds reschedule my appointment",
+            "On no grounds schedule an appointment",
+            "On no grounds call off my appointment",
+            "On no grounds book a new appointment",
+            "On no grounds the cancellation",
+            "On no grounds a cancellation",
+            "On no grounds want to cancel my appointment",
+            "On no grounds ask them to cancel my appointment",
+            "On no grounds have them cancel my appointment",
+            "On no grounds let them cancel my appointment",
+            "On no grounds go ahead and cancel my appointment",
+            "On no grounds go and cancel my appointment",
+            "On no grounds come and cancel my appointment",
+            "On no grounds should you cancel my appointment",
+            "On no grounds, should you cancel my appointment",
+            "On no grounds will I cancel my appointment",
+            "On no grounds do I want to cancel my appointment",
+            "On no grounds am I going to cancel my appointment",
+            "On no grounds am I to cancel my appointment",
+            "On no grounds is this a cancellation",
+            "On no grounds cancel or reschedule my appointment",
+            "On no grounds cancel, reschedule, or book",
+            "On no grounds should you cancel or reschedule",
+            "On no grounds the cancellation or the reschedule",
+            "Cancel on no grounds",
+            "I will cancel on no grounds",
+            "I will cancel my appointment on no grounds",
+            "I will cancel or reschedule on no grounds",
+            "I will on no grounds cancel my appointment",
+            "I will, on no grounds, cancel my appointment",
+            "You must on no grounds cancel my appointment",
+            "Please don't on no grounds cancel my appointment",
+            "Please don't, on no grounds, cancel my appointment",
+            "Please do not on no grounds cancel my appointment",
+            "Never on no grounds cancel my appointment",
+            "Please don't on no grounds go and cancel my appointment",
+            "On no grounds I refuse to cancel",
+            "Please ask the office to cancel, on no grounds",
+            "Under no grounds cancel my appointment",
+            "Under no grounds, cancel my appointment",
+            "UNDER NO GROUNDS CANCEL",
+            "Under no grounds should you cancel my appointment",
+            "Under no grounds will I cancel my appointment",
+            "I will cancel under no grounds",
+            "I will under no grounds cancel my appointment",
+            "Please don't under no grounds cancel my appointment",
+            "Never under no grounds cancel my appointment",
+            "Under no grounds go and cancel my appointment",
+            "Under no grounds cancel or reschedule",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_grounds_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no grounds, please cancel my appointment", "cancel"),
+            ("On no grounds please cancel my appointment", "cancel"),
+            ("On no grounds wait, please cancel my appointment", "cancel"),
+            ("On no grounds Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no grounds wait", "cancel"),
+            ("Please cancel. On no grounds reschedule", "cancel"),
+            ("Please cancel, on no grounds reschedule", "cancel"),
+            ("On no grounds cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no grounds, please reschedule",
+                "reschedule",
+            ),
+            ("On no grounds go, and cancel my appointment", "cancel"),
+            ("On no grounds go and wait, please cancel", "cancel"),
+            ("On no grounds I will cancel my appointment", "cancel"),
+            ("On no grounds, I will cancel my appointment", "cancel"),
+            ("On no grounds refuse to cancel", "no_action"),
+            ("On no grounds refuse the cancellation", "no_action"),
+            ("On no grounds forget to cancel my appointment", "cancel"),
+            ("On no grounds do not forget to cancel", "cancel"),
+            ("On no grounds can I cancel my appointment", "cancel"),
+            ("Under no grounds, please cancel my appointment", "cancel"),
+            ("Under no grounds I will cancel my appointment", "cancel"),
+            ("Under no grounds can I cancel my appointment", "cancel"),
+            ("Under no grounds forget to cancel my appointment", "cancel"),
+            ("Under no grounds do not forget to cancel", "cancel"),
+            ("On any grounds cancel my appointment", "cancel"),
+            ("Please don't on any grounds cancel my appointment", "cancel"),
+            ("Under any grounds cancel my appointment", "cancel"),
+            ("Please don't under any grounds cancel my appointment", "cancel"),
+            ("On these grounds, please cancel my appointment", "cancel"),
+            ("On the grounds, please cancel my appointment", "cancel"),
+            ("In no grounds cancel my appointment", "cancel"),
+            ("No grounds cancel my appointment", "cancel"),
+            ("On no ground cancel my appointment", "cancel"),
+            ("Under no ground cancel my appointment", "cancel"),
+            ("With no grounds cancel my appointment", "cancel"),
+            ("By no grounds cancel my appointment", "cancel"),
+            ("I have no grounds, please cancel my appointment", "cancel"),
+            ("There are no grounds, please cancel", "cancel"),
+            ("On no grounds of the complaint, please cancel", "cancel"),
+            ("On no grounds in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no grounds tomorrow", "cancel"),
+            ("Please don't on no grounds, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no grounds",
+                "cancel",
+            ),
+            ("What are the grounds for cancellation", "cancel"),
+            ("On no terms cancel my appointment", "no_action"),
+            ("I will cancel on no terms", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_on_no_pretext_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no pretext cancel my appointment",
+            "On no pretext, cancel my appointment",
+            "ON NO PRETEXT CANCEL",
+            "On no pretext\u2014cancel my appointment",
+            "On no pretext ever cancel my appointment",
+            "On no pretext, ever, cancel my appointment",
+            "On no pretext reschedule my appointment",
+            "On no pretext schedule an appointment",
+            "On no pretext call off my appointment",
+            "On no pretext book a new appointment",
+            "On no pretext the cancellation",
+            "On no pretext a cancellation",
+            "On no pretext want to cancel my appointment",
+            "On no pretext ask them to cancel my appointment",
+            "On no pretext have them cancel my appointment",
+            "On no pretext let them cancel my appointment",
+            "On no pretext go ahead and cancel my appointment",
+            "On no pretext go and cancel my appointment",
+            "On no pretext come and cancel my appointment",
+            "On no pretext should you cancel my appointment",
+            "On no pretext, should you cancel my appointment",
+            "On no pretext will I cancel my appointment",
+            "On no pretext do I want to cancel my appointment",
+            "On no pretext am I going to cancel my appointment",
+            "On no pretext am I to cancel my appointment",
+            "On no pretext is this a cancellation",
+            "On no pretext cancel or reschedule my appointment",
+            "On no pretext cancel, reschedule, or book",
+            "On no pretext should you cancel or reschedule",
+            "On no pretext the cancellation or the reschedule",
+            "Cancel on no pretext",
+            "I will cancel on no pretext",
+            "I will cancel my appointment on no pretext",
+            "I will cancel or reschedule on no pretext",
+            "I will on no pretext cancel my appointment",
+            "I will, on no pretext, cancel my appointment",
+            "You must on no pretext cancel my appointment",
+            "Please don't on no pretext cancel my appointment",
+            "Please don't, on no pretext, cancel my appointment",
+            "Please do not on no pretext cancel my appointment",
+            "Never on no pretext cancel my appointment",
+            "Please don't on no pretext go and cancel my appointment",
+            "On no pretext I refuse to cancel",
+            "Please ask the office to cancel, on no pretext",
+            "Under no pretext cancel my appointment",
+            "Under no pretext, cancel my appointment",
+            "UNDER NO PRETEXT CANCEL",
+            "Under no pretext should you cancel my appointment",
+            "Under no pretext will I cancel my appointment",
+            "I will cancel under no pretext",
+            "I will under no pretext cancel my appointment",
+            "Please don't under no pretext cancel my appointment",
+            "Never under no pretext cancel my appointment",
+            "Under no pretext go and cancel my appointment",
+            "Under no pretext cancel or reschedule",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_pretext_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no pretext, please cancel my appointment", "cancel"),
+            ("On no pretext please cancel my appointment", "cancel"),
+            ("On no pretext wait, please cancel my appointment", "cancel"),
+            ("On no pretext Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no pretext wait", "cancel"),
+            ("Please cancel. On no pretext reschedule", "cancel"),
+            ("Please cancel, on no pretext reschedule", "cancel"),
+            ("On no pretext cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no pretext, please reschedule",
+                "reschedule",
+            ),
+            ("On no pretext go, and cancel my appointment", "cancel"),
+            ("On no pretext go and wait, please cancel", "cancel"),
+            ("On no pretext I will cancel my appointment", "cancel"),
+            ("On no pretext, I will cancel my appointment", "cancel"),
+            ("On no pretext refuse to cancel", "no_action"),
+            ("On no pretext refuse the cancellation", "no_action"),
+            ("On no pretext forget to cancel my appointment", "cancel"),
+            ("On no pretext do not forget to cancel", "cancel"),
+            ("On no pretext can I cancel my appointment", "cancel"),
+            ("Under no pretext, please cancel my appointment", "cancel"),
+            ("Under no pretext I will cancel my appointment", "cancel"),
+            ("Under no pretext can I cancel my appointment", "cancel"),
+            ("Under no pretext forget to cancel my appointment", "cancel"),
+            ("Under no pretext do not forget to cancel", "cancel"),
+            ("On any pretext cancel my appointment", "cancel"),
+            ("Please don't on any pretext cancel my appointment", "cancel"),
+            ("Under any pretext cancel my appointment", "cancel"),
+            ("Please don't under any pretext cancel my appointment", "cancel"),
+            ("On this pretext, please cancel my appointment", "cancel"),
+            ("Under the pretext, please cancel my appointment", "cancel"),
+            ("In no pretext cancel my appointment", "cancel"),
+            ("No pretext cancel my appointment", "cancel"),
+            ("On no pretexts cancel my appointment", "cancel"),
+            ("Under no pretexts cancel my appointment", "cancel"),
+            ("With no pretext cancel my appointment", "cancel"),
+            ("By no pretext cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("I will cancel for no pretext", "cancel"),
+            ("Please cancel for no pretext", "cancel"),
+            ("Cancel for no pretext", "cancel"),
+            ("I will, for no pretext, cancel my appointment", "cancel"),
+            ("I have no pretext, please cancel my appointment", "cancel"),
+            ("There is no pretext, please cancel", "cancel"),
+            ("Under no pretext of illness, please cancel", "cancel"),
+            ("On no pretext of the complaint, please cancel", "cancel"),
+            ("On no pretext in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no pretext tomorrow", "cancel"),
+            ("Please don't on no pretext, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no pretext",
+                "cancel",
+            ),
+            ("What is the pretext for cancellation", "cancel"),
+            ("On no grounds cancel my appointment", "no_action"),
+            ("I will cancel on no grounds", "no_action"),
+            ("On no terms cancel my appointment", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_on_no_pretense_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no pretense cancel my appointment",
+            "On no pretense, cancel my appointment",
+            "ON NO PRETENSE CANCEL",
+            "On no pretense\u2014cancel my appointment",
+            "On no pretense ever cancel my appointment",
+            "On no pretense, ever, cancel my appointment",
+            "On no pretense reschedule my appointment",
+            "On no pretense schedule an appointment",
+            "On no pretense call off my appointment",
+            "On no pretense book a new appointment",
+            "On no pretense the cancellation",
+            "On no pretense a cancellation",
+            "On no pretense want to cancel my appointment",
+            "On no pretense ask them to cancel my appointment",
+            "On no pretense have them cancel my appointment",
+            "On no pretense let them cancel my appointment",
+            "On no pretense go ahead and cancel my appointment",
+            "On no pretense go and cancel my appointment",
+            "On no pretense come and cancel my appointment",
+            "On no pretense should you cancel my appointment",
+            "On no pretense, should you cancel my appointment",
+            "On no pretense will I cancel my appointment",
+            "On no pretense do I want to cancel my appointment",
+            "On no pretense am I going to cancel my appointment",
+            "On no pretense am I to cancel my appointment",
+            "On no pretense is this a cancellation",
+            "On no pretense cancel or reschedule my appointment",
+            "On no pretense cancel, reschedule, or book",
+            "On no pretense should you cancel or reschedule",
+            "On no pretense the cancellation or the reschedule",
+            "Cancel on no pretense",
+            "I will cancel on no pretense",
+            "I will cancel my appointment on no pretense",
+            "I will cancel or reschedule on no pretense",
+            "I will on no pretense cancel my appointment",
+            "I will, on no pretense, cancel my appointment",
+            "You must on no pretense cancel my appointment",
+            "Please don't on no pretense cancel my appointment",
+            "Please don't, on no pretense, cancel my appointment",
+            "Please do not on no pretense cancel my appointment",
+            "Never on no pretense cancel my appointment",
+            "Please don't on no pretense go and cancel my appointment",
+            "On no pretense I refuse to cancel",
+            "Please ask the office to cancel, on no pretense",
+            "Under no pretense cancel my appointment",
+            "Under no pretense, cancel my appointment",
+            "UNDER NO PRETENSE CANCEL",
+            "Under no pretense should you cancel my appointment",
+            "Under no pretense will I cancel my appointment",
+            "I will cancel under no pretense",
+            "I will under no pretense cancel my appointment",
+            "Please don't under no pretense cancel my appointment",
+            "Never under no pretense cancel my appointment",
+            "Under no pretense go and cancel my appointment",
+            "Under no pretense cancel or reschedule",
+            "Under no pretence cancel my appointment",
+            "On no pretence should you cancel my appointment",
+            "On no pretence will I cancel my appointment",
+            "I will cancel under no pretence",
+            "I will cancel on no pretence",
+            "Cancel under no pretence",
+            "Please don't on no pretence cancel my appointment",
+            "Please don't under no pretence cancel my appointment",
+            "Never under no pretence cancel my appointment",
+            "On no pretence go and cancel my appointment",
+            "Under no pretence cancel or reschedule",
+            "I will, on no pretence, cancel my appointment",
+            "You must under no pretence cancel my appointment",
+            "On no pretence have them cancel my appointment",
+            "On no pretence the cancellation",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_pretense_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no pretense, please cancel my appointment", "cancel"),
+            ("On no pretense please cancel my appointment", "cancel"),
+            ("On no pretense wait, please cancel my appointment", "cancel"),
+            ("On no pretense Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no pretense wait", "cancel"),
+            ("Please cancel. On no pretense reschedule", "cancel"),
+            ("Please cancel, on no pretense reschedule", "cancel"),
+            ("On no pretense cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no pretense, please reschedule",
+                "reschedule",
+            ),
+            ("On no pretense go, and cancel my appointment", "cancel"),
+            ("On no pretense go and wait, please cancel", "cancel"),
+            ("On no pretense I will cancel my appointment", "cancel"),
+            ("On no pretense, I will cancel my appointment", "cancel"),
+            ("On no pretense refuse to cancel", "no_action"),
+            ("On no pretense refuse the cancellation", "no_action"),
+            ("On no pretense forget to cancel my appointment", "cancel"),
+            ("On no pretense do not forget to cancel", "cancel"),
+            ("On no pretense can I cancel my appointment", "cancel"),
+            ("Under no pretense, please cancel my appointment", "cancel"),
+            ("Under no pretense I will cancel my appointment", "cancel"),
+            ("Under no pretense can I cancel my appointment", "cancel"),
+            ("Under no pretense forget to cancel my appointment", "cancel"),
+            ("Under no pretense do not forget to cancel", "cancel"),
+            ("On any pretense cancel my appointment", "cancel"),
+            ("Please don't on any pretense cancel my appointment", "cancel"),
+            ("Under any pretense cancel my appointment", "cancel"),
+            ("Please don't under any pretense cancel my appointment", "cancel"),
+            ("On this pretense, please cancel my appointment", "cancel"),
+            ("Under the pretense, please cancel my appointment", "cancel"),
+            ("In no pretense cancel my appointment", "cancel"),
+            ("No pretense cancel my appointment", "cancel"),
+            ("On no pretenses cancel my appointment", "cancel"),
+            ("Under no pretenses cancel my appointment", "cancel"),
+            ("With no pretense cancel my appointment", "cancel"),
+            ("By no pretense cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("I will cancel for no pretense", "cancel"),
+            ("Please cancel for no pretense", "cancel"),
+            ("Cancel for no pretense", "cancel"),
+            ("I will, for no pretense, cancel my appointment", "cancel"),
+            ("I have no pretense, please cancel my appointment", "cancel"),
+            ("There is no pretense, please cancel", "cancel"),
+            ("Under no pretense of illness, please cancel", "cancel"),
+            ("On no pretense of the complaint, please cancel", "cancel"),
+            ("On no pretense in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no pretense tomorrow", "cancel"),
+            ("Please don't on no pretense, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no pretense",
+                "cancel",
+            ),
+            ("What is the pretense for cancellation", "cancel"),
+            ("Under no pretence, please cancel my appointment", "cancel"),
+            ("Under no pretence I will cancel my appointment", "cancel"),
+            ("Under no pretence can I cancel my appointment", "cancel"),
+            ("Under no pretence forget to cancel my appointment", "cancel"),
+            ("Under no pretence do not forget to cancel", "cancel"),
+            ("On no pretence, please cancel my appointment", "cancel"),
+            ("On no pretence I will cancel my appointment", "cancel"),
+            ("On no pretence can I cancel my appointment", "cancel"),
+            ("On any pretence cancel my appointment", "cancel"),
+            ("Please don't on any pretence cancel my appointment", "cancel"),
+            ("Under any pretence cancel my appointment", "cancel"),
+            ("Please don't under any pretence cancel my appointment", "cancel"),
+            ("On this pretence, please cancel my appointment", "cancel"),
+            ("Under the pretence, please cancel my appointment", "cancel"),
+            ("In no pretence cancel my appointment", "cancel"),
+            ("No pretence cancel my appointment", "cancel"),
+            ("On no pretences cancel my appointment", "cancel"),
+            ("Under no pretences cancel my appointment", "cancel"),
+            ("By no pretence cancel my appointment", "cancel"),
+            ("For no pretence cancel my appointment", "cancel"),
+            ("I will cancel for no pretence", "cancel"),
+            ("Please cancel for no pretence", "cancel"),
+            ("Cancel for no pretence", "cancel"),
+            ("I will, for no pretence, cancel my appointment", "cancel"),
+            ("I have no pretence, please cancel my appointment", "cancel"),
+            ("There is no pretence, please cancel", "cancel"),
+            ("Under no pretence of illness, please cancel", "cancel"),
+            ("What is the pretence for cancellation", "cancel"),
+            ("On no pretext cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("On no grounds cancel my appointment", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("I will cancel for no pretext", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_on_no_consideration_does_not_route_to_action(self) -> None:
+        examples = (
+            "On no consideration cancel my appointment",
+            "On no consideration, cancel my appointment",
+            "ON NO CONSIDERATION CANCEL",
+            "On no consideration\u2014cancel my appointment",
+            "On no consideration ever cancel my appointment",
+            "On no consideration, ever, cancel my appointment",
+            "On no consideration reschedule my appointment",
+            "On no consideration schedule an appointment",
+            "On no consideration call off my appointment",
+            "On no consideration book a new appointment",
+            "On no consideration the cancellation",
+            "On no consideration a cancellation",
+            "On no consideration want to cancel my appointment",
+            "On no consideration ask them to cancel my appointment",
+            "On no consideration have them cancel my appointment",
+            "On no consideration let them cancel my appointment",
+            "On no consideration go ahead and cancel my appointment",
+            "On no consideration go and cancel my appointment",
+            "On no consideration come and cancel my appointment",
+            "On no consideration should you cancel my appointment",
+            "On no consideration, should you cancel my appointment",
+            "On no consideration will I cancel my appointment",
+            "On no consideration do I want to cancel my appointment",
+            "On no consideration am I going to cancel my appointment",
+            "On no consideration am I to cancel my appointment",
+            "On no consideration is this a cancellation",
+            "On no consideration cancel or reschedule my appointment",
+            "On no consideration cancel, reschedule, or book",
+            "On no consideration should you cancel or reschedule",
+            "On no consideration the cancellation or the reschedule",
+            "Cancel on no consideration",
+            "I will cancel on no consideration",
+            "I will cancel my appointment on no consideration",
+            "I will cancel or reschedule on no consideration",
+            "I will on no consideration cancel my appointment",
+            "I will, on no consideration, cancel my appointment",
+            "You must on no consideration cancel my appointment",
+            "Please don't on no consideration cancel my appointment",
+            "Please don't, on no consideration, cancel my appointment",
+            "Please do not on no consideration cancel my appointment",
+            "Never on no consideration cancel my appointment",
+            "Please don't on no consideration go and cancel my appointment",
+            "On no consideration I refuse to cancel",
+            "Please ask the office to cancel, on no consideration",
+            "Under no consideration cancel my appointment",
+            "Under no consideration, cancel my appointment",
+            "UNDER NO CONSIDERATION CANCEL",
+            "Under no consideration should you cancel my appointment",
+            "Under no consideration will I cancel my appointment",
+            "I will cancel under no consideration",
+            "I will under no consideration cancel my appointment",
+            "Please don't under no consideration cancel my appointment",
+            "Never under no consideration cancel my appointment",
+            "Under no consideration go and cancel my appointment",
+            "Under no consideration cancel or reschedule",
+            "Under no consideration have them cancel my appointment",
+            "Under no consideration the cancellation",
+            "I will, under no consideration, cancel my appointment",
+            "You must under no consideration cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_on_no_consideration_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("On no consideration, please cancel my appointment", "cancel"),
+            ("On no consideration please cancel my appointment", "cancel"),
+            ("On no consideration wait, please cancel my appointment", "cancel"),
+            ("On no consideration Tuesday, please cancel", "cancel"),
+            ("Please cancel, on no consideration wait", "cancel"),
+            ("Please cancel. On no consideration reschedule", "cancel"),
+            ("Please cancel, on no consideration reschedule", "cancel"),
+            ("On no consideration cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment on no consideration, please reschedule",
+                "reschedule",
+            ),
+            ("On no consideration go, and cancel my appointment", "cancel"),
+            ("On no consideration go and wait, please cancel", "cancel"),
+            ("On no consideration I will cancel my appointment", "cancel"),
+            ("On no consideration, I will cancel my appointment", "cancel"),
+            ("On no consideration refuse to cancel", "no_action"),
+            ("On no consideration refuse the cancellation", "no_action"),
+            ("On no consideration forget to cancel my appointment", "cancel"),
+            ("On no consideration do not forget to cancel", "cancel"),
+            ("On no consideration can I cancel my appointment", "cancel"),
+            ("Under no consideration, please cancel my appointment", "cancel"),
+            ("Under no consideration I will cancel my appointment", "cancel"),
+            ("Under no consideration can I cancel my appointment", "cancel"),
+            ("Under no consideration forget to cancel my appointment", "cancel"),
+            ("Under no consideration do not forget to cancel", "cancel"),
+            ("On any consideration cancel my appointment", "cancel"),
+            ("Please don't on any consideration cancel my appointment", "cancel"),
+            ("Under any consideration cancel my appointment", "cancel"),
+            ("Please don't under any consideration cancel my appointment", "cancel"),
+            ("On this consideration, please cancel my appointment", "cancel"),
+            ("Under the consideration, please cancel my appointment", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("On consideration, please cancel my appointment", "cancel"),
+            (
+                "This appointment is under consideration, please cancel",
+                "cancel",
+            ),
+            ("In no consideration cancel my appointment", "cancel"),
+            ("No consideration cancel my appointment", "cancel"),
+            ("On no considerations cancel my appointment", "cancel"),
+            ("Under no considerations cancel my appointment", "cancel"),
+            ("With no consideration cancel my appointment", "cancel"),
+            ("By no consideration cancel my appointment", "cancel"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Please cancel for no consideration", "cancel"),
+            ("Cancel for no consideration", "cancel"),
+            ("I will, for no consideration, cancel my appointment", "cancel"),
+            ("I have no consideration, please cancel my appointment", "cancel"),
+            ("There is no consideration, please cancel", "cancel"),
+            ("Under no consideration of illness, please cancel", "cancel"),
+            ("On no consideration of the complaint, please cancel", "cancel"),
+            ("On no consideration in the process, please cancel", "cancel"),
+            ("Please cancel my appointment on no consideration tomorrow", "cancel"),
+            ("Please don't on no consideration, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says on no consideration",
+                "cancel",
+            ),
+            ("What is the consideration for cancellation", "cancel"),
+            ("On no consideration whatsoever cancel my appointment", "cancel"),
+            ("Not under any consideration cancel my appointment", "cancel"),
+            ("Not on any consideration cancel my appointment", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no pretense cancel my appointment", "no_action"),
+            ("On no pretence should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("I will cancel for no pretence", "cancel"),
+            ("On no occasion cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_respect_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no respect cancel my appointment",
+            "In no respect, cancel my appointment",
+            "IN NO RESPECT CANCEL",
+            "In no respect\u2014cancel my appointment",
+            "In no respect ever cancel my appointment",
+            "In no respect, ever, cancel my appointment",
+            "In no respect reschedule my appointment",
+            "In no respect schedule an appointment",
+            "In no respect call off my appointment",
+            "In no respect book a new appointment",
+            "In no respect the cancellation",
+            "In no respect a cancellation",
+            "In no respect want to cancel my appointment",
+            "In no respect ask them to cancel my appointment",
+            "In no respect have them cancel my appointment",
+            "In no respect let them cancel my appointment",
+            "In no respect go ahead and cancel my appointment",
+            "In no respect go and cancel my appointment",
+            "In no respect come and cancel my appointment",
+            "In no respect should you cancel my appointment",
+            "In no respect, should you cancel my appointment",
+            "In no respect will I cancel my appointment",
+            "In no respect do I want to cancel my appointment",
+            "In no respect am I going to cancel my appointment",
+            "In no respect am I to cancel my appointment",
+            "In no respect is this a cancellation",
+            "In no respect cancel or reschedule my appointment",
+            "In no respect cancel, reschedule, or book",
+            "In no respect should you cancel or reschedule",
+            "In no respect the cancellation or the reschedule",
+            "Cancel in no respect",
+            "I will cancel in no respect",
+            "I will cancel my appointment in no respect",
+            "I will cancel or reschedule in no respect",
+            "I will in no respect cancel my appointment",
+            "I will, in no respect, cancel my appointment",
+            "You must in no respect cancel my appointment",
+            "Please don't in no respect cancel my appointment",
+            "Please don't, in no respect, cancel my appointment",
+            "Please do not in no respect cancel my appointment",
+            "Never in no respect cancel my appointment",
+            "Please don't in no respect go and cancel my appointment",
+            "In no respect I refuse to cancel",
+            "Please ask the office to cancel, in no respect",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_respect_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no respect, please cancel my appointment", "cancel"),
+            ("In no respect please cancel my appointment", "cancel"),
+            ("In no respect wait, please cancel my appointment", "cancel"),
+            ("In no respect Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no respect wait", "cancel"),
+            ("Please cancel. In no respect reschedule", "cancel"),
+            ("Please cancel, in no respect reschedule", "cancel"),
+            ("In no respect cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no respect, please reschedule",
+                "reschedule",
+            ),
+            ("In no respect go, and cancel my appointment", "cancel"),
+            ("In no respect go and wait, please cancel", "cancel"),
+            ("In no respect I will cancel my appointment", "cancel"),
+            ("In no respect, I will cancel my appointment", "cancel"),
+            ("In no respect refuse to cancel", "no_action"),
+            ("In no respect refuse the cancellation", "no_action"),
+            ("In no respect forget to cancel my appointment", "cancel"),
+            ("In no respect do not forget to cancel", "cancel"),
+            ("In no respect can I cancel my appointment", "cancel"),
+            ("In any respect cancel my appointment", "cancel"),
+            ("Please don't in any respect cancel my appointment", "cancel"),
+            ("Not in any respect cancel my appointment", "cancel"),
+            ("In this respect, please cancel my appointment", "cancel"),
+            ("In this respect please cancel my appointment", "cancel"),
+            ("With all due respect, please cancel my appointment", "cancel"),
+            ("In no respects cancel my appointment", "cancel"),
+            ("On no respect cancel my appointment", "cancel"),
+            ("Under no respect cancel my appointment", "cancel"),
+            ("By no respect cancel my appointment", "cancel"),
+            ("For no respect cancel my appointment", "cancel"),
+            ("I will cancel for no respect", "cancel"),
+            ("Please cancel for no respect", "cancel"),
+            ("Cancel for no respect", "cancel"),
+            ("I will, for no respect, cancel my appointment", "cancel"),
+            ("I have no respect, please cancel my appointment", "cancel"),
+            ("There is no respect, please cancel", "cancel"),
+            ("In no respect of the law, please cancel", "cancel"),
+            ("In no respect whatsoever cancel my appointment", "cancel"),
+            ("What is the respect for cancellation", "cancel"),
+            ("In no sense cancel my appointment", "no_action"),
+            ("In no sense should you cancel my appointment", "no_action"),
+            ("I will cancel in no sense", "no_action"),
+            ("In no sense, please cancel my appointment", "cancel"),
+            ("In no sense I will cancel my appointment", "cancel"),
+            ("In no sense can I cancel my appointment", "cancel"),
+            ("In a sense, please cancel my appointment", "cancel"),
+            ("In this sense, please cancel my appointment", "cancel"),
+            ("Under no consideration should you cancel my appointment", "no_action"),
+            ("On no consideration cancel my appointment", "no_action"),
+            ("I will cancel under no consideration", "no_action"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("On consideration, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("I will cancel for no pretence", "cancel"),
+            ("On no pretense should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_sense_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no sense cancel my appointment",
+            "In no sense, cancel my appointment",
+            "IN NO SENSE CANCEL",
+            "In no sense\u2014cancel my appointment",
+            "In no sense ever cancel my appointment",
+            "In no sense, ever, cancel my appointment",
+            "In no sense reschedule my appointment",
+            "In no sense schedule an appointment",
+            "In no sense call off my appointment",
+            "In no sense book a new appointment",
+            "In no sense the cancellation",
+            "In no sense a cancellation",
+            "In no sense want to cancel my appointment",
+            "In no sense ask them to cancel my appointment",
+            "In no sense have them cancel my appointment",
+            "In no sense let them cancel my appointment",
+            "In no sense go ahead and cancel my appointment",
+            "In no sense go and cancel my appointment",
+            "In no sense come and cancel my appointment",
+            "In no sense should you cancel my appointment",
+            "In no sense, should you cancel my appointment",
+            "In no sense will I cancel my appointment",
+            "In no sense do I want to cancel my appointment",
+            "In no sense am I going to cancel my appointment",
+            "In no sense am I to cancel my appointment",
+            "In no sense is this a cancellation",
+            "In no sense cancel or reschedule my appointment",
+            "In no sense cancel, reschedule, or book",
+            "In no sense should you cancel or reschedule",
+            "In no sense the cancellation or the reschedule",
+            "Cancel in no sense",
+            "I will cancel in no sense",
+            "I will cancel my appointment in no sense",
+            "I will cancel or reschedule in no sense",
+            "I will in no sense cancel my appointment",
+            "I will, in no sense, cancel my appointment",
+            "You must in no sense cancel my appointment",
+            "Please don't in no sense cancel my appointment",
+            "Please don't, in no sense, cancel my appointment",
+            "Please do not in no sense cancel my appointment",
+            "Never in no sense cancel my appointment",
+            "Please don't in no sense go and cancel my appointment",
+            "In no sense I refuse to cancel",
+            "Please ask the office to cancel, in no sense",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_sense_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no sense, please cancel my appointment", "cancel"),
+            ("In no sense please cancel my appointment", "cancel"),
+            ("In no sense wait, please cancel my appointment", "cancel"),
+            ("In no sense Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no sense wait", "cancel"),
+            ("Please cancel. In no sense reschedule", "cancel"),
+            ("Please cancel, in no sense reschedule", "cancel"),
+            ("In no sense cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no sense, please reschedule",
+                "reschedule",
+            ),
+            ("In no sense go, and cancel my appointment", "cancel"),
+            ("In no sense go and wait, please cancel", "cancel"),
+            ("In no sense I will cancel my appointment", "cancel"),
+            ("In no sense, I will cancel my appointment", "cancel"),
+            ("In no sense refuse to cancel", "no_action"),
+            ("In no sense refuse the cancellation", "no_action"),
+            ("In no sense forget to cancel my appointment", "cancel"),
+            ("In no sense do not forget to cancel", "cancel"),
+            ("In no sense can I cancel my appointment", "cancel"),
+            ("In any sense cancel my appointment", "cancel"),
+            ("Please don't in any sense cancel my appointment", "cancel"),
+            ("Not in any sense cancel my appointment", "cancel"),
+            ("In this sense, please cancel my appointment", "cancel"),
+            ("In this sense please cancel my appointment", "cancel"),
+            ("In a sense, please cancel my appointment", "cancel"),
+            ("In a sense please cancel my appointment", "cancel"),
+            ("In some sense, please cancel my appointment", "cancel"),
+            ("In the sense that I am sick, please cancel", "cancel"),
+            ("In no senses cancel my appointment", "cancel"),
+            ("On no sense cancel my appointment", "cancel"),
+            ("Under no sense cancel my appointment", "cancel"),
+            ("By no sense cancel my appointment", "cancel"),
+            ("For no sense cancel my appointment", "cancel"),
+            ("I will cancel for no sense", "cancel"),
+            ("Please cancel for no sense", "cancel"),
+            ("Cancel for no sense", "cancel"),
+            ("I will, for no sense, cancel my appointment", "cancel"),
+            ("I have no sense, please cancel my appointment", "cancel"),
+            ("There is no sense, please cancel", "cancel"),
+            ("It makes no sense, please cancel my appointment", "cancel"),
+            ("That makes no sense please cancel", "cancel"),
+            ("This is nonsense, please cancel", "cancel"),
+            ("Please use common sense and cancel", "cancel"),
+            ("In no sense of the word, please cancel", "cancel"),
+            ("In no sense whatsoever cancel my appointment", "cancel"),
+            ("What is the sense of cancellation", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("In no respect should you cancel my appointment", "no_action"),
+            ("I will cancel in no respect", "no_action"),
+            ("In no respect, please cancel my appointment", "cancel"),
+            ("In any respect cancel my appointment", "cancel"),
+            ("In this respect, please cancel my appointment", "cancel"),
+            ("Under no consideration should you cancel my appointment", "no_action"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("On no pretense should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+            ("In no manner should you cancel my appointment", "no_action"),
+            ("I will cancel in no manner", "no_action"),
+            ("In no manner, please cancel my appointment", "cancel"),
+            ("In any manner cancel my appointment", "cancel"),
+            ("In a manner, please cancel my appointment", "cancel"),
+            ("In no wise should you cancel my appointment", "no_action"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("By no manner of means should you cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_manner_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no manner cancel my appointment",
+            "In no manner, cancel my appointment",
+            "IN NO MANNER CANCEL",
+            "In no manner\u2014cancel my appointment",
+            "In no manner ever cancel my appointment",
+            "In no manner, ever, cancel my appointment",
+            "In no manner reschedule my appointment",
+            "In no manner schedule an appointment",
+            "In no manner call off my appointment",
+            "In no manner book a new appointment",
+            "In no manner the cancellation",
+            "In no manner a cancellation",
+            "In no manner want to cancel my appointment",
+            "In no manner ask them to cancel my appointment",
+            "In no manner have them cancel my appointment",
+            "In no manner let them cancel my appointment",
+            "In no manner go ahead and cancel my appointment",
+            "In no manner go and cancel my appointment",
+            "In no manner come and cancel my appointment",
+            "In no manner should you cancel my appointment",
+            "In no manner, should you cancel my appointment",
+            "In no manner will I cancel my appointment",
+            "In no manner do I want to cancel my appointment",
+            "In no manner am I going to cancel my appointment",
+            "In no manner am I to cancel my appointment",
+            "In no manner is this a cancellation",
+            "In no manner cancel or reschedule my appointment",
+            "In no manner cancel, reschedule, or book",
+            "In no manner should you cancel or reschedule",
+            "In no manner the cancellation or the reschedule",
+            "Cancel in no manner",
+            "I will cancel in no manner",
+            "I will cancel my appointment in no manner",
+            "I will cancel or reschedule in no manner",
+            "I will in no manner cancel my appointment",
+            "I will, in no manner, cancel my appointment",
+            "You must in no manner cancel my appointment",
+            "Please don't in no manner cancel my appointment",
+            "Please don't, in no manner, cancel my appointment",
+            "Please do not in no manner cancel my appointment",
+            "Never in no manner cancel my appointment",
+            "Please don't in no manner go and cancel my appointment",
+            "In no manner I refuse to cancel",
+            "Please ask the office to cancel, in no manner",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_manner_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no manner, please cancel my appointment", "cancel"),
+            ("In no manner please cancel my appointment", "cancel"),
+            ("In no manner wait, please cancel my appointment", "cancel"),
+            ("In no manner Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no manner wait", "cancel"),
+            ("Please cancel. In no manner reschedule", "cancel"),
+            ("Please cancel, in no manner reschedule", "cancel"),
+            ("In no manner cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no manner, please reschedule",
+                "reschedule",
+            ),
+            ("In no manner go, and cancel my appointment", "cancel"),
+            ("In no manner go and wait, please cancel", "cancel"),
+            ("In no manner I will cancel my appointment", "cancel"),
+            ("In no manner, I will cancel my appointment", "cancel"),
+            ("In no manner refuse to cancel", "no_action"),
+            ("In no manner refuse the cancellation", "no_action"),
+            ("In no manner forget to cancel my appointment", "cancel"),
+            ("In no manner do not forget to cancel", "cancel"),
+            ("In no manner can I cancel my appointment", "cancel"),
+            ("In any manner cancel my appointment", "cancel"),
+            ("Please don't in any manner cancel my appointment", "cancel"),
+            ("Not in any manner cancel my appointment", "cancel"),
+            ("In this manner, please cancel my appointment", "cancel"),
+            ("In this manner please cancel my appointment", "cancel"),
+            ("In a manner, please cancel my appointment", "cancel"),
+            ("In a manner please cancel my appointment", "cancel"),
+            ("In some manner, please cancel my appointment", "cancel"),
+            ("In the manner requested, please cancel", "cancel"),
+            ("In no manners cancel my appointment", "cancel"),
+            ("On no manner cancel my appointment", "cancel"),
+            ("Under no manner cancel my appointment", "cancel"),
+            ("By no manner cancel my appointment", "cancel"),
+            ("For no manner cancel my appointment", "cancel"),
+            ("I will cancel for no manner", "cancel"),
+            ("Please cancel for no manner", "cancel"),
+            ("Cancel for no manner", "cancel"),
+            ("I will, for no manner, cancel my appointment", "cancel"),
+            ("I have no manner, please cancel my appointment", "cancel"),
+            ("There is no manner, please cancel", "cancel"),
+            ("Please mind your manners and cancel", "cancel"),
+            ("In no manner of speaking, please cancel", "cancel"),
+            ("In no manner whatsoever cancel my appointment", "cancel"),
+            ("What is the manner of cancellation", "cancel"),
+            ("By no manner of means should you cancel my appointment", "no_action"),
+            ("By no manner of means, please cancel my appointment", "cancel"),
+            ("By no manner of means can I cancel my appointment", "cancel"),
+            ("In no wise should you cancel my appointment", "no_action"),
+            ("In no wise, please cancel my appointment", "cancel"),
+            ("In no wise I will cancel my appointment", "cancel"),
+            ("In no wise can I cancel my appointment", "cancel"),
+            ("I will cancel in no wise", "no_action"),
+            ("In any wise cancel my appointment", "cancel"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("In no fashion, please cancel my appointment", "cancel"),
+            ("In no fashion I will cancel my appointment", "cancel"),
+            ("In no fashion can I cancel my appointment", "cancel"),
+            ("I will cancel in no fashion", "no_action"),
+            ("In any fashion cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("In no sense should you cancel my appointment", "no_action"),
+            ("I will cancel in no sense", "no_action"),
+            ("In no sense, please cancel my appointment", "cancel"),
+            ("In any sense cancel my appointment", "cancel"),
+            ("In a sense, please cancel my appointment", "cancel"),
+            ("It makes no sense, please cancel my appointment", "cancel"),
+            ("In no respect should you cancel my appointment", "no_action"),
+            ("I will cancel in no respect", "no_action"),
+            ("In no respect, please cancel my appointment", "cancel"),
+            ("Under no consideration should you cancel my appointment", "no_action"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("On no pretense should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_wise_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no wise cancel my appointment",
+            "In no wise, cancel my appointment",
+            "IN NO WISE CANCEL",
+            "In no wise\u2014cancel my appointment",
+            "In no wise ever cancel my appointment",
+            "In no wise, ever, cancel my appointment",
+            "In no wise reschedule my appointment",
+            "In no wise schedule an appointment",
+            "In no wise call off my appointment",
+            "In no wise book a new appointment",
+            "In no wise the cancellation",
+            "In no wise a cancellation",
+            "In no wise want to cancel my appointment",
+            "In no wise ask them to cancel my appointment",
+            "In no wise have them cancel my appointment",
+            "In no wise let them cancel my appointment",
+            "In no wise go ahead and cancel my appointment",
+            "In no wise go and cancel my appointment",
+            "In no wise come and cancel my appointment",
+            "In no wise should you cancel my appointment",
+            "In no wise, should you cancel my appointment",
+            "In no wise will I cancel my appointment",
+            "In no wise do I want to cancel my appointment",
+            "In no wise am I going to cancel my appointment",
+            "In no wise am I to cancel my appointment",
+            "In no wise is this a cancellation",
+            "In no wise cancel or reschedule my appointment",
+            "In no wise cancel, reschedule, or book",
+            "In no wise should you cancel or reschedule",
+            "In no wise the cancellation or the reschedule",
+            "Cancel in no wise",
+            "I will cancel in no wise",
+            "I will cancel my appointment in no wise",
+            "I will cancel or reschedule in no wise",
+            "I will in no wise cancel my appointment",
+            "I will, in no wise, cancel my appointment",
+            "You must in no wise cancel my appointment",
+            "Please don't in no wise cancel my appointment",
+            "Please don't, in no wise, cancel my appointment",
+            "Please do not in no wise cancel my appointment",
+            "Never in no wise cancel my appointment",
+            "Please don't in no wise go and cancel my appointment",
+            "In no wise I refuse to cancel",
+            "Please ask the office to cancel, in no wise",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_wise_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no wise, please cancel my appointment", "cancel"),
+            ("In no wise please cancel my appointment", "cancel"),
+            ("In no wise wait, please cancel my appointment", "cancel"),
+            ("In no wise Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no wise wait", "cancel"),
+            ("Please cancel. In no wise reschedule", "cancel"),
+            ("Please cancel, in no wise reschedule", "cancel"),
+            ("In no wise cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no wise, please reschedule",
+                "reschedule",
+            ),
+            ("In no wise go, and cancel my appointment", "cancel"),
+            ("In no wise go and wait, please cancel", "cancel"),
+            ("In no wise I will cancel my appointment", "cancel"),
+            ("In no wise, I will cancel my appointment", "cancel"),
+            ("In no wise refuse to cancel", "no_action"),
+            ("In no wise refuse the cancellation", "no_action"),
+            ("In no wise forget to cancel my appointment", "cancel"),
+            ("In no wise do not forget to cancel", "cancel"),
+            ("In no wise can I cancel my appointment", "cancel"),
+            ("In any wise cancel my appointment", "cancel"),
+            ("Please don't in any wise cancel my appointment", "cancel"),
+            ("Not in any wise cancel my appointment", "cancel"),
+            ("In this wise, please cancel my appointment", "cancel"),
+            ("In this wise please cancel my appointment", "cancel"),
+            ("In a wise, please cancel my appointment", "cancel"),
+            ("In no wises cancel my appointment", "cancel"),
+            ("On no wise cancel my appointment", "cancel"),
+            ("Under no wise cancel my appointment", "cancel"),
+            ("By no wise cancel my appointment", "cancel"),
+            ("For no wise cancel my appointment", "cancel"),
+            ("I will cancel for no wise", "cancel"),
+            ("Please cancel for no wise", "cancel"),
+            ("Cancel for no wise", "cancel"),
+            ("I will, for no wise, cancel my appointment", "cancel"),
+            ("I have no wise, please cancel my appointment", "cancel"),
+            ("There is no wise, please cancel", "cancel"),
+            ("Otherwise, please cancel my appointment", "cancel"),
+            ("Likewise, please cancel", "cancel"),
+            ("It is unwise, please cancel", "cancel"),
+            ("Clockwise, please cancel", "cancel"),
+            ("Please be wise and cancel", "cancel"),
+            ("I am no wiser, please cancel", "cancel"),
+            ("None the wiser, please cancel", "cancel"),
+            ("In no wise of speaking, please cancel", "cancel"),
+            ("In no wise whatsoever cancel my appointment", "cancel"),
+            ("In no wise cancel or reschedule or book", "schedule"),
+            ("What is the wise of cancellation", "cancel"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("In no fashion, please cancel my appointment", "cancel"),
+            ("In no fashion I will cancel my appointment", "cancel"),
+            ("In no fashion can I cancel my appointment", "cancel"),
+            ("I will cancel in no fashion", "no_action"),
+            ("In any fashion cancel my appointment", "cancel"),
+            ("Please don't in no fashion cancel my appointment", "no_action"),
+            ("By no manner of means should you cancel my appointment", "no_action"),
+            ("By no manner of means, please cancel my appointment", "cancel"),
+            ("By no manner of means can I cancel my appointment", "cancel"),
+            ("In no manner should you cancel my appointment", "no_action"),
+            ("I will cancel in no manner", "no_action"),
+            ("In no manner, please cancel my appointment", "cancel"),
+            ("In any manner cancel my appointment", "cancel"),
+            ("In a manner, please cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("In no sense should you cancel my appointment", "no_action"),
+            ("I will cancel in no sense", "no_action"),
+            ("In no sense, please cancel my appointment", "cancel"),
+            ("It makes no sense, please cancel my appointment", "cancel"),
+            ("In no respect should you cancel my appointment", "no_action"),
+            ("I will cancel in no respect", "no_action"),
+            ("Under no consideration should you cancel my appointment", "no_action"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("On no pretense should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_fashion_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no fashion cancel my appointment",
+            "In no fashion, cancel my appointment",
+            "IN NO FASHION CANCEL",
+            "In no fashion\u2014cancel my appointment",
+            "In no fashion ever cancel my appointment",
+            "In no fashion, ever, cancel my appointment",
+            "In no fashion reschedule my appointment",
+            "In no fashion schedule an appointment",
+            "In no fashion call off my appointment",
+            "In no fashion book a new appointment",
+            "In no fashion the cancellation",
+            "In no fashion a cancellation",
+            "In no fashion want to cancel my appointment",
+            "In no fashion ask them to cancel my appointment",
+            "In no fashion have them cancel my appointment",
+            "In no fashion let them cancel my appointment",
+            "In no fashion go ahead and cancel my appointment",
+            "In no fashion go and cancel my appointment",
+            "In no fashion come and cancel my appointment",
+            "In no fashion should you cancel my appointment",
+            "In no fashion, should you cancel my appointment",
+            "In no fashion will I cancel my appointment",
+            "In no fashion do I want to cancel my appointment",
+            "In no fashion am I going to cancel my appointment",
+            "In no fashion am I to cancel my appointment",
+            "In no fashion is this a cancellation",
+            "In no fashion cancel or reschedule my appointment",
+            "In no fashion cancel, reschedule, or book",
+            "In no fashion should you cancel or reschedule",
+            "In no fashion the cancellation or the reschedule",
+            "Cancel in no fashion",
+            "I will cancel in no fashion",
+            "I will cancel my appointment in no fashion",
+            "I will cancel or reschedule in no fashion",
+            "I will in no fashion cancel my appointment",
+            "I will, in no fashion, cancel my appointment",
+            "You must in no fashion cancel my appointment",
+            "Please don't in no fashion cancel my appointment",
+            "Please don't, in no fashion, cancel my appointment",
+            "Please do not in no fashion cancel my appointment",
+            "Never in no fashion cancel my appointment",
+            "Please don't in no fashion go and cancel my appointment",
+            "In no fashion I refuse to cancel",
+            "Please ask the office to cancel, in no fashion",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_fashion_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no fashion, please cancel my appointment", "cancel"),
+            ("In no fashion please cancel my appointment", "cancel"),
+            ("In no fashion wait, please cancel my appointment", "cancel"),
+            ("In no fashion Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no fashion wait", "cancel"),
+            ("Please cancel. In no fashion reschedule", "cancel"),
+            ("Please cancel, in no fashion reschedule", "cancel"),
+            ("In no fashion cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no fashion, please reschedule",
+                "reschedule",
+            ),
+            ("In no fashion go, and cancel my appointment", "cancel"),
+            ("In no fashion go and wait, please cancel", "cancel"),
+            ("In no fashion I will cancel my appointment", "cancel"),
+            ("In no fashion, I will cancel my appointment", "cancel"),
+            ("In no fashion refuse to cancel", "no_action"),
+            ("In no fashion refuse the cancellation", "no_action"),
+            ("In no fashion forget to cancel my appointment", "cancel"),
+            ("In no fashion do not forget to cancel", "cancel"),
+            ("In no fashion can I cancel my appointment", "cancel"),
+            ("In any fashion cancel my appointment", "cancel"),
+            ("Please don't in any fashion cancel my appointment", "cancel"),
+            ("Not in any fashion cancel my appointment", "cancel"),
+            ("In this fashion, please cancel my appointment", "cancel"),
+            ("In this fashion please cancel my appointment", "cancel"),
+            ("In a fashion, please cancel my appointment", "cancel"),
+            ("In some fashion, please cancel my appointment", "cancel"),
+            ("In the fashion requested, please cancel", "cancel"),
+            ("In no fashions cancel my appointment", "cancel"),
+            ("On no fashion cancel my appointment", "cancel"),
+            ("Under no fashion cancel my appointment", "cancel"),
+            ("By no fashion cancel my appointment", "cancel"),
+            ("For no fashion cancel my appointment", "cancel"),
+            ("I will cancel for no fashion", "cancel"),
+            ("Please cancel for no fashion", "cancel"),
+            ("Cancel for no fashion", "cancel"),
+            ("I will, for no fashion, cancel my appointment", "cancel"),
+            ("I have no fashion, please cancel my appointment", "cancel"),
+            ("There is no fashion, please cancel", "cancel"),
+            ("Fashionable, please cancel", "cancel"),
+            ("Old-fashioned, please cancel", "cancel"),
+            ("Please be fashionable and cancel", "cancel"),
+            ("In no fashionable way, please cancel", "cancel"),
+            ("In no fashion of speaking, please cancel", "cancel"),
+            ("In no fashion whatsoever cancel my appointment", "cancel"),
+            ("In no fashion cancel or reschedule or book", "schedule"),
+            ("What is the fashion of cancellation", "cancel"),
+            ("By no manner of means should you cancel my appointment", "no_action"),
+            ("By no manner of means, please cancel my appointment", "cancel"),
+            ("By no manner of means can I cancel my appointment", "cancel"),
+            ("In no wise should you cancel my appointment", "no_action"),
+            ("I will cancel in no wise", "no_action"),
+            ("In no wise, please cancel my appointment", "cancel"),
+            ("In any wise cancel my appointment", "cancel"),
+            ("Otherwise, please cancel my appointment", "cancel"),
+            ("In no manner should you cancel my appointment", "no_action"),
+            ("I will cancel in no manner", "no_action"),
+            ("In no manner, please cancel my appointment", "cancel"),
+            ("In any manner cancel my appointment", "cancel"),
+            ("In a manner, please cancel my appointment", "cancel"),
+            ("In no sense should you cancel my appointment", "no_action"),
+            ("I will cancel in no sense", "no_action"),
+            ("In no sense, please cancel my appointment", "cancel"),
+            ("It makes no sense, please cancel my appointment", "cancel"),
+            ("In no respect should you cancel my appointment", "no_action"),
+            ("I will cancel in no respect", "no_action"),
+            ("Under no consideration should you cancel my appointment", "no_action"),
+            ("For no consideration cancel my appointment", "cancel"),
+            ("I will cancel for no consideration", "cancel"),
+            ("Under consideration, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Please cancel for no reason", "cancel"),
+            ("Cancel for no reason", "cancel"),
+            ("I will, for no reason, cancel my appointment", "cancel"),
+            ("For no pretext cancel my appointment", "cancel"),
+            ("For no pretense cancel my appointment", "cancel"),
+            ("On no pretense should you cancel my appointment", "no_action"),
+            ("I will cancel on no pretext", "no_action"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_by_no_manner_of_means_does_not_route_to_action(self) -> None:
+        examples = (
+            "By no manner of means cancel my appointment",
+            "By no manner of means, cancel my appointment",
+            "BY NO MANNER OF MEANS CANCEL",
+            "By no manner of means\u2014cancel my appointment",
+            "By no manner of means ever cancel my appointment",
+            "By no manner of means, ever, cancel my appointment",
+            "By no manner of means reschedule my appointment",
+            "By no manner of means schedule an appointment",
+            "By no manner of means call off my appointment",
+            "By no manner of means book a new appointment",
+            "By no manner of means the cancellation",
+            "By no manner of means a cancellation",
+            "By no manner of means want to cancel my appointment",
+            "By no manner of means ask them to cancel my appointment",
+            "By no manner of means have them cancel my appointment",
+            "By no manner of means let them cancel my appointment",
+            "By no manner of means go ahead and cancel my appointment",
+            "By no manner of means go and cancel my appointment",
+            "By no manner of means come and cancel my appointment",
+            "By no manner of means should you cancel my appointment",
+            "By no manner of means, should you cancel my appointment",
+            "By no manner of means will I cancel my appointment",
+            "By no manner of means do I want to cancel my appointment",
+            "By no manner of means am I going to cancel my appointment",
+            "By no manner of means am I to cancel my appointment",
+            "By no manner of means is this a cancellation",
+            "By no manner of means cancel or reschedule my appointment",
+            "By no manner of means cancel, reschedule, or book",
+            "By no manner of means should you cancel or reschedule",
+            "By no manner of means the cancellation or the reschedule",
+            "Cancel by no manner of means",
+            "I will cancel by no manner of means",
+            "I will cancel my appointment by no manner of means",
+            "I will cancel or reschedule by no manner of means",
+            "I will by no manner of means cancel my appointment",
+            "I will, by no manner of means, cancel my appointment",
+            "You must by no manner of means cancel my appointment",
+            "Please don't by no manner of means cancel my appointment",
+            "Please don't, by no manner of means, cancel my appointment",
+            "Please do not by no manner of means cancel my appointment",
+            "Never by no manner of means cancel my appointment",
+            "Please don't by no manner of means go and cancel my appointment",
+            "By no manner of means I refuse to cancel",
+            "Please ask the office to cancel, by no manner of means",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_by_no_manner_of_means_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("By no manner of means, please cancel my appointment", "cancel"),
+            ("By no manner of means please cancel my appointment", "cancel"),
+            ("By no manner of means wait, please cancel my appointment", "cancel"),
+            ("By no manner of means Tuesday, please cancel", "cancel"),
+            ("Please cancel, by no manner of means wait", "cancel"),
+            ("Please cancel. By no manner of means reschedule", "cancel"),
+            ("Please cancel, by no manner of means reschedule", "cancel"),
+            ("By no manner of means cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment by no manner of means, please reschedule",
+                "reschedule",
+            ),
+            ("By no manner of means go, and cancel my appointment", "cancel"),
+            ("By no manner of means go and wait, please cancel", "cancel"),
+            ("By no manner of means I will cancel my appointment", "cancel"),
+            ("By no manner of means, I will cancel my appointment", "cancel"),
+            ("By no manner of means refuse to cancel", "no_action"),
+            ("By no manner of means refuse the cancellation", "no_action"),
+            ("By no manner of means forget to cancel my appointment", "cancel"),
+            ("By no manner of means do not forget to cancel", "cancel"),
+            ("By no manner of means can I cancel my appointment", "cancel"),
+            ("By no manner of means could I cancel my appointment", "cancel"),
+            ("By no manner cancel my appointment", "cancel"),
+            ("By no manners of means cancel my appointment", "cancel"),
+            ("By no manner of mean cancel my appointment", "cancel"),
+            ("In no manner of means should you cancel my appointment", "cancel"),
+            ("On no manner of means cancel my appointment", "cancel"),
+            ("Under no manner of means cancel my appointment", "cancel"),
+            ("For no manner of means cancel my appointment", "cancel"),
+            ("I will cancel for no manner of means", "cancel"),
+            ("Not by any manner of means cancel my appointment", "cancel"),
+            ("Please don't by any manner of means cancel my appointment", "cancel"),
+            ("By any manner of means, please cancel my appointment", "cancel"),
+            ("By no manner of means whatsoever cancel my appointment", "cancel"),
+            ("By no manner of means cancel or reschedule or book", "schedule"),
+            ("I have no manner, please cancel my appointment", "cancel"),
+            ("In no manner of speaking, please cancel", "cancel"),
+            ("In a manner, please cancel my appointment", "cancel"),
+            ("In any manner cancel my appointment", "cancel"),
+            ("In no manner should you cancel my appointment", "no_action"),
+            ("I will cancel in no manner", "no_action"),
+            ("In no manner, please cancel my appointment", "cancel"),
+            ("By no means should you cancel my appointment", "no_action"),
+            ("I will cancel by no means", "no_action"),
+            ("By no means, please cancel my appointment", "cancel"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("I will cancel in no fashion", "no_action"),
+            ("In no fashion, please cancel my appointment", "cancel"),
+            ("In no fashion I will cancel my appointment", "cancel"),
+            ("In no fashion can I cancel my appointment", "cancel"),
+            ("In no wise should you cancel my appointment", "no_action"),
+            ("In no sense should you cancel my appointment", "no_action"),
+            ("It makes no sense, please cancel my appointment", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("By no stretch of the imagination should you cancel my appointment", "no_action"),
+            ("By no stretch of the imagination, please cancel my appointment", "cancel"),
+            ("By no stretch should you cancel my appointment", "cancel"),
+            ("I will cancel by no stretch", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("For no fashion cancel my appointment", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_by_no_stretch_of_the_imagination_does_not_route_to_action(self) -> None:
+        examples = (
+            "By no stretch of the imagination cancel my appointment",
+            "By no stretch of the imagination, cancel my appointment",
+            "BY NO STRETCH OF THE IMAGINATION CANCEL",
+            "By no stretch of the imagination\u2014cancel my appointment",
+            "By no stretch of the imagination ever cancel my appointment",
+            "By no stretch of the imagination, ever, cancel my appointment",
+            "By no stretch of the imagination reschedule my appointment",
+            "By no stretch of the imagination schedule an appointment",
+            "By no stretch of the imagination call off my appointment",
+            "By no stretch of the imagination book a new appointment",
+            "By no stretch of the imagination the cancellation",
+            "By no stretch of the imagination a cancellation",
+            "By no stretch of the imagination want to cancel my appointment",
+            "By no stretch of the imagination ask them to cancel my appointment",
+            "By no stretch of the imagination have them cancel my appointment",
+            "By no stretch of the imagination let them cancel my appointment",
+            "By no stretch of the imagination go ahead and cancel my appointment",
+            "By no stretch of the imagination go and cancel my appointment",
+            "By no stretch of the imagination come and cancel my appointment",
+            "By no stretch of the imagination should you cancel my appointment",
+            "By no stretch of the imagination, should you cancel my appointment",
+            "By no stretch of the imagination will I cancel my appointment",
+            "By no stretch of the imagination do I want to cancel my appointment",
+            "By no stretch of the imagination am I going to cancel my appointment",
+            "By no stretch of the imagination am I to cancel my appointment",
+            "By no stretch of the imagination is this a cancellation",
+            "By no stretch of the imagination cancel or reschedule my appointment",
+            "By no stretch of the imagination cancel, reschedule, or book",
+            "By no stretch of the imagination should you cancel or reschedule",
+            "By no stretch of the imagination the cancellation or the reschedule",
+            "Cancel by no stretch of the imagination",
+            "I will cancel by no stretch of the imagination",
+            "I will cancel my appointment by no stretch of the imagination",
+            "I will cancel or reschedule by no stretch of the imagination",
+            "I will by no stretch of the imagination cancel my appointment",
+            "I will, by no stretch of the imagination, cancel my appointment",
+            "You must by no stretch of the imagination cancel my appointment",
+            "Please don't by no stretch of the imagination cancel my appointment",
+            "Please don't, by no stretch of the imagination, cancel my appointment",
+            "Please do not by no stretch of the imagination cancel my appointment",
+            "Never by no stretch of the imagination cancel my appointment",
+            "Please don't by no stretch of the imagination go and cancel my appointment",
+            "By no stretch of the imagination I refuse to cancel",
+            "Please ask the office to cancel, by no stretch of the imagination",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_by_no_stretch_of_the_imagination_mixed_messages_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("By no stretch of the imagination, please cancel my appointment", "cancel"),
+            ("By no stretch of the imagination please cancel my appointment", "cancel"),
+            ("By no stretch of the imagination wait, please cancel my appointment", "cancel"),
+            ("By no stretch of the imagination Tuesday, please cancel", "cancel"),
+            ("Please cancel, by no stretch of the imagination wait", "cancel"),
+            ("Please cancel. By no stretch of the imagination reschedule", "cancel"),
+            ("Please cancel, by no stretch of the imagination reschedule", "cancel"),
+            ("By no stretch of the imagination cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment by no stretch of the imagination, please reschedule",
+                "reschedule",
+            ),
+            ("By no stretch of the imagination go, and cancel my appointment", "cancel"),
+            ("By no stretch of the imagination go and wait, please cancel", "cancel"),
+            ("By no stretch of the imagination I will cancel my appointment", "cancel"),
+            ("By no stretch of the imagination, I will cancel my appointment", "cancel"),
+            ("By no stretch of the imagination refuse to cancel", "no_action"),
+            ("By no stretch of the imagination refuse the cancellation", "no_action"),
+            ("By no stretch of the imagination forget to cancel my appointment", "cancel"),
+            ("By no stretch of the imagination do not forget to cancel", "cancel"),
+            ("By no stretch of the imagination can I cancel my appointment", "cancel"),
+            ("By no stretch of the imagination could I cancel my appointment", "cancel"),
+            ("By no stretch should you cancel my appointment", "cancel"),
+            ("By no stretch cancel my appointment", "cancel"),
+            ("I will cancel by no stretch", "cancel"),
+            ("By no stretches of the imagination cancel my appointment", "cancel"),
+            ("By no stretching of the imagination cancel my appointment", "cancel"),
+            ("By no stretch of the imaginations should you cancel", "cancel"),
+            ("By no stretch of imagination should you cancel", "cancel"),
+            ("By no stretch of my imagination should you cancel", "cancel"),
+            ("In no stretch of the imagination should you cancel", "cancel"),
+            ("On no stretch of the imagination cancel my appointment", "cancel"),
+            ("Under no stretch of the imagination cancel my appointment", "cancel"),
+            ("For no stretch of the imagination cancel my appointment", "cancel"),
+            ("I will cancel for no stretch of the imagination", "cancel"),
+            ("Not by any stretch of the imagination cancel my appointment", "cancel"),
+            ("Please don't by any stretch of the imagination cancel my appointment", "cancel"),
+            ("By any stretch of the imagination, please cancel my appointment", "cancel"),
+            ("By no stretch of the imagination whatsoever cancel my appointment", "cancel"),
+            ("By no stretch of the imagination cancel or reschedule or book", "schedule"),
+            ("I have no stretch, please cancel my appointment", "cancel"),
+            ("There is no stretch, please cancel", "cancel"),
+            ("I have no stretch of the imagination, please cancel", "cancel"),
+            ("Home stretch, please cancel my appointment", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("By no manner of means should you cancel my appointment", "no_action"),
+            ("By no manner of means, please cancel my appointment", "cancel"),
+            ("By no manner of means can I cancel my appointment", "cancel"),
+            ("By no manner cancel my appointment", "cancel"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("I will cancel in no fashion", "no_action"),
+            ("In no fashion, please cancel my appointment", "cancel"),
+            ("By no means should you cancel my appointment", "no_action"),
+            ("I will cancel by no means", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("For no fashion cancel my appointment", "cancel"),
+            ("It makes no sense, please cancel my appointment", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_at_no_stage_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no stage cancel my appointment",
+            "At no stage, cancel my appointment",
+            "AT NO STAGE CANCEL",
+            "At no stage\u2014cancel my appointment",
+            "At no stage ever cancel my appointment",
+            "At no stage, ever, cancel my appointment",
+            "At no stage reschedule my appointment",
+            "At no stage schedule an appointment",
+            "At no stage call off my appointment",
+            "At no stage book a new appointment",
+            "At no stage the cancellation",
+            "At no stage a cancellation",
+            "At no stage want to cancel my appointment",
+            "At no stage ask them to cancel my appointment",
+            "At no stage have them cancel my appointment",
+            "At no stage let them cancel my appointment",
+            "At no stage go ahead and cancel my appointment",
+            "At no stage go and cancel my appointment",
+            "At no stage come and cancel my appointment",
+            "At no stage should you cancel my appointment",
+            "At no stage will I cancel my appointment",
+            "At no stage do I want to cancel my appointment",
+            "At no stage am I going to cancel my appointment",
+            "At no stage am I to cancel my appointment",
+            "At no stage is this a cancellation",
+            "At no stage cancel or reschedule my appointment",
+            "At no stage cancel, reschedule, or book",
+            "At no stage should you cancel or reschedule",
+            "At no stage the cancellation or the reschedule",
+            "Cancel at no stage",
+            "I will cancel at no stage",
+            "I will cancel my appointment at no stage",
+            "I will cancel or reschedule at no stage",
+            "I will at no stage cancel my appointment",
+            "I will, at no stage, cancel my appointment",
+            "You must at no stage cancel my appointment",
+            "Please don't at no stage cancel my appointment",
+            "Please don't, at no stage, cancel my appointment",
+            "Please do not at no stage cancel my appointment",
+            "Never at no stage cancel my appointment",
+            "Please don't at no stage go and cancel my appointment",
+            "At no stage I refuse to cancel",
+            "Please ask the office to cancel, at no stage",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_stage_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no stage, please cancel my appointment", "cancel"),
+            ("At no stage please cancel my appointment", "cancel"),
+            ("At no stage wait, please cancel my appointment", "cancel"),
+            ("At no stage Tuesday, please cancel", "cancel"),
+            ("Please cancel, at no stage wait", "cancel"),
+            ("Please cancel. At no stage reschedule", "cancel"),
+            ("Please cancel, at no stage reschedule", "cancel"),
+            ("At no stage cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no stage, please reschedule",
+                "reschedule",
+            ),
+            ("At no stage go, and cancel my appointment", "cancel"),
+            ("At no stage go and wait, please cancel", "cancel"),
+            ("At no stage I will cancel my appointment", "cancel"),
+            ("At no stage, I will cancel my appointment", "cancel"),
+            ("At no stage refuse to cancel", "no_action"),
+            ("At no stage refuse the cancellation", "no_action"),
+            ("At no stage forget to cancel my appointment", "cancel"),
+            ("At no stage do not forget to cancel", "cancel"),
+            ("At no stage can I cancel my appointment", "cancel"),
+            ("At no stage could I cancel my appointment", "cancel"),
+            ("At any stage cancel my appointment", "cancel"),
+            ("Please don't at any stage cancel my appointment", "cancel"),
+            ("Not at any stage cancel my appointment", "cancel"),
+            ("At the stage, please cancel my appointment", "cancel"),
+            ("At this stage, please cancel my appointment", "cancel"),
+            ("At that stage, please cancel my appointment", "cancel"),
+            ("At one stage, please cancel my appointment", "cancel"),
+            ("At some stage, please cancel my appointment", "cancel"),
+            ("In no stage should you cancel my appointment", "cancel"),
+            ("On no stage should you cancel my appointment", "cancel"),
+            ("By no stage should you cancel my appointment", "cancel"),
+            ("Under no stage cancel my appointment", "cancel"),
+            ("For no stage cancel my appointment", "cancel"),
+            ("I will cancel for no stage", "cancel"),
+            ("Please cancel for no stage", "cancel"),
+            ("I have no stage, please cancel my appointment", "cancel"),
+            ("There is no stage, please cancel", "cancel"),
+            ("No stage cancel my appointment", "cancel"),
+            ("At no stages should you cancel my appointment", "cancel"),
+            ("At no stage whatsoever cancel my appointment", "cancel"),
+            ("At no stage cancel or reschedule or book", "schedule"),
+            ("At no stage in the process, please cancel", "cancel"),
+            ("Please cancel my appointment at no stage tomorrow", "cancel"),
+            ("Please don't at no stage, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, the policy says at no stage",
+                "cancel",
+            ),
+            ("Home stage, please cancel my appointment", "cancel"),
+            ("Staging, please cancel my appointment", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no score cancel my appointment", "cancel"),
+            ("In no degree should you cancel my appointment", "no_action"),
+            ("I will cancel in no degree", "no_action"),
+            ("In no degree, please cancel my appointment", "cancel"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("I will cancel to no extent", "no_action"),
+            ("To no extent, please cancel my appointment", "cancel"),
+            ("By no stretch of the imagination should you cancel my appointment", "no_action"),
+            ("By no stretch of the imagination, please cancel my appointment", "cancel"),
+            ("At no point should you cancel my appointment", "no_action"),
+            ("At no time should you cancel my appointment", "no_action"),
+            ("I will cancel for no reason", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_degree_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no degree cancel my appointment",
+            "In no degree, cancel my appointment",
+            "IN NO DEGREE CANCEL",
+            "In no degree\u2014cancel my appointment",
+            "In no degree ever cancel my appointment",
+            "In no degree, ever, cancel my appointment",
+            "In no degree reschedule my appointment",
+            "In no degree schedule an appointment",
+            "In no degree call off my appointment",
+            "In no degree book a new appointment",
+            "In no degree the cancellation",
+            "In no degree a cancellation",
+            "In no degree want to cancel my appointment",
+            "In no degree ask them to cancel my appointment",
+            "In no degree have them cancel my appointment",
+            "In no degree let them cancel my appointment",
+            "In no degree go ahead and cancel my appointment",
+            "In no degree go and cancel my appointment",
+            "In no degree come and cancel my appointment",
+            "In no degree should you cancel my appointment",
+            "In no degree, should you cancel my appointment",
+            "In no degree will I cancel my appointment",
+            "In no degree do I want to cancel my appointment",
+            "In no degree am I going to cancel my appointment",
+            "In no degree am I to cancel my appointment",
+            "In no degree is this a cancellation",
+            "In no degree cancel or reschedule my appointment",
+            "In no degree cancel, reschedule, or book",
+            "In no degree should you cancel or reschedule",
+            "In no degree the cancellation or the reschedule",
+            "Cancel in no degree",
+            "I will cancel in no degree",
+            "I will cancel my appointment in no degree",
+            "I will cancel or reschedule in no degree",
+            "I will in no degree cancel my appointment",
+            "I will, in no degree, cancel my appointment",
+            "You must in no degree cancel my appointment",
+            "Please don't in no degree cancel my appointment",
+            "Please don't, in no degree, cancel my appointment",
+            "Please do not in no degree cancel my appointment",
+            "Never in no degree cancel my appointment",
+            "Please don't in no degree go and cancel my appointment",
+            "In no degree I refuse to cancel",
+            "Please ask the office to cancel, in no degree",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_degree_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no degree, please cancel my appointment", "cancel"),
+            ("In no degree please cancel my appointment", "cancel"),
+            ("In no degree wait, please cancel my appointment", "cancel"),
+            ("In no degree Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no degree wait", "cancel"),
+            ("Please cancel. In no degree reschedule", "cancel"),
+            ("Please cancel, in no degree reschedule", "cancel"),
+            ("In no degree cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no degree, please reschedule",
+                "reschedule",
+            ),
+            ("In no degree go, and cancel my appointment", "cancel"),
+            ("In no degree go and wait, please cancel", "cancel"),
+            ("In no degree I will cancel my appointment", "cancel"),
+            ("In no degree, I will cancel my appointment", "cancel"),
+            ("In no degree refuse to cancel", "no_action"),
+            ("In no degree refuse the cancellation", "no_action"),
+            ("In no degree forget to cancel my appointment", "cancel"),
+            ("In no degree do not forget to cancel", "cancel"),
+            ("In no degree can I cancel my appointment", "cancel"),
+            ("In no degree could I cancel my appointment", "cancel"),
+            ("In any degree cancel my appointment", "cancel"),
+            ("Please don't in any degree cancel my appointment", "cancel"),
+            ("Not in any degree cancel my appointment", "cancel"),
+            ("In some degree, please cancel my appointment", "cancel"),
+            ("In a degree, please cancel my appointment", "cancel"),
+            ("To some degree, please cancel my appointment", "cancel"),
+            ("To a degree, please cancel my appointment", "cancel"),
+            ("To no degree should you cancel my appointment", "cancel"),
+            ("To no degree, please cancel my appointment", "cancel"),
+            ("To no degree I will cancel my appointment", "cancel"),
+            ("To no degree can I cancel my appointment", "cancel"),
+            ("On no degree should you cancel my appointment", "cancel"),
+            ("By no degree should you cancel my appointment", "cancel"),
+            ("For no degree cancel my appointment", "cancel"),
+            ("I will cancel for no degree", "cancel"),
+            ("Please cancel for no degree", "cancel"),
+            ("Cancel for no degree", "cancel"),
+            ("I will, for no degree, cancel my appointment", "cancel"),
+            ("In no degrees should you cancel my appointment", "cancel"),
+            ("I have no degree, please cancel my appointment", "cancel"),
+            ("There is no degree, please cancel", "cancel"),
+            ("No degree cancel my appointment", "cancel"),
+            ("Third degree, please cancel my appointment", "cancel"),
+            ("In no degree of the process should you cancel", "cancel"),
+            ("In no degree whatsoever cancel my appointment", "cancel"),
+            ("In no degree cancel or reschedule or book", "schedule"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("I will cancel to no extent", "no_action"),
+            ("To no extent, please cancel my appointment", "cancel"),
+            ("To no extent I will cancel my appointment", "cancel"),
+            ("To no extent can I cancel my appointment", "cancel"),
+            ("To some extent, please cancel my appointment", "cancel"),
+            ("To an extent, please cancel my appointment", "cancel"),
+            ("To any extent cancel my appointment", "cancel"),
+            ("For no extent cancel my appointment", "cancel"),
+            ("In no extent should you cancel my appointment", "cancel"),
+            ("At no stage should you cancel my appointment", "no_action"),
+            ("I will cancel at no stage", "no_action"),
+            ("At no stage, please cancel my appointment", "cancel"),
+            ("At no stage I will cancel my appointment", "cancel"),
+            ("At no stage can I cancel my appointment", "cancel"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("I will cancel in no fashion", "no_action"),
+            ("In no fashion, please cancel my appointment", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("By no stretch of the imagination should you cancel my appointment", "no_action"),
+            ("By no stretch of the imagination, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_to_no_extent_does_not_route_to_action(self) -> None:
+        examples = (
+            "To no extent cancel my appointment",
+            "To no extent, cancel my appointment",
+            "TO NO EXTENT CANCEL",
+            "To no extent\u2014cancel my appointment",
+            "To no extent ever cancel my appointment",
+            "To no extent, ever, cancel my appointment",
+            "To no extent reschedule my appointment",
+            "To no extent schedule an appointment",
+            "To no extent call off my appointment",
+            "To no extent book a new appointment",
+            "To no extent the cancellation",
+            "To no extent a cancellation",
+            "To no extent want to cancel my appointment",
+            "To no extent ask them to cancel my appointment",
+            "To no extent have them cancel my appointment",
+            "To no extent let them cancel my appointment",
+            "To no extent go ahead and cancel my appointment",
+            "To no extent go and cancel my appointment",
+            "To no extent come and cancel my appointment",
+            "To no extent should you cancel my appointment",
+            "To no extent, should you cancel my appointment",
+            "To no extent will I cancel my appointment",
+            "To no extent do I want to cancel my appointment",
+            "To no extent am I going to cancel my appointment",
+            "To no extent am I to cancel my appointment",
+            "To no extent is this a cancellation",
+            "To no extent cancel or reschedule my appointment",
+            "To no extent cancel, reschedule, or book",
+            "To no extent should you cancel or reschedule",
+            "To no extent the cancellation or the reschedule",
+            "Cancel to no extent",
+            "I will cancel to no extent",
+            "I will cancel my appointment to no extent",
+            "I will cancel or reschedule to no extent",
+            "I will to no extent cancel my appointment",
+            "I will, to no extent, cancel my appointment",
+            "You must to no extent cancel my appointment",
+            "Please don't to no extent cancel my appointment",
+            "Please don't, to no extent, cancel my appointment",
+            "Please do not to no extent cancel my appointment",
+            "Never to no extent cancel my appointment",
+            "Please don't to no extent go and cancel my appointment",
+            "To no extent I refuse to cancel",
+            "Please ask the office to cancel, to no extent",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_to_no_extent_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("To no extent, please cancel my appointment", "cancel"),
+            ("To no extent please cancel my appointment", "cancel"),
+            ("To no extent wait, please cancel my appointment", "cancel"),
+            ("To no extent Tuesday, please cancel", "cancel"),
+            ("Please cancel, to no extent wait", "cancel"),
+            ("Please cancel. To no extent reschedule", "cancel"),
+            ("Please cancel, to no extent reschedule", "cancel"),
+            ("To no extent cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment to no extent, please reschedule",
+                "reschedule",
+            ),
+            ("To no extent go, and cancel my appointment", "cancel"),
+            ("To no extent go and wait, please cancel", "cancel"),
+            ("To no extent I will cancel my appointment", "cancel"),
+            ("To no extent, I will cancel my appointment", "cancel"),
+            ("To no extent refuse to cancel", "no_action"),
+            ("To no extent refuse the cancellation", "no_action"),
+            ("To no extent forget to cancel my appointment", "cancel"),
+            ("To no extent do not forget to cancel", "cancel"),
+            ("To no extent can I cancel my appointment", "cancel"),
+            ("To no extent could I cancel my appointment", "cancel"),
+            ("To any extent cancel my appointment", "cancel"),
+            ("Please don't to any extent cancel my appointment", "cancel"),
+            ("Not to any extent cancel my appointment", "cancel"),
+            ("To some extent, please cancel my appointment", "cancel"),
+            ("To some extent please cancel my appointment", "cancel"),
+            ("To an extent, please cancel my appointment", "cancel"),
+            ("To the extent, please cancel my appointment", "cancel"),
+            ("For no extent cancel my appointment", "cancel"),
+            ("I will cancel for no extent", "cancel"),
+            ("Please cancel for no extent", "cancel"),
+            ("Cancel for no extent", "cancel"),
+            ("I will, for no extent, cancel my appointment", "cancel"),
+            ("To no extents should you cancel my appointment", "cancel"),
+            ("In no extent should you cancel my appointment", "cancel"),
+            ("On no extent should you cancel my appointment", "cancel"),
+            ("By no extent should you cancel my appointment", "cancel"),
+            ("I have no extent, please cancel my appointment", "cancel"),
+            ("There is no extent, please cancel", "cancel"),
+            ("No extent cancel my appointment", "cancel"),
+            ("To no extent of the process should you cancel", "cancel"),
+            ("To no extent whatsoever cancel my appointment", "cancel"),
+            ("To no extent cancel or reschedule or book", "schedule"),
+            ("In no degree should you cancel my appointment", "no_action"),
+            ("I will cancel in no degree", "no_action"),
+            ("In no degree, please cancel my appointment", "cancel"),
+            ("In no degree I will cancel my appointment", "cancel"),
+            ("In no degree can I cancel my appointment", "cancel"),
+            ("Not in any degree cancel my appointment", "cancel"),
+            ("To some degree, please cancel my appointment", "cancel"),
+            ("To a degree, please cancel my appointment", "cancel"),
+            ("To no degree should you cancel my appointment", "cancel"),
+            ("For no degree cancel my appointment", "cancel"),
+            ("I will cancel for no degree", "cancel"),
+            ("I have no degree, please cancel my appointment", "cancel"),
+            ("At no stage should you cancel my appointment", "no_action"),
+            ("At no stage, please cancel my appointment", "cancel"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no score cancel my appointment", "cancel"),
+            ("By no stretch of the imagination should you cancel my appointment", "no_action"),
+            ("By no stretch of the imagination, please cancel my appointment", "cancel"),
+            ("I will cancel for no reason", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_way_shape_or_form_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no way, shape, or form cancel my appointment",
+            "In no way, shape, or form, cancel my appointment",
+            "IN NO WAY, SHAPE, OR FORM CANCEL",
+            "In no way\u2014shape, or form\u2014cancel my appointment",
+            "In no way, shape or form cancel my appointment",
+            "In no way shape or form cancel my appointment",
+            "In no way, shape, or form ever cancel my appointment",
+            "In no way, shape, or form, ever, cancel my appointment",
+            "In no way, shape, or form reschedule my appointment",
+            "In no way, shape, or form schedule an appointment",
+            "In no way, shape, or form call off my appointment",
+            "In no way, shape, or form book a new appointment",
+            "In no way, shape, or form the cancellation",
+            "In no way, shape, or form a cancellation",
+            "In no way, shape, or form want to cancel my appointment",
+            "In no way, shape, or form ask them to cancel my appointment",
+            "In no way, shape, or form have them cancel my appointment",
+            "In no way, shape, or form let them cancel my appointment",
+            "In no way, shape, or form go ahead and cancel my appointment",
+            "In no way, shape, or form go and cancel my appointment",
+            "In no way, shape, or form come and cancel my appointment",
+            "In no way, shape, or form should you cancel my appointment",
+            "In no way, shape, or form, should you cancel my appointment",
+            "In no way, shape or form should you cancel my appointment",
+            "In no way shape or form should you cancel my appointment",
+            "In no way, shape, or form will I cancel my appointment",
+            "In no way, shape, or form do I want to cancel my appointment",
+            "In no way, shape, or form am I going to cancel my appointment",
+            "In no way, shape, or form am I to cancel my appointment",
+            "In no way, shape, or form is this a cancellation",
+            "In no way, shape, or form cancel or reschedule my appointment",
+            "In no way, shape, or form cancel, reschedule, or book",
+            "In no way, shape, or form should you cancel or reschedule",
+            "In no way, shape, or form the cancellation or the reschedule",
+            "Cancel in no way, shape, or form",
+            "I will cancel in no way, shape, or form",
+            "I will cancel my appointment in no way, shape, or form",
+            "I will cancel or reschedule in no way, shape, or form",
+            "I will in no way, shape, or form cancel my appointment",
+            "I will, in no way, shape, or form, cancel my appointment",
+            "You must in no way, shape, or form cancel my appointment",
+            "Please don't in no way, shape, or form cancel my appointment",
+            "Please don't, in no way, shape, or form, cancel my appointment",
+            "Please do not in no way, shape, or form cancel my appointment",
+            "Never in no way, shape, or form cancel my appointment",
+            "Please don't in no way, shape, or form go and cancel my appointment",
+            "In no way, shape, or form I refuse to cancel",
+            "Please ask the office to cancel, in no way, shape, or form",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_way_shape_or_form_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no way, shape, or form, please cancel my appointment", "cancel"),
+            ("In no way, shape, or form please cancel my appointment", "cancel"),
+            ("In no way, shape or form, please cancel my appointment", "cancel"),
+            ("In no way shape or form, please cancel my appointment", "cancel"),
+            ("In no way, shape, or form wait, please cancel my appointment", "cancel"),
+            ("In no way, shape, or form Tuesday, please cancel", "cancel"),
+            ("Please cancel, in no way, shape, or form wait", "cancel"),
+            ("Please cancel. In no way, shape, or form reschedule", "cancel"),
+            ("Please cancel, in no way, shape, or form reschedule", "cancel"),
+            ("In no way, shape, or form cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no way, shape, or form, please reschedule",
+                "reschedule",
+            ),
+            ("In no way, shape, or form go, and cancel my appointment", "cancel"),
+            ("In no way, shape, or form go and wait, please cancel", "cancel"),
+            ("In no way, shape, or form I will cancel my appointment", "cancel"),
+            ("In no way, shape, or form, I will cancel my appointment", "cancel"),
+            ("In no way, shape, or form refuse to cancel", "no_action"),
+            ("In no way, shape, or form refuse the cancellation", "no_action"),
+            ("In no way, shape, or form forget to cancel my appointment", "cancel"),
+            ("In no way, shape, or form do not forget to cancel", "cancel"),
+            ("In no way, shape, or form can I cancel my appointment", "cancel"),
+            ("In no way, shape, or form could I cancel my appointment", "cancel"),
+            ("In any way, shape, or form should you cancel my appointment", "cancel"),
+            ("Please don't in any way, shape, or form cancel my appointment", "cancel"),
+            ("Not in any way, shape, or form cancel my appointment", "cancel"),
+            ("No way, shape, or form should you cancel my appointment", "cancel"),
+            ("No way, shape, or form, please cancel my appointment", "cancel"),
+            ("I have no way, shape, or form to cancel my appointment", "cancel"),
+            ("There is no way, shape, or form to cancel my appointment", "cancel"),
+            ("In no ways, shape, or form should you cancel my appointment", "cancel"),
+            ("In no way, shapes, or form should you cancel my appointment", "cancel"),
+            ("In no way, shape, or forms should you cancel my appointment", "cancel"),
+            ("In no way, shape, or form whatsoever cancel my appointment", "cancel"),
+            ("In no way, shape, or form of the process should you cancel", "cancel"),
+            ("In no way, shape, or form cancel or reschedule or book", "schedule"),
+            ("In no way, shape, please cancel my appointment", "cancel"),
+            ("In no way, please cancel my appointment", "cancel"),
+            ("In no way should you cancel my appointment", "no_action"),
+            ("I will cancel in no way", "no_action"),
+            ("In no shape should you cancel my appointment", "cancel"),
+            ("In no shape, please cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("In no measure should you cancel my appointment", "cancel"),
+            ("I will cancel in no measure", "cancel"),
+            ("In no small measure, please cancel my appointment", "cancel"),
+            ("In no small measure should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no score cancel my appointment", "cancel"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("To no extent, please cancel my appointment", "cancel"),
+            ("I will cancel to no extent", "no_action"),
+            ("In no degree should you cancel my appointment", "no_action"),
+            ("At no stage should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_way_shape_and_nor_form_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no way, shape, and form cancel my appointment",
+            "In no way, shape, and form, cancel my appointment",
+            "IN NO WAY, SHAPE, AND FORM CANCEL",
+            "In no way\u2014shape, and form\u2014cancel my appointment",
+            "In no way, shape and form cancel my appointment",
+            "In no way shape and form cancel my appointment",
+            "In no way, shape, and form ever cancel my appointment",
+            "In no way, shape, and form reschedule my appointment",
+            "In no way, shape, and form schedule an appointment",
+            "In no way, shape, and form call off my appointment",
+            "In no way, shape, and form book a new appointment",
+            "In no way, shape, and form the cancellation",
+            "In no way, shape, and form want to cancel my appointment",
+            "In no way, shape, and form ask them to cancel my appointment",
+            "In no way, shape, and form have them cancel my appointment",
+            "In no way, shape, and form let them cancel my appointment",
+            "In no way, shape, and form go ahead and cancel my appointment",
+            "In no way, shape, and form go and cancel my appointment",
+            "In no way, shape, and form come and cancel my appointment",
+            "In no way, shape, and form should you cancel my appointment",
+            "In no way, shape, and form, should you cancel my appointment",
+            "In no way, shape and form should you cancel my appointment",
+            "In no way shape and form should you cancel my appointment",
+            "In no way, shape, and form will I cancel my appointment",
+            "In no way, shape, and form do I want to cancel my appointment",
+            "In no way, shape, and form am I going to cancel my appointment",
+            "In no way, shape, and form cancel or reschedule my appointment",
+            "In no way, shape, and form cancel, reschedule, or book",
+            "In no way, shape, and form should you cancel or reschedule",
+            "Cancel in no way, shape, and form",
+            "I will cancel in no way, shape, and form",
+            "I will cancel my appointment in no way, shape, and form",
+            "I will cancel or reschedule in no way, shape, and form",
+            "I will in no way, shape, and form cancel my appointment",
+            "I will, in no way, shape, and form, cancel my appointment",
+            "You must in no way, shape, and form cancel my appointment",
+            "Please don't in no way, shape, and form cancel my appointment",
+            "Please don't, in no way, shape, and form, cancel my appointment",
+            "Please do not in no way, shape, and form cancel my appointment",
+            "Never in no way, shape, and form cancel my appointment",
+            "Please don't in no way, shape, and form go and cancel my appointment",
+            "In no way, shape, and form I refuse to cancel",
+            "Please ask the office to cancel, in no way, shape, and form",
+            "In no way, shape, nor form cancel my appointment",
+            "In no way, shape, nor form, cancel my appointment",
+            "IN NO WAY, SHAPE, NOR FORM CANCEL",
+            "In no way\u2014shape, nor form\u2014cancel my appointment",
+            "In no way, shape nor form cancel my appointment",
+            "In no way shape nor form cancel my appointment",
+            "In no way, shape, nor form should you cancel my appointment",
+            "In no way, shape nor form should you cancel my appointment",
+            "In no way shape nor form should you cancel my appointment",
+            "In no way, shape, nor form will I cancel my appointment",
+            "In no way, shape, nor form go and cancel my appointment",
+            "In no way, shape, nor form have them cancel my appointment",
+            "In no way, shape, nor form cancel or reschedule my appointment",
+            "In no way, shape, nor form cancel, reschedule, or book",
+            "Cancel in no way, shape, nor form",
+            "I will cancel in no way, shape, nor form",
+            "I will cancel my appointment in no way, shape, nor form",
+            "I will in no way, shape, nor form cancel my appointment",
+            "Please don't in no way, shape, nor form cancel my appointment",
+            "Please don't, in no way, shape, nor form, cancel my appointment",
+            "Never in no way, shape, nor form cancel my appointment",
+            "Please don't in no way, shape, nor form go and cancel my appointment",
+            "In no way, shape, nor form I refuse to cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_way_shape_and_nor_form_mixed_messages_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("In no way, shape, and form, please cancel my appointment", "cancel"),
+            ("In no way, shape, and form please cancel my appointment", "cancel"),
+            ("In no way, shape and form, please cancel my appointment", "cancel"),
+            ("In no way shape and form, please cancel my appointment", "cancel"),
+            ("In no way, shape, nor form, please cancel my appointment", "cancel"),
+            ("In no way, shape, nor form please cancel my appointment", "cancel"),
+            ("In no way, shape nor form, please cancel my appointment", "cancel"),
+            ("Please cancel, in no way, shape, and form reschedule", "cancel"),
+            ("Please cancel, in no way, shape, nor form reschedule", "cancel"),
+            ("In no way, shape, and form cancel, please reschedule", "reschedule"),
+            ("In no way, shape, nor form cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no way, shape, and form, please reschedule",
+                "reschedule",
+            ),
+            ("In no way, shape, and form I will cancel my appointment", "cancel"),
+            ("In no way, shape, and form, I will cancel my appointment", "cancel"),
+            ("In no way, shape, nor form I will cancel my appointment", "cancel"),
+            ("In no way, shape, nor form, I will cancel my appointment", "cancel"),
+            ("In no way, shape, and form refuse to cancel", "no_action"),
+            ("In no way, shape, and form refuse the cancellation", "no_action"),
+            ("In no way, shape, nor form refuse to cancel", "no_action"),
+            ("In no way, shape, and form forget to cancel my appointment", "cancel"),
+            ("In no way, shape, and form do not forget to cancel", "cancel"),
+            ("In no way, shape, nor form forget to cancel my appointment", "cancel"),
+            ("In no way, shape, and form can I cancel my appointment", "cancel"),
+            ("In no way, shape, and form could I cancel my appointment", "cancel"),
+            ("In no way, shape, nor form can I cancel my appointment", "cancel"),
+            ("In no way, shape, nor form could I cancel my appointment", "cancel"),
+            ("In any way, shape, and form should you cancel my appointment", "cancel"),
+            ("Please don't in any way, shape, and form cancel my appointment", "cancel"),
+            ("Not in any way, shape, and form cancel my appointment", "cancel"),
+            ("Not in any way, shape, nor form cancel my appointment", "cancel"),
+            ("No way, shape, and form should you cancel my appointment", "cancel"),
+            ("No way, shape, nor form should you cancel my appointment", "cancel"),
+            ("No way, shape, and form, please cancel my appointment", "cancel"),
+            ("In no ways, shape, and form should you cancel my appointment", "cancel"),
+            ("In no way, shapes, and form should you cancel my appointment", "cancel"),
+            ("In no way, shape, and forms should you cancel my appointment", "cancel"),
+            ("In no ways, shape, nor form should you cancel my appointment", "cancel"),
+            ("In no way, shapes, nor form should you cancel my appointment", "cancel"),
+            ("In no way, shape, nor forms should you cancel my appointment", "cancel"),
+            ("In no way, shape, and form whatsoever cancel my appointment", "cancel"),
+            ("In no way, shape, nor form whatsoever cancel my appointment", "cancel"),
+            ("In no way, shape, and form of the process should you cancel", "cancel"),
+            ("In no way, shape, nor form of the process should you cancel", "cancel"),
+            ("In no way, shape, and form cancel or reschedule or book", "schedule"),
+            ("In no way, shape, nor form cancel or reschedule or book", "schedule"),
+            ("In no way and shape or form should you cancel my appointment", "cancel"),
+            ("In no way, and shape, or form should you cancel my appointment", "cancel"),
+            ("In no way, shape, or and form should you cancel my appointment", "cancel"),
+            ("In no shape and form should you cancel my appointment", "cancel"),
+            ("In no shape, and form should you cancel my appointment", "cancel"),
+            ("In no shape nor form should you cancel my appointment", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("I'm in no shape, please cancel my appointment", "cancel"),
+            ("In no way, please cancel my appointment", "cancel"),
+            ("In no way should you cancel my appointment", "no_action"),
+            ("In no way, shape, or form should you cancel my appointment", "no_action"),
+            ("I will cancel in no way, shape, or form", "no_action"),
+            ("In no measure should you cancel my appointment", "cancel"),
+            ("I will cancel in no measure", "cancel"),
+            ("In no small measure, please cancel my appointment", "cancel"),
+            ("In no small measure should you cancel my appointment", "cancel"),
+            ("Under no obligation cancel my appointment", "cancel"),
+            ("I will cancel under no obligation", "cancel"),
+            ("On no basis cancel my appointment", "cancel"),
+            ("I will cancel on no basis", "cancel"),
+            ("On no score cancel my appointment", "cancel"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("In no degree should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_at_no_point_in_time_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no point in time cancel my appointment",
+            "At no point in time, cancel my appointment",
+            "AT NO POINT IN TIME CANCEL",
+            "At no point in time\u2014cancel my appointment",
+            "At no point in time ever cancel my appointment",
+            "At no point in time reschedule my appointment",
+            "At no point in time schedule an appointment",
+            "At no point in time call off my appointment",
+            "At no point in time book a new appointment",
+            "At no point in time the cancellation",
+            "At no point in time want to cancel my appointment",
+            "At no point in time ask them to cancel my appointment",
+            "At no point in time have them cancel my appointment",
+            "At no point in time let them cancel my appointment",
+            "At no point in time go ahead and cancel my appointment",
+            "At no point in time go and cancel my appointment",
+            "At no point in time come and cancel my appointment",
+            "At no point in time should you cancel my appointment",
+            "At no point in time, should you cancel my appointment",
+            "At no point in time will I cancel my appointment",
+            "At no point in time do I want to cancel my appointment",
+            "At no point in time am I going to cancel my appointment",
+            "At no point in time cancel or reschedule my appointment",
+            "At no point in time cancel, reschedule, or book",
+            "At no point in time should you cancel or reschedule",
+            "Cancel at no point in time",
+            "I will cancel at no point in time",
+            "I will cancel my appointment at no point in time",
+            "I will cancel or reschedule at no point in time",
+            "I will at no point in time cancel my appointment",
+            "You must at no point in time cancel my appointment",
+            "Please don't at no point in time cancel my appointment",
+            "Please don't, at no point in time, cancel my appointment",
+            "Please do not at no point in time cancel my appointment",
+            "Never at no point in time cancel my appointment",
+            "Please don't at no point in time go and cancel my appointment",
+            "At no point in time I refuse to cancel",
+            "Please ask the office to cancel, at no point in time",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_point_in_time_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no point in time, please cancel my appointment", "cancel"),
+            ("At no point in time please cancel my appointment", "cancel"),
+            ("Please cancel, at no point in time reschedule", "cancel"),
+            ("At no point in time cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no point in time, please reschedule",
+                "reschedule",
+            ),
+            ("At no point in time I will cancel my appointment", "cancel"),
+            ("At no point in time, I will cancel my appointment", "cancel"),
+            ("At no point in time refuse to cancel", "no_action"),
+            ("At no point in time refuse the cancellation", "no_action"),
+            ("At no point in time forget to cancel my appointment", "cancel"),
+            ("At no point in time do not forget to cancel", "cancel"),
+            ("At no point in time can I cancel my appointment", "cancel"),
+            ("At no point in time could I cancel my appointment", "cancel"),
+            ("At any point in time, please cancel my appointment", "cancel"),
+            ("Please don't at any point in time cancel my appointment", "cancel"),
+            ("At this point in time, please cancel my appointment", "cancel"),
+            ("At that point in time, please cancel my appointment", "cancel"),
+            ("At some point in time, please cancel my appointment", "cancel"),
+            ("At one point in time, please cancel my appointment", "cancel"),
+            ("At no points in time should you cancel my appointment", "cancel"),
+            ("At no point in times should you cancel my appointment", "cancel"),
+            ("At no point of time should you cancel my appointment", "no_action"),
+            ("I will cancel at no point of time", "no_action"),
+            ("At no point in the process should you cancel my appointment", "cancel"),
+            ("At no point in the process, please cancel", "cancel"),
+            ("At no point in time of the process should you cancel", "cancel"),
+            ("At no point in time whatsoever should you cancel", "cancel"),
+            ("At no point in time cancel or reschedule or book", "schedule"),
+            ("Please cancel in no time", "cancel"),
+            ("In no time, please cancel my appointment", "cancel"),
+            ("At no point should you cancel my appointment", "no_action"),
+            ("I will cancel at no point", "no_action"),
+            ("At no time should you cancel my appointment", "no_action"),
+            ("In no way, shape, and form should you cancel my appointment", "no_action"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_at_no_point_of_time_does_not_route_to_action(self) -> None:
+        examples = (
+            "At no point of time cancel my appointment",
+            "At no point of time, cancel my appointment",
+            "AT NO POINT OF TIME CANCEL",
+            "At no point of time\u2014cancel my appointment",
+            "At no point of time ever cancel my appointment",
+            "At no point of time reschedule my appointment",
+            "At no point of time schedule an appointment",
+            "At no point of time call off my appointment",
+            "At no point of time book a new appointment",
+            "At no point of time the cancellation",
+            "At no point of time want to cancel my appointment",
+            "At no point of time ask them to cancel my appointment",
+            "At no point of time have them cancel my appointment",
+            "At no point of time let them cancel my appointment",
+            "At no point of time go ahead and cancel my appointment",
+            "At no point of time go and cancel my appointment",
+            "At no point of time come and cancel my appointment",
+            "At no point of time should you cancel my appointment",
+            "At no point of time, should you cancel my appointment",
+            "At no point of time will I cancel my appointment",
+            "At no point of time do I want to cancel my appointment",
+            "At no point of time am I going to cancel my appointment",
+            "At no point of time cancel or reschedule my appointment",
+            "At no point of time cancel, reschedule, or book",
+            "At no point of time should you cancel or reschedule",
+            "Cancel at no point of time",
+            "I will cancel at no point of time",
+            "I will cancel my appointment at no point of time",
+            "I will cancel or reschedule at no point of time",
+            "I will at no point of time cancel my appointment",
+            "You must at no point of time cancel my appointment",
+            "Please don't at no point of time cancel my appointment",
+            "Please don't, at no point of time, cancel my appointment",
+            "Please do not at no point of time cancel my appointment",
+            "Never at no point of time cancel my appointment",
+            "Please don't at no point of time go and cancel my appointment",
+            "At no point of time I refuse to cancel",
+            "Please ask the office to cancel, at no point of time",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_no_point_of_time_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("At no point of time, please cancel my appointment", "cancel"),
+            ("At no point of time please cancel my appointment", "cancel"),
+            ("Please cancel, at no point of time reschedule", "cancel"),
+            ("At no point of time cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment at no point of time, please reschedule",
+                "reschedule",
+            ),
+            ("At no point of time I will cancel my appointment", "cancel"),
+            ("At no point of time, I will cancel my appointment", "cancel"),
+            ("At no point of time refuse to cancel", "no_action"),
+            ("At no point of time refuse the cancellation", "no_action"),
+            ("At no point of time forget to cancel my appointment", "cancel"),
+            ("At no point of time do not forget to cancel", "cancel"),
+            ("At no point of time can I cancel my appointment", "cancel"),
+            ("At no point of time could I cancel my appointment", "cancel"),
+            ("At any point of time, please cancel my appointment", "cancel"),
+            ("Please don't at any point of time cancel my appointment", "cancel"),
+            ("At this point of time, please cancel my appointment", "cancel"),
+            ("At that point of time, please cancel my appointment", "cancel"),
+            ("At some point of time, please cancel my appointment", "cancel"),
+            ("At one point of time, please cancel my appointment", "cancel"),
+            ("At no points of time should you cancel my appointment", "cancel"),
+            ("At no point of times should you cancel my appointment", "cancel"),
+            ("At no point of the process should you cancel my appointment", "cancel"),
+            ("At no point of time of the process should you cancel", "cancel"),
+            ("At no point of time whatsoever should you cancel", "cancel"),
+            ("At no point of time cancel or reschedule or book", "schedule"),
+            ("At no point in time should you cancel my appointment", "no_action"),
+            ("I will cancel at no point in time", "no_action"),
+            ("At no point in the process should you cancel my appointment", "cancel"),
+            ("At no point in time of the process should you cancel", "cancel"),
+            ("At no point in time whatsoever should you cancel", "cancel"),
+            ("At this point in time, please cancel my appointment", "cancel"),
+            ("Please cancel in no time", "cancel"),
+            ("In no time, please cancel my appointment", "cancel"),
+            ("At no point should you cancel my appointment", "no_action"),
+            ("In no way, shape, and form should you cancel my appointment", "no_action"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_in_no_form_or_fashion_does_not_route_to_action(self) -> None:
+        examples = (
+            "In no form or fashion cancel my appointment",
+            "In no form or fashion, cancel my appointment",
+            "IN NO FORM OR FASHION CANCEL",
+            "In no form or fashion\u2014cancel my appointment",
+            "In no form, or fashion cancel my appointment",
+            "In no form, or fashion, cancel my appointment",
+            "In no form or fashion ever cancel my appointment",
+            "In no form or fashion, ever, cancel my appointment",
+            "In no form or fashion reschedule my appointment",
+            "In no form or fashion schedule an appointment",
+            "In no form or fashion call off my appointment",
+            "In no form or fashion book a new appointment",
+            "In no form or fashion the cancellation",
+            "In no form or fashion a cancellation",
+            "In no form or fashion want to cancel my appointment",
+            "In no form or fashion ask them to cancel my appointment",
+            "In no form or fashion have them cancel my appointment",
+            "In no form or fashion let them cancel my appointment",
+            "In no form or fashion go ahead and cancel my appointment",
+            "In no form or fashion go and cancel my appointment",
+            "In no form or fashion come and cancel my appointment",
+            "In no form or fashion should you cancel my appointment",
+            "In no form or fashion, should you cancel my appointment",
+            "In no form, or fashion should you cancel my appointment",
+            "In no form and fashion should you cancel my appointment",
+            "In no form nor fashion should you cancel my appointment",
+            "In no form, and fashion should you cancel my appointment",
+            "In no form, nor fashion should you cancel my appointment",
+            "In no form or fashion will I cancel my appointment",
+            "In no form or fashion do I want to cancel my appointment",
+            "In no form or fashion am I going to cancel my appointment",
+            "In no form or fashion am I to cancel my appointment",
+            "In no form or fashion cancel or reschedule my appointment",
+            "In no form or fashion cancel, reschedule, or book",
+            "In no form or fashion should you cancel or reschedule",
+            "In no form and fashion cancel or reschedule",
+            "In no form nor fashion the cancellation or the reschedule",
+            "Cancel in no form or fashion",
+            "I will cancel in no form or fashion",
+            "I will cancel my appointment in no form or fashion",
+            "I will cancel or reschedule in no form or fashion",
+            "I will cancel in no form and fashion",
+            "I will cancel in no form nor fashion",
+            "I will in no form or fashion cancel my appointment",
+            "I will, in no form or fashion, cancel my appointment",
+            "You must in no form or fashion cancel my appointment",
+            "Please don't in no form or fashion cancel my appointment",
+            "Please don't, in no form or fashion, cancel my appointment",
+            "Please do not in no form or fashion cancel my appointment",
+            "Never in no form or fashion cancel my appointment",
+            "Please don't in no form and fashion cancel my appointment",
+            "Never in no form nor fashion cancel my appointment",
+            "Please don't in no form or fashion go and cancel my appointment",
+            "In no form or fashion I refuse to cancel",
+            "Please ask the office to cancel, in no form or fashion",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_no_form_or_fashion_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("In no form or fashion, please cancel my appointment", "cancel"),
+            ("In no form or fashion please cancel my appointment", "cancel"),
+            ("In no form and fashion, please cancel my appointment", "cancel"),
+            ("In no form nor fashion, please cancel my appointment", "cancel"),
+            ("Please cancel, in no form or fashion reschedule", "cancel"),
+            ("In no form or fashion cancel, please reschedule", "reschedule"),
+            (
+                "I will cancel my appointment in no form or fashion, please reschedule",
+                "reschedule",
+            ),
+            ("In no form or fashion I will cancel my appointment", "cancel"),
+            ("In no form or fashion, I will cancel my appointment", "cancel"),
+            ("In no form or fashion refuse to cancel", "no_action"),
+            ("In no form or fashion refuse the cancellation", "no_action"),
+            ("In no form or fashion forget to cancel my appointment", "cancel"),
+            ("In no form or fashion do not forget to cancel", "cancel"),
+            ("In no form or fashion can I cancel my appointment", "cancel"),
+            ("In no form or fashion could I cancel my appointment", "cancel"),
+            ("In any form or fashion, please cancel my appointment", "cancel"),
+            ("In any form or fashion should you cancel my appointment", "cancel"),
+            ("Not in any form or fashion cancel my appointment", "cancel"),
+            ("In no forms or fashion should you cancel my appointment", "cancel"),
+            ("In no form or fashions should you cancel my appointment", "cancel"),
+            ("In no form or fashionable way, please cancel", "cancel"),
+            ("In no form should you cancel my appointment", "cancel"),
+            ("I'm in no form, please cancel my appointment", "cancel"),
+            ("I have no formal request, please cancel my appointment", "cancel"),
+            ("There is no format, please cancel my appointment", "cancel"),
+            ("No formula, please cancel my appointment", "cancel"),
+            ("For no form or fashion should you cancel", "cancel"),
+            ("On no form or fashion should you cancel", "cancel"),
+            ("In no fashion or form should you cancel my appointment", "cancel"),
+            ("In no way, shape, or fashion should you cancel", "cancel"),
+            ("In no shape or form should you cancel my appointment", "cancel"),
+            ("In no form or fashion of the process should you cancel", "cancel"),
+            ("In no form or fashion whatsoever should you cancel", "cancel"),
+            ("In no form or fashion cancel or reschedule or book", "schedule"),
+            ("In no fashion should you cancel my appointment", "no_action"),
+            ("In no way, shape, or form should you cancel my appointment", "no_action"),
+            ("In no way, shape, and form should you cancel my appointment", "no_action"),
+            ("At no point of time should you cancel my appointment", "no_action"),
+            ("At no point in time should you cancel my appointment", "no_action"),
+            ("To no extent should you cancel my appointment", "no_action"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_go_and_come_and_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Don't go and cancel my appointment",
+            "Please don't go and cancel my appointment",
+            "Please do not go and cancel my appointment",
+            "Please don't come and cancel my appointment",
+            "Don't come and cancel my appointment",
+            "Never go and cancel my appointment",
+            "Never come and cancel my appointment",
+            "I won't go and cancel my appointment",
+            "We won't come and cancel my appointment",
+            "He doesn't go and cancel my appointment",
+            "I didn't go and cancel my appointment",
+            "I wouldn’t go and cancel my appointment",
+            "Don’t go and cancel my appointment",
+            "Please don't ever go and cancel my appointment",
+            "Please don't really go and cancel my appointment",
+            "Please don't go and really cancel my appointment",
+            "Please do not, under any circumstances, go and cancel my appointment",
+            "Please don't go and reschedule my appointment",
+            "Please don't come and reschedule my appointment",
+            "Please don't go and schedule an appointment",
+            "Please don't come and book a new appointment",
+            "Please don't go and call off my appointment",
+            "Please don't come and drop appointment tomorrow",
+            "Please don't go and cancel or reschedule my appointment",
+            "Please don't come and cancel, reschedule, or book",
+            "Under no circumstances go and cancel my appointment",
+            "Under no circumstances, go and cancel my appointment",
+            "Under no circumstances come and cancel my appointment",
+            "Under no circumstances go and reschedule my appointment",
+            "Under no circumstances come and book a new appointment",
+            "Under no circumstances go and cancel or reschedule",
+            "Under no circumstances should you go and cancel my appointment",
+            "Under no circumstances will I come and cancel my appointment",
+            "I'm not going to go and cancel my appointment",
+            "I am not going to come and cancel my appointment",
+            "I don't want to go and cancel my appointment",
+            "I'm not hoping to come and cancel my appointment",
+            "I'm not looking to go and cancel my appointment",
+            "I don't plan to come and cancel my appointment",
+            "I'm not gonna go and cancel my appointment",
+            "I'm not gonna come and cancel my appointment",
+            "I don't wanna go and cancel my appointment",
+            "I'm not gonna really go and cancel my appointment",
+            "I ain't gonna go and cancel my appointment",
+            "I wasn't going to go and cancel my appointment",
+            "Please don't ask them to go and cancel my appointment",
+            "Please don't tell them to come and cancel my appointment",
+            "I'm not gonna ask them to go and cancel my appointment",
+            "I'm not going to ask them to come and cancel my appointment",
+            "I'm not gonna be going to go and cancel my appointment",
+            "I'm not going to be going to come and cancel my appointment",
+            "I refuse to go and cancel my appointment",
+            "I refuse to come and cancel my appointment",
+            "I decline to go and reschedule my appointment",
+            "I refuse to go and cancel or reschedule my appointment",
+            "Under no circumstances I refuse to go and cancel",
+            "Under no circumstances refuse to go and cancel",
+            "Under no circumstances refuse to come and cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_go_and_come_and_mixed_messages_still_route_to_action(self) -> None:
+        examples = (
+            ("Please go and cancel my appointment", "cancel"),
+            ("Please come and cancel my appointment", "cancel"),
+            ("Please go and reschedule my appointment", "reschedule"),
+            ("Please don't go, cancel my appointment", "cancel"),
+            ("Please don't go, and cancel my appointment", "cancel"),
+            ("Please don't come, and cancel my appointment", "cancel"),
+            ("Please don't come Tuesday, please cancel", "cancel"),
+            ("Please don't go and wait, please cancel", "cancel"),
+            ("Please don't come and see me, please cancel", "cancel"),
+            ("Don't go and cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't go and reschedule", "cancel"),
+            ("Please don't go and I'll cancel my appointment", "cancel"),
+            ("Please don't look and cancel my appointment", "cancel"),
+            ("Please don't want and cancel my appointment", "cancel"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("Please do not forget to go and cancel my appointment", "cancel"),
+            ("Don't go and forget to cancel my appointment", "cancel"),
+            ("Don't refuse to go and cancel my appointment", "cancel"),
+            ("Don't refuse to come and cancel my appointment", "cancel"),
+            ("I cannot refuse to go and cancel my appointment", "cancel"),
+            ("I'm not able to refuse to come and cancel", "cancel"),
+            ("I refuse, please go and cancel my appointment", "cancel"),
+            ("I refuse to go and cancel, please reschedule", "reschedule"),
+            ("Under no circumstances, please cancel my appointment", "cancel"),
+            ("Under no circumstances go, and cancel my appointment", "cancel"),
+            ("Under no circumstances go and wait, please cancel", "cancel"),
+            ("Under no circumstances forget to cancel my appointment", "cancel"),
+            ("Under no circumstances go and cancel, please reschedule", "reschedule"),
+            ("Please cancel, under no circumstances come and reschedule", "cancel"),
+            ("Please don't go ahead and cancel my appointment", "no_action"),
+            ("I'm not going to go ahead and cancel my appointment", "no_action"),
+            ("I mightn't cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_past_tense_didnt_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I didn't cancel my appointment",
+            "I didnt cancel my appointment",
+            "I didn’t cancel my appointment",
+            "I didn't want to cancel my appointment",
+            "I didn't ask you to cancel my appointment",
+            "I didn't tell them to reschedule",
+            "I didn't want to schedule an appointment",
+            "I didn't book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_past_tense_wasnt_werent_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I wasn't going to cancel my appointment",
+            "I wasnt going to cancel my appointment",
+            "I wasn’t going to cancel my appointment",
+            "I wasn't gonna cancel my appointment",
+            "I wasn't planning to cancel my appointment",
+            "I wasn't trying to cancel my appointment",
+            "We weren't going to cancel our appointment",
+            "We werent going to cancel our appointment",
+            "We weren’t going to reschedule",
+            "I wasn't going to schedule an appointment",
+            "I wasn't planning to book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_present_tense_isnt_arent_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "He isn't going to cancel my appointment",
+            "He isnt going to cancel my appointment",
+            "He isn’t going to cancel my appointment",
+            "He isn't gonna cancel my appointment",
+            "She isn't planning to cancel my appointment",
+            "She isn't trying to cancel my appointment",
+            "They aren't going to cancel my appointment",
+            "They arent going to cancel my appointment",
+            "They aren’t going to reschedule",
+            "They aren't gonna cancel my appointment",
+            "The office isn't going to cancel my appointment",
+            "He isn't going to schedule an appointment",
+            "They aren't planning to book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_present_tense_doesnt_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "He doesn't want to cancel my appointment",
+            "He doesnt want to cancel my appointment",
+            "He doesn’t want to cancel my appointment",
+            "He doesn't wanna cancel my appointment",
+            "She doesn't need to cancel my appointment",
+            "She doesn't plan to cancel my appointment",
+            "The office doesn't want to cancel my appointment",
+            "He doesn't want you to cancel my appointment",
+            "He doesn't ask you to cancel my appointment",
+            "He doesn't want to reschedule my appointment",
+            "He doesn't want to schedule an appointment",
+            "Please confirm he doesn't cancel my appointment",
+            "He doesn't cancel my appointment",
+            "She doesn't reschedule my appointment",
+            "He doesn't really want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_dialect_aint_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "He ain't going to cancel my appointment",
+            "He aint going to cancel my appointment",
+            "He ain’t going to cancel my appointment",
+            "He ain't gonna cancel my appointment",
+            "She ain't planning to cancel my appointment",
+            "She ain't trying to cancel my appointment",
+            "They ain't going to cancel my appointment",
+            "They aint going to cancel my appointment",
+            "They ain’t going to reschedule",
+            "They ain't gonna cancel my appointment",
+            "The office ain't going to cancel my appointment",
+            "He ain't going to schedule an appointment",
+            "They ain't planning to book an appointment",
+            "I ain't gonna cancel my appointment",
+            "Please confirm you ain't going to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_progressive_delegated_gerund_negations_do_not_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            "I'm not asking you to cancel my appointment",
+            "I am not asking you to cancel my appointment",
+            "They aren't asking you to cancel my appointment",
+            "They aren't asking you to cancel",
+            "She isn't telling you to cancel my appointment",
+            "I'm not telling you to cancel my appointment",
+            "I'm not instructing you to cancel my appointment",
+            "I'm not requesting you to cancel my appointment",
+            "I'm not advising you to cancel my appointment",
+            "I'm not asking you to reschedule my appointment",
+            "I'm not asking you to schedule an appointment",
+            "I wasn't asking you to cancel my appointment",
+            "He isn't asking you to cancel my appointment",
+            "He ain't asking you to cancel my appointment",
+            "They aren't telling you to cancel my appointment",
+            "Please confirm you are not asking me to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_allowed_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not allowed to cancel my appointment",
+            "I am not allowed to cancel my appointment",
+            "I'm not permitted to cancel my appointment",
+            "I'm not allowed to reschedule my appointment",
+            "I'm not allowed to schedule an appointment",
+            "I wasn't allowed to cancel my appointment",
+            "He isn't allowed to cancel my appointment",
+            "He ain't allowed to cancel my appointment",
+            "They aren't permitted to cancel my appointment",
+            "I'm not really allowed to cancel my appointment",
+            "I'm not even permitted to cancel my appointment",
+            "Please confirm you are not allowed to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_required_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not required to cancel my appointment",
+            "I am not required to cancel my appointment",
+            "I'm not obligated to cancel my appointment",
+            "I'm not obliged to cancel my appointment",
+            "I'm not required to reschedule my appointment",
+            "I'm not required to schedule an appointment",
+            "I wasn't required to cancel my appointment",
+            "He isn't required to cancel my appointment",
+            "He ain't required to cancel my appointment",
+            "They aren't obligated to cancel my appointment",
+            "I'm not really required to cancel my appointment",
+            "I'm not even obligated to cancel my appointment",
+            "Please confirm you are not required to cancel my appointment",
+            "Please don't require them to cancel my appointment",
+            "Please don't require the office to cancel my appointment",
+            "I'm not requiring them to cancel my appointment",
+            "I don't require you to cancel my appointment",
+            "The office doesn't require you to cancel my appointment",
+            "I'm not gonna require them to cancel my appointment",
+            "Please don't be requiring them to cancel my appointment",
+            "I'm not going to be requiring them to cancel my appointment",
+            "He isn't requiring them to cancel my appointment",
+            "I ain't requiring them to cancel my appointment",
+            "I'm not really requiring them to cancel my appointment",
+            "Please don't oblige them to cancel my appointment",
+            "Please don't obligate them to cancel my appointment",
+            "I'm not obligating them to cancel my appointment",
+            "I'm not gonna oblige them to cancel my appointment",
+            "I'm not requiring them to reschedule my appointment",
+            "I'm not requiring them to schedule an appointment",
+            "I'm not requiring them to cancel or reschedule my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_like_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I would not like to cancel my appointment",
+            "I wouldn't like to cancel my appointment",
+            "I wouldnt like to cancel my appointment",
+            "I don't like to cancel my appointment",
+            "I do not like to cancel my appointment",
+            "I wouldn't like you to cancel my appointment",
+            "I would not like them to cancel my appointment",
+            "I wouldn't like the office to cancel my appointment",
+            "He doesn't like to cancel my appointment",
+            "I didn't like to cancel my appointment",
+            "I never liked to cancel my appointment",
+            "I'm not liking to cancel my appointment",
+            "I wouldn't really like to cancel my appointment",
+            "I would not particularly like to cancel my appointment",
+            "I wouldn't like to reschedule my appointment",
+            "I would not like to schedule an appointment",
+            "I wouldn't like to cancel or reschedule my appointment",
+            "I wouldn't like to try and cancel my appointment",
+            "I wouldn't like to go ahead and cancel my appointment",
+            "I wouldn't like to go through with the cancellation",
+            "I wouldn't like to have them cancel my appointment",
+            "I wouldn't like to ask them to cancel my appointment",
+            "I wouldn't like them to try and cancel my appointment",
+            "Please don't like to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_no_wish_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "I have no wish to cancel my appointment",
+            "I have no wishes to cancel my appointment",
+            "I have not any wish to cancel my appointment",
+            "There is no wish to cancel my appointment",
+            "No wish to cancel my appointment",
+            "I have no wish for a cancellation",
+            "I have no wish for cancellation",
+            "I have no wish to reschedule my appointment",
+            "I have no wish to schedule an appointment",
+            "I have no wish to book a new appointment",
+            "I have no wish to call off my appointment",
+            "I have no wish to drop appointment",
+            "I have no wish to remove appointment",
+            "There is no wish to reschedule my appointment",
+            "No wish for a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_havent_any_intent_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "I haven't any wish to cancel my appointment",
+            "I haven\u2019t any wish to cancel my appointment",
+            "I havent any wish to cancel my appointment",
+            "I haven't any wishes to cancel my appointment",
+            "She hasn't any wish to cancel my appointment",
+            "I hadn't any wish to cancel my appointment",
+            "I haven't any desire to cancel my appointment",
+            "I haven't any plans to cancel my appointment",
+            "I haven't any intention to cancel my appointment",
+            "I haven't any need to cancel my appointment",
+            "I haven't any reason to cancel my appointment",
+            "I haven't any wish for a cancellation",
+            "I haven't any wish for cancellation",
+            "I haven't any wish to reschedule my appointment",
+            "I haven't any wish to schedule an appointment",
+            "I haven't any wish to book a new appointment",
+            "I haven't any wish to call off my appointment",
+            "I haven't any plans to reschedule my appointment",
+            "I haven't any desire to book a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_isnt_arent_any_intent_nouns_do_not_route_to_action(self) -> None:
+        examples = (
+            "There aren't any plans to cancel my appointment",
+            "There aren\u2019t any plans to cancel my appointment",
+            "There arent any plans to cancel my appointment",
+            "There aren't any plans to reschedule my appointment",
+            "There isn't any wish to cancel my appointment",
+            "There isnt any wish to cancel my appointment",
+            "There isn't any desire to cancel my appointment",
+            "There isn't any plan to cancel my appointment",
+            "There isn't any intention to cancel my appointment",
+            "There isn't any need to cancel my appointment",
+            "There isn't any reason to cancel my appointment",
+            "There wasn't any wish to cancel my appointment",
+            "There weren't any plans to cancel my appointment",
+            "There aren't any wishes to cancel my appointment",
+            "There isn't any wish for a cancellation",
+            "There isn't any wish for cancellation",
+            "There isn't any need for a cancellation",
+            "There isn't any need for a new appointment",
+            "There aren't any plans to schedule an appointment",
+            "There aren't any plans to book a new appointment",
+            "There aren't any plans to call off my appointment",
+            "There isn't any desire to book a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_attempt_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please don't attempt to cancel my appointment",
+            "Please do not attempt to cancel my appointment",
+            "I'm not attempting to cancel my appointment",
+            "I am not attempting to cancel my appointment",
+            "I don't attempt to cancel my appointment",
+            "He doesn't attempt to cancel my appointment",
+            "He never attempts to cancel my appointment",
+            "Please don't really attempt to cancel my appointment",
+            "I'm not really attempting to cancel my appointment",
+            "Please don't be attempting to cancel my appointment",
+            "I haven't been attempting to cancel my appointment",
+            "I'm not gonna attempt to cancel my appointment",
+            "I don't wanna attempt to cancel my appointment",
+            "I'm not gonna be attempting to cancel my appointment",
+            "He isn't attempting to cancel my appointment",
+            "I ain't attempting to cancel my appointment",
+            "Please don't attempt to reschedule my appointment",
+            "I'm not attempting to schedule an appointment",
+            "Please don't attempt to cancel or reschedule my appointment",
+            "Please don't attempt to try and cancel my appointment",
+            "Please don't attempt to go ahead and cancel my appointment",
+            "Please don't attempt to go through with the cancellation",
+            "I'm not attempting to have them cancel my appointment",
+            "Please don't attempt to have them cancel my appointment",
+            "Please don't attempt to ask them to cancel my appointment",
+            "I'm not attempting to ask them to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_expected_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not expected to cancel my appointment",
+            "I am not expected to cancel my appointment",
+            "I don't expect to cancel my appointment",
+            "I'm not expecting to cancel my appointment",
+            "I'm not expected to reschedule my appointment",
+            "I'm not expected to schedule an appointment",
+            "I wasn't expected to cancel my appointment",
+            "He isn't expected to cancel my appointment",
+            "He ain't expected to cancel my appointment",
+            "They aren't expecting to cancel my appointment",
+            "I'm not really expected to cancel my appointment",
+            "I'm not even expecting to cancel my appointment",
+            "Please confirm you are not expected to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_forced_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not forced to cancel my appointment",
+            "I am not forced to cancel my appointment",
+            "I'm not compelled to cancel my appointment",
+            "I'm not forcing you to cancel my appointment",
+            "I'm not forced to reschedule my appointment",
+            "I'm not forced to schedule an appointment",
+            "I wasn't forced to cancel my appointment",
+            "He isn't forced to cancel my appointment",
+            "He ain't forced to cancel my appointment",
+            "They aren't compelled to cancel my appointment",
+            "I'm not really forced to cancel my appointment",
+            "I'm not even compelled to cancel my appointment",
+            "Please don't force the office to cancel my appointment",
+            "Please confirm you are not forced to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_being_auxiliary_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not being forced to cancel my appointment",
+            "I am not being forced to cancel my appointment",
+            "I'm not being compelled to cancel my appointment",
+            "I'm not being mandated to cancel my appointment",
+            "I'm not being pressured to cancel my appointment",
+            "I'm not being coerced to cancel my appointment",
+            "I'm not being asked to cancel my appointment",
+            "I'm not being told to cancel my appointment",
+            "I'm not being made to cancel my appointment",
+            "I'm not being required to cancel my appointment",
+            "I'm not being forced to reschedule my appointment",
+            "I'm not being asked to schedule an appointment",
+            "I wasn't being forced to cancel my appointment",
+            "He isn't being forced to cancel my appointment",
+            "He ain't being pressured to cancel my appointment",
+            "They aren't being coerced to cancel my appointment",
+            "I'm not really being forced to cancel my appointment",
+            "I'm not even being asked to cancel my appointment",
+            "Please confirm you are not being forced to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_intent_bridge_gerund_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not intending to cancel my appointment",
+            "I am not intending to cancel my appointment",
+            "I'm not meaning to cancel my appointment",
+            "I'm not wanting to cancel my appointment",
+            "I'm not hoping to cancel my appointment",
+            "I'm not wishing to cancel my appointment",
+            "I'm not needing to cancel my appointment",
+            "I don't hope to cancel my appointment",
+            "I don't desire to cancel my appointment",
+            "I never hoped to cancel my appointment",
+            "I never wished to cancel my appointment",
+            "I never desired to cancel my appointment",
+            "I'm not intending to reschedule my appointment",
+            "I'm not intending to schedule an appointment",
+            "I don't hope to reschedule my appointment",
+            "I don't desire to reschedule my appointment",
+            "I'm not wishing to schedule an appointment",
+            "I'm not desiring to schedule an appointment",
+            "I wasn't intending to cancel my appointment",
+            "He isn't intending to cancel my appointment",
+            "He ain't intending to cancel my appointment",
+            "He doesn't hope to cancel my appointment",
+            "He doesn't desire to cancel my appointment",
+            "They aren't intending to cancel my appointment",
+            "I'm not really intending to cancel my appointment",
+            "I'm not even hoping to cancel my appointment",
+            "I'm not really wishing to cancel my appointment",
+            "I'm not really desiring to cancel my appointment",
+            "I haven't hoped to cancel my appointment",
+            "I haven't wished to cancel my appointment",
+            "I haven't desired to cancel my appointment",
+            "Please don't be intending to cancel my appointment",
+            "Please don't be hoping to cancel my appointment",
+            "Please don't be desiring to cancel my appointment",
+            "Please confirm you are not intending to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_try_and_and_go_ahead_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please don't try and cancel my appointment",
+            "Please do not try and cancel my appointment",
+            "Please don't try and reschedule my appointment",
+            "Please don't try and schedule an appointment",
+            "I don't try and cancel my appointment",
+            "Please don't really try and cancel my appointment",
+            "Please don't be trying and cancel my appointment",
+            "Please don't try and cancel or reschedule my appointment",
+            "I'm not going to try and cancel my appointment",
+            "I am not going to try and cancel my appointment",
+            "I don't want to try and cancel my appointment",
+            "I'm not about to try and cancel my appointment",
+            "I don't plan to try and cancel my appointment",
+            "I don't intend to try and cancel my appointment",
+            "I'm not hoping to try and cancel my appointment",
+            "I am not hoping to try and cancel my appointment",
+            "I'm not looking to try and cancel my appointment",
+            "I don't wish to try and cancel my appointment",
+            "I don't need to try and cancel my appointment",
+            "I don't desire to try and cancel my appointment",
+            "I don't mean to try and cancel my appointment",
+            "I don't hope to try and cancel my appointment",
+            "I never hoped to try and cancel my appointment",
+            "I'm not wishing to try and cancel my appointment",
+            "I'm not needing to try and cancel my appointment",
+            "I'm not desiring to try and cancel my appointment",
+            "I'm not meaning to try and cancel my appointment",
+            "I'm not seeking to try and cancel my appointment",
+            "I'm not supposed to try and cancel my appointment",
+            "I'm not willing to try and cancel my appointment",
+            "I'm not ready to try and cancel my appointment",
+            "I'm not prepared to try and cancel my appointment",
+            "I'm not allowed to try and cancel my appointment",
+            "I'm not permitted to try and cancel my appointment",
+            "I'm not required to try and cancel my appointment",
+            "Please don't require them to try and cancel my appointment",
+            "I'm not gonna require them to try and cancel my appointment",
+            "I'm not obligated to try and cancel my appointment",
+            "I'm not expected to try and cancel my appointment",
+            "I'm not expecting to try and cancel my appointment",
+            "I'm not forced to try and cancel my appointment",
+            "I'm not being forced to try and cancel my appointment",
+            "I'm not really hoping to try and cancel my appointment",
+            "Please don't be hoping to try and cancel my appointment",
+            "I'm not hoping to try and reschedule my appointment",
+            "I'm not looking to try and schedule an appointment",
+            "I'm not hoping to try and cancel or reschedule my appointment",
+            "I'm not going to try and reschedule my appointment",
+            "I'm not going to try and schedule an appointment",
+            "I'm not going to try and cancel or reschedule my appointment",
+            "I'm not really going to try and cancel my appointment",
+            "Please don't be going to try and cancel my appointment",
+            "I haven't been going to try and cancel my appointment",
+            "I'm not gonna try and cancel my appointment",
+            "I'm not gonna try to cancel my appointment",
+            "I don't wanna try and cancel my appointment",
+            "I don't wanna try to cancel my appointment",
+            "Please do not go ahead and cancel my appointment",
+            "Please don't go ahead and cancel my appointment",
+            "Don't go ahead and cancel my appointment",
+            "Never go ahead and cancel my appointment",
+            "Please do not go ahead and reschedule my appointment",
+            "Please don't go ahead and schedule an appointment",
+            "Please don't go ahead to cancel my appointment",
+            "Please don't really go ahead and cancel my appointment",
+            "Please do not, under any circumstances, go ahead and cancel my appointment",
+            "Please don't go ahead and cancel or reschedule my appointment",
+            "Please don't go ahead with the cancellation",
+            "Please do not go ahead with a cancellation",
+            "Don't go ahead with the cancellation",
+            "Never go ahead with the cancellation",
+            "Please don't go ahead with cancellation",
+            "Please don't go ahead with my cancellation",
+            "Please don't go ahead with this cancellation",
+            "Please don't really go ahead with the cancellation",
+            "Please don't go ahead with the reschedule",
+            "Please don't go ahead with a new appointment",
+            "Please don't go ahead with the cancellation or reschedule",
+            "I'm not going to go ahead and cancel my appointment",
+            "I am not going to go ahead and cancel my appointment",
+            "I don't want to go ahead and cancel my appointment",
+            "I'm not about to go ahead and cancel my appointment",
+            "I don't plan to go ahead and cancel my appointment",
+            "I don't intend to go ahead and cancel my appointment",
+            "I'm not hoping to go ahead and cancel my appointment",
+            "I am not hoping to go ahead and cancel my appointment",
+            "I'm not looking to go ahead and cancel my appointment",
+            "I don't wish to go ahead and cancel my appointment",
+            "I don't hope to go ahead and cancel my appointment",
+            "I'm not seeking to go ahead and cancel my appointment",
+            "I'm not supposed to go ahead and cancel my appointment",
+            "I'm not allowed to go ahead and cancel my appointment",
+            "I'm not required to go ahead and cancel my appointment",
+            "Please don't require them to go ahead and cancel my appointment",
+            "Please don't require them to go through with the cancellation",
+            "I'm not expected to go ahead and cancel my appointment",
+            "I'm not forced to go ahead and cancel my appointment",
+            "I'm not being forced to go ahead and cancel my appointment",
+            "I'm not really hoping to go ahead and cancel my appointment",
+            "Please don't be hoping to go ahead and cancel my appointment",
+            "I'm not hoping to go ahead and reschedule my appointment",
+            "I'm not looking to go ahead and schedule an appointment",
+            "I'm not hoping to go ahead and cancel or reschedule my appointment",
+            "I'm not going to go ahead and reschedule my appointment",
+            "I'm not going to go ahead and schedule an appointment",
+            "I'm not going to go ahead and cancel or reschedule my appointment",
+            "I'm not really going to go ahead and cancel my appointment",
+            "Please don't be going to go ahead and cancel my appointment",
+            "I haven't been going to go ahead and cancel my appointment",
+            "I'm not gonna go ahead and cancel my appointment",
+            "I'm not gonna go ahead to cancel my appointment",
+            "I don't wanna go ahead and cancel my appointment",
+            "I'm not going to go ahead with the cancellation",
+            "I don't want to go ahead with the cancellation",
+            "I'm not hoping to go ahead with the cancellation",
+            "I'm not looking to go ahead with the cancellation",
+            "I'm not gonna go ahead with the cancellation",
+            "I'm not going to go ahead with a new appointment",
+            "I'm not going ahead with the cancellation",
+            "Please don't be going ahead with the cancellation",
+            "I haven't been going ahead with the cancellation",
+            "Please don't go through with the cancellation",
+            "Please do not go through with the cancellation",
+            "Don't go through with the cancellation",
+            "Never go through with the cancellation",
+            "Please don't go through with my cancellation",
+            "Please don't go through with this cancellation",
+            "Please don't go through with a cancellation",
+            "Please don't go through with cancellation",
+            "Please don't really go through with the cancellation",
+            "Please don't go through with the reschedule",
+            "Please don't go through with a new appointment",
+            "Please don't go through with the cancellation or reschedule",
+            "I'm not going through with the cancellation",
+            "I'm not going to go through with the cancellation",
+            "I don't want to go through with the cancellation",
+            "I'm not hoping to go through with the cancellation",
+            "I'm not looking to go through with the cancellation",
+            "I'm not gonna go through with the cancellation",
+            "Please don't ask them to try and cancel my appointment",
+            "Please don't ask the office to try and cancel my appointment",
+            "Please do not tell them to try and cancel my appointment",
+            "Please don't tell the clinic to try and cancel my appointment",
+            "I don't have to try and cancel my appointment",
+            "Please don't allow them to try and cancel my appointment",
+            "Please don't permit them to try and cancel my appointment",
+            "Please don't get them to try and cancel my appointment",
+            "Please don't advise them to try and cancel my appointment",
+            "Please don't instruct them to try and cancel my appointment",
+            "Please don't ask them to try and reschedule my appointment",
+            "Please don't ask them to try and schedule an appointment",
+            "Please don't ask them to try and cancel or reschedule my appointment",
+            "Please don't really ask them to try and cancel my appointment",
+            "Please don't be asking them to try and cancel my appointment",
+            "Please don't be telling them to go ahead and cancel my appointment",
+            "I haven't been asked to try and cancel my appointment",
+            "I haven't been told to go ahead and cancel my appointment",
+            "Please don't ask Sarah to try and cancel my appointment",
+            "Please don't ask Sarah, my assistant, to try and cancel my appointment",
+            "He doesn't ask you to try and cancel my appointment",
+            "I didn't tell them to try and cancel my appointment",
+            "Please don't ask them to go ahead and cancel my appointment",
+            "Please don't ask them to go ahead with the cancellation",
+            "Please don't tell them to go through with the cancellation",
+            "Please don't allow them to go through with the cancellation",
+            "Please don't permit them to go ahead and cancel my appointment",
+            "I don't have to go ahead and cancel my appointment",
+            "I don't have to go through with the cancellation",
+            "I don't have to try and reschedule my appointment",
+            "Please don't allow the office to try and schedule an appointment",
+            "I'm not gonna ask them to cancel my appointment",
+            "I'm not gonna ask them to try and cancel my appointment",
+            "I'm not gonna tell them to try and cancel my appointment",
+            "I don't wanna ask them to try and cancel my appointment",
+            "I don't wanna ask you to cancel my appointment",
+            "I don't wanna tell them to cancel my appointment",
+            "I'm not gonna ask the office to cancel my appointment",
+            "I'm not gonna allow them to cancel my appointment",
+            "I'm not gonna get them to cancel my appointment",
+            "I'm not gonna permit them to cancel my appointment",
+            "I'm not gonna instruct the office to cancel my appointment",
+            "I'm not gonna advise them to cancel my appointment",
+            "I'm not gonna have them cancel my appointment",
+            "I'm not gonna let them cancel my appointment",
+            "I'm not gonna make them cancel my appointment",
+            "I'm not gonna have to cancel my appointment",
+            "I'm not gonna ask them to go ahead and cancel my appointment",
+            "I'm not gonna ask them to go ahead with the cancellation",
+            "I'm not gonna tell them to go through with the cancellation",
+            "I don't wanna ask them to go ahead with the cancellation",
+            "I don't wanna tell them to go through with the cancellation",
+            "I'm not gonna allow them to go ahead and cancel my appointment",
+            "I'm not gonna allow them to try and cancel my appointment",
+            "I'm not gonna have them try and cancel my appointment",
+            "I'm not really gonna ask them to cancel my appointment",
+            "I'm not really gonna ask them to try and cancel my appointment",
+            "He isn't gonna ask them to cancel my appointment",
+            "He isn't gonna tell them to try and cancel my appointment",
+            "I wasn't gonna ask them to cancel my appointment",
+            "I ain't gonna ask them to cancel my appointment",
+            "I ain't gonna ask them to try and cancel my appointment",
+            "I'm not gonna ask Sarah to cancel my appointment",
+            "I'm not gonna ask Sarah, my assistant, to cancel my appointment",
+            "I'm not gonna ask Sarah, my assistant, to try and cancel my appointment",
+            "I'm not gonna ask them to reschedule my appointment",
+            "I'm not gonna ask them to schedule an appointment",
+            "I'm not gonna ask them to try and reschedule my appointment",
+            "I'm not gonna ask them to try and cancel or reschedule my appointment",
+            "I'm not gonna ask them to go ahead and cancel or reschedule my appointment",
+            "I'm not going to have them cancel my appointment",
+            "I'm not going to let them cancel my appointment",
+            "I'm not going to make them cancel my appointment",
+            "I don't want to have them cancel my appointment",
+            "I don't want to let them cancel my appointment",
+            "I'm not about to have them cancel my appointment",
+            "I'm not about to let them cancel my appointment",
+            "I don't plan to have them cancel my appointment",
+            "I don't intend to let them cancel my appointment",
+            "I'm not hoping to have them cancel my appointment",
+            "I'm not looking to let them cancel my appointment",
+            "I'm not going to have the office cancel my appointment",
+            "I'm not going to have them try and cancel my appointment",
+            "I'm not going to let them go ahead and cancel my appointment",
+            "I'm not going to make them go through with the cancellation",
+            "I don't want to have them try and cancel my appointment",
+            "I'm not really going to have them cancel my appointment",
+            "Please don't be going to have them cancel my appointment",
+            "He isn't going to let them cancel my appointment",
+            "I ain't going to make them cancel my appointment",
+            "I haven't been going to have them cancel my appointment",
+            "I'm not going to have them reschedule my appointment",
+            "I'm not going to let them schedule an appointment",
+            "I'm not going to have them cancel or reschedule my appointment",
+            "I'm not having them cancel my appointment",
+            "I'm not letting them cancel my appointment",
+            "I'm not making them cancel my appointment",
+            "I am not having them cancel my appointment",
+            "I am not letting them cancel my appointment",
+            "Please don't be having them cancel my appointment",
+            "Please don't be letting them cancel my appointment",
+            "Please don't be making them cancel my appointment",
+            "I won't be having them cancel my appointment",
+            "I haven't been having them cancel my appointment",
+            "He isn't letting them cancel my appointment",
+            "I ain't making them cancel my appointment",
+            "I'm not really letting them cancel my appointment",
+            "I'm not having the office cancel my appointment",
+            "I'm not having Sarah cancel my appointment",
+            "I'm not having them try and cancel my appointment",
+            "I'm not letting them go ahead and cancel my appointment",
+            "I'm not making them go through with the cancellation",
+            "I'm not having them reschedule my appointment",
+            "I'm not letting them schedule an appointment",
+            "I'm not having them cancel or reschedule my appointment",
+            "I'm not allowing them to cancel my appointment",
+            "I'm not permitting them to cancel my appointment",
+            "I am not allowing them to cancel my appointment",
+            "I am not permitting them to cancel my appointment",
+            "Please don't be allowing them to cancel my appointment",
+            "Please don't be permitting them to cancel my appointment",
+            "I won't be allowing them to cancel my appointment",
+            "I haven't been allowing them to cancel my appointment",
+            "He isn't allowing them to cancel my appointment",
+            "I ain't permitting them to cancel my appointment",
+            "I'm not really allowing them to cancel my appointment",
+            "I'm not allowing the office to cancel my appointment",
+            "I'm not allowing Sarah to cancel my appointment",
+            "I'm not allowing them to try and cancel my appointment",
+            "I'm not permitting them to go ahead and cancel my appointment",
+            "I'm not allowing them to go through with the cancellation",
+            "I'm not allowing them to reschedule my appointment",
+            "I'm not permitting them to schedule an appointment",
+            "I'm not allowing them to cancel or reschedule my appointment",
+            "I'm not going to be asking them to cancel my appointment",
+            "I'm not going to be telling them to cancel my appointment",
+            "I'm not going to be allowing them to cancel my appointment",
+            "I'm not going to be permitting them to cancel my appointment",
+            "I'm not going to be having them cancel my appointment",
+            "I'm not going to be letting them cancel my appointment",
+            "I'm not going to be making them cancel my appointment",
+            "I am not going to be asking them to cancel my appointment",
+            "I don't want to be asking them to cancel my appointment",
+            "I'm not about to be letting them cancel my appointment",
+            "I'm not hoping to be allowing them to cancel my appointment",
+            "I'm not looking to be asking them to cancel my appointment",
+            "I'm not gonna be asking them to cancel my appointment",
+            "I'm not gonna be allowing them to cancel my appointment",
+            "I'm not gonna be having them cancel my appointment",
+            "I'm not gonna be letting them cancel my appointment",
+            "I'm not gonna be making them cancel my appointment",
+            "I don't wanna be asking them to cancel my appointment",
+            "I don't wanna be letting them cancel my appointment",
+            "I'm not gonna be trying to cancel my appointment",
+            "I'm not gonna be going to cancel my appointment",
+            "I'm not gonna be forced to cancel my appointment",
+            "I'm not gonna be allowed to cancel my appointment",
+            "I'm not going to be asking them to try and cancel my appointment",
+            "I'm not going to be allowing them to try and cancel my appointment",
+            "I'm not going to be having them try and cancel my appointment",
+            "I'm not going to be letting them go ahead and cancel my appointment",
+            "I'm not going to be making them go through with the cancellation",
+            "I'm not gonna be asking them to try and cancel my appointment",
+            "I'm not gonna be allowing them to go ahead and cancel my appointment",
+            "I'm not gonna be going ahead and cancel my appointment",
+            "I'm not gonna be going through with the cancellation",
+            "I'm not going to be going ahead and cancel my appointment",
+            "I'm not going to be going through with the cancellation",
+            "I'm not really going to be asking them to cancel my appointment",
+            "Please don't be going to be asking them to cancel my appointment",
+            "He isn't going to be letting them cancel my appointment",
+            "I ain't gonna be asking them to cancel my appointment",
+            "I haven't been going to be asking them to cancel my appointment",
+            "I'm not going to be asking them to reschedule my appointment",
+            "I'm not going to be having them schedule an appointment",
+            "I'm not going to be asking them to cancel or reschedule my appointment",
+            "I'm not gonna be asking them to cancel or reschedule my appointment",
+            "I'm not going to really cancel my appointment",
+            "I'm not going to actually cancel my appointment",
+            "I'm not gonna really cancel my appointment",
+            "I don't wanna really cancel my appointment",
+            "I don't want to really cancel my appointment",
+            "I'm not going to really ask them to cancel my appointment",
+            "I'm not going to really have them cancel my appointment",
+            "I'm not going to really let them cancel my appointment",
+            "I'm not going to really make them cancel my appointment",
+            "I'm not going to actually have them cancel my appointment",
+            "I'm not going to even let them cancel my appointment",
+            "I'm not gonna really ask them to cancel my appointment",
+            "I'm not gonna really have them cancel my appointment",
+            "I'm not gonna even let them cancel my appointment",
+            "I don't wanna really have them cancel my appointment",
+            "I'm not going to be really asking them to cancel my appointment",
+            "I'm not going to really be asking them to cancel my appointment",
+            "I'm not going to be really having them cancel my appointment",
+            "I'm not going to actually be having them cancel my appointment",
+            "I'm not gonna be really asking them to cancel my appointment",
+            "I'm not gonna really be asking them to cancel my appointment",
+            "I'm not gonna be really having them cancel my appointment",
+            "I'm not going to be really trying to cancel my appointment",
+            "I'm not gonna be really trying to cancel my appointment",
+            "I'm not going to really try and cancel my appointment",
+            "I'm not gonna really try and cancel my appointment",
+            "I'm not going to really go ahead and cancel my appointment",
+            "I'm not gonna really go ahead and cancel my appointment",
+            "Please don't ask them to really cancel my appointment",
+            "Please don't try to really cancel my appointment",
+            "Please don't go ahead and really cancel my appointment",
+            "I'm not going to really have them cancel or reschedule my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_be_auxiliary_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please don't be asking them to cancel my appointment",
+            "Please don't be asking the office to cancel my appointment",
+            "Don't be asking them to cancel my appointment",
+            "Please do not be asking them to cancel my appointment",
+            "Please don't be telling them to cancel my appointment",
+            "Please don't be trying to cancel my appointment",
+            "Please don't be going to cancel my appointment",
+            "Please don't be forced to cancel my appointment",
+            "I won't be asking you to cancel my appointment",
+            "Please don't really be asking them to cancel my appointment",
+            "Please don't be asking them to reschedule my appointment",
+            "Please don't be asking them to schedule an appointment",
+            "I have not been going to cancel my appointment",
+            "I haven't been going to cancel my appointment",
+            "I haven't been trying to cancel my appointment",
+            "I haven't been asked to cancel my appointment",
+            "They haven't been going to cancel my appointment",
+            "I hadn't been going to cancel my appointment",
+            "He ain't been going to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_mandated_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not mandated to cancel my appointment",
+            "I am not mandated to cancel my appointment",
+            "I'm not pressured to cancel my appointment",
+            "I'm not coerced to cancel my appointment",
+            "I'm not pressuring you to cancel my appointment",
+            "I'm not mandated to reschedule my appointment",
+            "I'm not pressured to schedule an appointment",
+            "I wasn't mandated to cancel my appointment",
+            "He isn't pressured to cancel my appointment",
+            "He ain't coerced to cancel my appointment",
+            "They aren't mandated to cancel my appointment",
+            "I'm not really mandated to cancel my appointment",
+            "I'm not even pressured to cancel my appointment",
+            "Please don't pressure the office to cancel my appointment",
+            "Please confirm you are not mandated to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_supposed_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not supposed to cancel my appointment",
+            "I am not supposed to cancel my appointment",
+            "I'm not willing to cancel my appointment",
+            "I'm not ready to cancel my appointment",
+            "I'm not prepared to cancel my appointment",
+            "I'm not supposed to reschedule my appointment",
+            "I'm not supposed to schedule an appointment",
+            "I wasn't supposed to cancel my appointment",
+            "He isn't supposed to cancel my appointment",
+            "He ain't supposed to cancel my appointment",
+            "They aren't willing to cancel my appointment",
+            "I'm not really supposed to cancel my appointment",
+            "I'm not even willing to cancel my appointment",
+            "Please confirm you are not supposed to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_about_to_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I'm not about to cancel my appointment",
+            "I am not about to cancel my appointment",
+            "I'm not about to reschedule my appointment",
+            "I'm not about to schedule an appointment",
+            "I wasn't about to cancel my appointment",
+            "He isn't about to cancel my appointment",
+            "He ain't about to cancel my appointment",
+            "They aren't about to cancel my appointment",
+            "I'm not really about to cancel my appointment",
+            "I'm not even about to cancel my appointment",
+            "Please confirm you are not about to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_no_longer_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I no longer want to cancel my appointment",
+            "I no longer need to cancel my appointment",
+            "I no longer wish to cancel my appointment",
+            "I no longer plan to cancel my appointment",
+            "I no longer want to reschedule my appointment",
+            "I no longer want to schedule an appointment",
+            "I'm no longer going to cancel my appointment",
+            "I am no longer going to cancel my appointment",
+            "I'm no longer gonna cancel my appointment",
+            "I no longer want a cancellation",
+            "Please confirm you no longer want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_perfect_tense_havent_hadnt_hasnt_negations_do_not_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            "I haven't wanted to cancel my appointment",
+            "I havent wanted to cancel my appointment",
+            "I haven’t wanted to cancel my appointment",
+            "I haven't planned to cancel my appointment",
+            "I hadn't planned to cancel my appointment",
+            "I hadnt planned to cancel my appointment",
+            "I hadn’t wanted to cancel my appointment",
+            "She hasn't asked to cancel my appointment",
+            "She hasnt asked to cancel my appointment",
+            "She hasn’t asked to cancel my appointment",
+            "He hasn't told you to cancel my appointment",
+            "I haven't wanted to reschedule my appointment",
+            "I haven't planned to book an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_affirmative_past_tense_still_routes_to_action(self) -> None:
+        examples = (
+            ("I did cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I didn't want Tuesday", "cancel"),
+            ("I did want to reschedule my appointment", "reschedule"),
+            ("I did book an appointment", "schedule"),
+            ("I was going to cancel my appointment", "cancel"),
+            ("I was planning to cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I wasn't sure about Tuesday", "cancel"),
+            ("Please cancel my appointment, I wasn't going to make it", "cancel"),
+            ("I wasn't available Tuesday, please cancel", "cancel"),
+            ("Please reschedule, I wasn't able to come", "reschedule"),
+            ("Please cancel my appointment, I haven't been able to make it", "cancel"),
+            ("I haven't been feeling well, please cancel", "cancel"),
+            ("She hasn't confirmed yet, please cancel", "cancel"),
+            ("I hadn't realized the conflict, please cancel", "cancel"),
+            ("I haven't canceled yet, please cancel", "cancel"),
+            ("I haven't heard back, please reschedule", "reschedule"),
+            ("I have wanted to cancel my appointment", "cancel"),
+            ("She has asked to cancel my appointment", "cancel"),
+            ("He is going to cancel my appointment", "cancel"),
+            ("They are going to cancel my appointment", "cancel"),
+            ("Please cancel my appointment, he isn't available Tuesday", "cancel"),
+            ("Please cancel my appointment, they aren't able to make it", "cancel"),
+            ("They aren't available Tuesday, please cancel", "cancel"),
+            ("He isn't coming, please cancel", "cancel"),
+            ("This isn't working, please cancel", "cancel"),
+            ("She isn't confirmed yet, please cancel", "cancel"),
+            ("Please reschedule, they aren't able to come", "reschedule"),
+            ("Please cancel my appointment, he ain't available Tuesday", "cancel"),
+            ("Please cancel my appointment, they ain't able to make it", "cancel"),
+            ("They ain't available Tuesday, please cancel", "cancel"),
+            ("He ain't coming, please cancel", "cancel"),
+            ("This ain't working, please cancel", "cancel"),
+            ("Please reschedule, they ain't able to come", "reschedule"),
+            ("I want to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I no longer need Tuesday",
+                "cancel",
+            ),
+            ("I no longer need Tuesday, please cancel", "cancel"),
+            ("I no longer want Tuesday, please cancel", "cancel"),
+            ("I no longer can make it, please cancel", "cancel"),
+            ("Please reschedule, I no longer need that time", "reschedule"),
+            ("I'm about to cancel my appointment", "cancel"),
+            ("I am about to cancel my appointment", "cancel"),
+            ("I'm about to reschedule my appointment", "reschedule"),
+            ("Please cancel my appointment, I'm not about to make it", "cancel"),
+            ("I'm not about to make it, please cancel", "cancel"),
+            ("I'm not about Tuesday, please cancel", "cancel"),
+            ("I'm supposed to cancel my appointment", "cancel"),
+            ("I am willing to cancel my appointment", "cancel"),
+            ("I'm ready to cancel my appointment", "cancel"),
+            ("I'm prepared to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not supposed to make it",
+                "cancel",
+            ),
+            ("I'm not supposed to make it, please cancel", "cancel"),
+            ("I'm not ready Tuesday, please cancel", "cancel"),
+            ("I'm not willing to wait, please cancel", "cancel"),
+            ("I'm not prepared for Tuesday, please cancel", "cancel"),
+            ("I'm asking you to cancel my appointment", "cancel"),
+            ("They are asking you to cancel my appointment", "cancel"),
+            ("Please ask them to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I'm not asking about Tuesday",
+                "cancel",
+            ),
+            ("I'm not asking about Tuesday, please cancel", "cancel"),
+            ("I'm not telling you about Tuesday, please cancel", "cancel"),
+            ("I'm allowed to cancel my appointment", "cancel"),
+            ("I'm permitted to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I'm not allowed to make it",
+                "cancel",
+            ),
+            ("I'm not allowed to make it, please cancel", "cancel"),
+            ("I'm not allowed Tuesday, please cancel", "cancel"),
+            ("I'm not permitted to wait, please cancel", "cancel"),
+            ("I'm not permitted Tuesday, please cancel", "cancel"),
+            ("I'm required to cancel my appointment", "cancel"),
+            ("I'm obligated to cancel my appointment", "cancel"),
+            ("I'm obliged to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not required to make it",
+                "cancel",
+            ),
+            ("I'm not required to make it, please cancel", "cancel"),
+            ("I'm not required Tuesday, please cancel", "cancel"),
+            ("Please require them to cancel my appointment", "cancel"),
+            ("I'm requiring them to cancel my appointment", "cancel"),
+            ("I'm gonna require them to cancel my appointment", "cancel"),
+            ("Please don't require them to wait, please cancel", "cancel"),
+            ("I'm not requiring them to wait, please cancel", "cancel"),
+            ("I'm not gonna require them to wait, please cancel", "cancel"),
+            ("Please don't require Tuesday, please cancel", "cancel"),
+            ("I'm not requiring Tuesday, please cancel", "cancel"),
+            ("Please don't require them to try, and cancel my appointment", "cancel"),
+            ("Please don't oblige them to wait, please cancel", "cancel"),
+            ("I would like to cancel my appointment", "cancel"),
+            ("I would like you to cancel my appointment", "cancel"),
+            ("I'd like to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, I would not like Tuesday",
+                "cancel",
+            ),
+            ("I would not like Tuesday, please cancel", "cancel"),
+            ("I don't like Tuesday, please cancel", "cancel"),
+            ("I don't like my appointment, please cancel", "cancel"),
+            ("I wouldn't like to wait, please cancel", "cancel"),
+            ("I would not like them to wait, please cancel", "cancel"),
+            ("I wouldn't like that time, please reschedule", "reschedule"),
+            ("I don't like this slot, please reschedule", "reschedule"),
+            ("I wouldn't like to try, and cancel my appointment", "cancel"),
+            ("I feel like I need to cancel my appointment", "cancel"),
+            ("It looks like I need to cancel my appointment", "cancel"),
+            ("I don't like to, but please cancel", "cancel"),
+            ("I wouldn't like to, please cancel", "cancel"),
+            ("Please attempt to cancel my appointment", "cancel"),
+            ("I'm attempting to cancel my appointment", "cancel"),
+            ("I will attempt to cancel my appointment", "cancel"),
+            ("I'm gonna attempt to cancel my appointment", "cancel"),
+            ("Please don't attempt to wait, please cancel", "cancel"),
+            ("Please don't attempt to wait, please cancel my appointment", "cancel"),
+            ("I'm not attempting to wait, please cancel", "cancel"),
+            ("Please don't attempt Tuesday, please cancel", "cancel"),
+            ("Please don't attempt, cancel my appointment", "cancel"),
+            ("I don't attempt Tuesday, please cancel", "cancel"),
+            ("Please don't attempt to try, and cancel my appointment", "cancel"),
+            ("I haven't attempted to cancel my appointment", "cancel"),
+            ("I haven't tried to cancel my appointment", "cancel"),
+            ("I wish to cancel my appointment", "cancel"),
+            ("I have a wish to cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I have no wish", "cancel"),
+            ("I have no wish to wait, please cancel", "cancel"),
+            ("I have no wish to wait, please cancel my appointment", "cancel"),
+            ("I have no wish Tuesday, please cancel", "cancel"),
+            ("I have no wish, please cancel my appointment", "cancel"),
+            ("I have no wish for Tuesday, please cancel", "cancel"),
+            ("I have no wish to, please cancel", "cancel"),
+            ("I have no wish to, but please cancel", "cancel"),
+            ("I have no wishes, cancel my appointment", "cancel"),
+            ("Please reschedule, I have no wish for that time", "reschedule"),
+            ("I haven't any wish to wait, please cancel", "cancel"),
+            ("I haven't any wish to wait, please cancel my appointment", "cancel"),
+            ("I haven't any wish Tuesday, please cancel", "cancel"),
+            ("I haven't any wish, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I haven't any wish", "cancel"),
+            ("I haven't any wish for Tuesday, please cancel", "cancel"),
+            ("I haven't any wish to, please cancel", "cancel"),
+            ("I haven't any plans Tuesday, please cancel", "cancel"),
+            ("I haven't any desire to wait, please cancel", "cancel"),
+            ("There aren't any plans to wait, please cancel", "cancel"),
+            ("There aren't any plans to wait, please cancel my appointment", "cancel"),
+            ("There aren't any plans Tuesday, please cancel", "cancel"),
+            ("There aren't any plans, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, there aren't any plans", "cancel"),
+            ("There aren't any plans for Tuesday, please cancel", "cancel"),
+            ("There aren't any plans to, please cancel", "cancel"),
+            ("There isn't any wish to wait, please cancel", "cancel"),
+            ("There isn't any wish Tuesday, please cancel", "cancel"),
+            ("There are plans to cancel my appointment", "cancel"),
+            ("I need to cancel my appointment", "cancel"),
+            ("Needn't I cancel my appointment?", "cancel"),
+            ("I needn't wait, please cancel", "cancel"),
+            ("I needn't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I needn't wait", "cancel"),
+            ("I needn't Tuesday, please cancel", "cancel"),
+            ("I needn't, please cancel my appointment", "cancel"),
+            ("I shall cancel my appointment", "cancel"),
+            ("Shan't I cancel my appointment?", "cancel"),
+            ("I shan't wait, please cancel", "cancel"),
+            ("I shan't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I shan't wait", "cancel"),
+            ("I shan't Tuesday, please cancel", "cancel"),
+            ("I shan't, please cancel my appointment", "cancel"),
+            ("I ought to cancel my appointment", "cancel"),
+            ("Oughtn't I cancel my appointment?", "cancel"),
+            ("I oughtn't wait, please cancel", "cancel"),
+            ("I oughtn't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I oughtn't wait", "cancel"),
+            ("I oughtn't Tuesday, please cancel", "cancel"),
+            ("I oughtn't, please cancel my appointment", "cancel"),
+            ("I dare to cancel my appointment", "cancel"),
+            ("Daren't I cancel my appointment?", "cancel"),
+            ("I daren't wait, please cancel", "cancel"),
+            ("I daren't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I daren't wait", "cancel"),
+            ("I daren't Tuesday, please cancel", "cancel"),
+            ("I daren't, please cancel my appointment", "cancel"),
+            ("I may cancel my appointment", "cancel"),
+            ("Mayn't I cancel my appointment?", "cancel"),
+            ("I mayn't wait, please cancel", "cancel"),
+            ("I mayn't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I mayn't wait", "cancel"),
+            ("I mayn't Tuesday, please cancel", "cancel"),
+            ("I mayn't, please cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("Mightn't I cancel my appointment?", "cancel"),
+            ("I mightn't wait, please cancel", "cancel"),
+            ("I mightn't wait, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I mightn't wait", "cancel"),
+            ("I mightn't Tuesday, please cancel", "cancel"),
+            ("I mightn't, please cancel my appointment", "cancel"),
+            ("I haven't been able to cancel my appointment", "cancel"),
+            ("I'm not obligated to wait, please cancel", "cancel"),
+            ("I'm not obligated Tuesday, please cancel", "cancel"),
+            ("I'm not obliged to wait, please cancel", "cancel"),
+            ("I'm expected to cancel my appointment", "cancel"),
+            ("I expect to cancel my appointment", "cancel"),
+            ("I'm expecting to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not expected to make it",
+                "cancel",
+            ),
+            ("I'm not expected to make it, please cancel", "cancel"),
+            ("I'm not expected Tuesday, please cancel", "cancel"),
+            ("I don't expect to wait, please cancel", "cancel"),
+            ("I'm not expecting Tuesday, please cancel", "cancel"),
+            ("I'm forced to cancel my appointment", "cancel"),
+            ("I'm compelled to cancel my appointment", "cancel"),
+            ("I'm forcing you to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not forced to make it",
+                "cancel",
+            ),
+            ("I'm not forced to make it, please cancel", "cancel"),
+            ("I'm not forced Tuesday, please cancel", "cancel"),
+            ("I'm not compelled to wait, please cancel", "cancel"),
+            ("I'm not compelled Tuesday, please cancel", "cancel"),
+            ("I'm mandated to cancel my appointment", "cancel"),
+            ("I'm pressured to cancel my appointment", "cancel"),
+            ("I'm coerced to cancel my appointment", "cancel"),
+            ("I'm pressuring you to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not mandated to make it",
+                "cancel",
+            ),
+            ("I'm not mandated to make it, please cancel", "cancel"),
+            ("I'm not mandated Tuesday, please cancel", "cancel"),
+            ("I'm not pressured to wait, please cancel", "cancel"),
+            ("I'm not pressured Tuesday, please cancel", "cancel"),
+            ("I'm not coerced to wait, please cancel", "cancel"),
+            ("I'm not coerced Tuesday, please cancel", "cancel"),
+            ("I'm being forced to cancel my appointment", "cancel"),
+            ("I'm being asked to cancel my appointment", "cancel"),
+            ("I'm being pressured to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not being forced to make it",
+                "cancel",
+            ),
+            ("I'm not being forced to make it, please cancel", "cancel"),
+            ("I'm not being Tuesday, please cancel", "cancel"),
+            ("I'm not being forced to wait, please cancel", "cancel"),
+            ("I'm not being asked about Tuesday, please cancel", "cancel"),
+            ("Please reschedule, I'm not being forced to wait", "reschedule"),
+            ("Please don't be late, cancel my appointment", "cancel"),
+            ("Don't be silly, cancel my appointment", "cancel"),
+            ("Please don't be late to cancel my appointment", "cancel"),
+            ("I haven't been able to cancel my appointment", "cancel"),
+            ("I'm intending to cancel my appointment", "cancel"),
+            ("I'm meaning to cancel my appointment", "cancel"),
+            ("I'm wanting to cancel my appointment", "cancel"),
+            ("I'm hoping to reschedule my appointment", "reschedule"),
+            ("I hope to cancel my appointment", "cancel"),
+            ("I wished to cancel my appointment", "cancel"),
+            ("I desire to cancel my appointment", "cancel"),
+            ("I'm desiring to cancel my appointment", "cancel"),
+            ("I'm needing to reschedule my appointment", "reschedule"),
+            (
+                "Please cancel my appointment, I'm not intending to make it",
+                "cancel",
+            ),
+            ("I'm not intending to make it, please cancel", "cancel"),
+            ("I'm not intending Tuesday, please cancel", "cancel"),
+            ("I'm not intending to wait, please cancel", "cancel"),
+            ("I'm not meaning to wait, please cancel", "cancel"),
+            ("I'm not wanting Tuesday, please cancel", "cancel"),
+            ("I'm not hoping to wait, please cancel", "cancel"),
+            ("I don't hope to wait, please cancel", "cancel"),
+            ("I don't hope Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I don't hope to make it",
+                "cancel",
+            ),
+            ("I'm not wishing to wait, please cancel", "cancel"),
+            ("I'm not wishing Tuesday, please cancel", "cancel"),
+            ("I never wished to wait, please cancel", "cancel"),
+            ("I'm not needing to wait, please cancel", "cancel"),
+            ("I'm not needing Tuesday, please cancel", "cancel"),
+            ("I don't desire to wait, please cancel", "cancel"),
+            ("I don't desire Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I don't desire to make it",
+                "cancel",
+            ),
+            ("I'm not desiring to wait, please cancel", "cancel"),
+            ("I'm not desiring Tuesday, please cancel", "cancel"),
+            ("Please reschedule, I'm not intending to wait", "reschedule"),
+            ("Please reschedule, I don't hope to wait", "reschedule"),
+            ("Please reschedule, I don't desire to wait", "reschedule"),
+            ("Please try and cancel my appointment", "cancel"),
+            ("Please go ahead and cancel my appointment", "cancel"),
+            ("Please go ahead and reschedule my appointment", "reschedule"),
+            ("Please don't try and wait, please cancel", "cancel"),
+            ("Please don't try and wait, please cancel my appointment", "cancel"),
+            ("I don't try Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I don't try and wait",
+                "cancel",
+            ),
+            ("Please don't go ahead and wait, please cancel", "cancel"),
+            ("Please don't go ahead Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, don't go ahead and wait",
+                "cancel",
+            ),
+            ("Please don't go, cancel my appointment", "cancel"),
+            ("I'm going to try and cancel my appointment", "cancel"),
+            ("I want to try and cancel my appointment", "cancel"),
+            ("I'm gonna try and cancel my appointment", "cancel"),
+            ("Please go ahead with the cancellation", "cancel"),
+            ("I'm not going to try and wait, please cancel", "cancel"),
+            ("I'm not going to try, and cancel my appointment", "cancel"),
+            ("I'm not going to try Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I'm not going to try and wait",
+                "cancel",
+            ),
+            ("Please don't go ahead with Tuesday, please cancel", "cancel"),
+            ("Please don't go ahead with waiting, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, don't go ahead with waiting",
+                "cancel",
+            ),
+            ("Please don't wanna try and wait, please cancel", "cancel"),
+            ("I'm going to go ahead and cancel my appointment", "cancel"),
+            ("I want to go ahead and cancel my appointment", "cancel"),
+            ("I'm gonna go ahead and cancel my appointment", "cancel"),
+            ("I'm going ahead with the cancellation", "cancel"),
+            ("Please go through with the cancellation", "cancel"),
+            ("I'm going through with the cancellation", "cancel"),
+            ("I'm not going to go ahead and wait, please cancel", "cancel"),
+            ("I'm not going to go ahead, and cancel my appointment", "cancel"),
+            ("I'm not going to go ahead Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I'm not going to go ahead and wait",
+                "cancel",
+            ),
+            ("I'm not going ahead with Tuesday, please cancel", "cancel"),
+            ("I'm not going ahead with waiting, please cancel", "cancel"),
+            ("Please don't go through with Tuesday, please cancel", "cancel"),
+            ("Please don't go through with waiting, please cancel", "cancel"),
+            ("I'm not going through Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, don't go through with waiting",
+                "cancel",
+            ),
+            ("Please don't wanna go ahead and wait, please cancel", "cancel"),
+            ("I'm hoping to try and cancel my appointment", "cancel"),
+            ("I'm looking to try and cancel my appointment", "cancel"),
+            ("I'm hoping to go ahead and cancel my appointment", "cancel"),
+            ("I'm looking to go ahead and cancel my appointment", "cancel"),
+            ("I'm hoping to go through with the cancellation", "cancel"),
+            ("Please don't look and cancel my appointment", "cancel"),
+            ("Please don't want and cancel my appointment", "cancel"),
+            ("I'm not hoping to try and wait, please cancel", "cancel"),
+            ("I'm not looking to try and wait, please cancel", "cancel"),
+            ("I'm not hoping to try, and cancel my appointment", "cancel"),
+            ("I'm not hoping to go ahead and wait, please cancel", "cancel"),
+            ("I'm not looking to go ahead and wait, please cancel", "cancel"),
+            ("I'm not hoping to go through with Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I'm not hoping to try and wait",
+                "cancel",
+            ),
+            ("Please ask them to try and cancel my appointment", "cancel"),
+            ("Please tell them to go ahead and cancel my appointment", "cancel"),
+            ("I have to try and cancel my appointment", "cancel"),
+            ("Please allow them to try and cancel my appointment", "cancel"),
+            ("Please don't ask them to try and wait, please cancel", "cancel"),
+            ("Please don't ask them to try, and cancel my appointment", "cancel"),
+            ("Please don't tell them to go ahead and wait, please cancel", "cancel"),
+            ("Please don't tell them to go ahead, and cancel my appointment", "cancel"),
+            ("Please don't ask them to go through with Tuesday, please cancel", "cancel"),
+            ("I'm gonna ask them to cancel my appointment", "cancel"),
+            ("I wanna ask them to cancel my appointment", "cancel"),
+            ("I'm gonna ask them to try and cancel my appointment", "cancel"),
+            ("I'm gonna tell them to go ahead and cancel my appointment", "cancel"),
+            ("I'm gonna let them cancel my appointment", "cancel"),
+            ("I'm not gonna ask them to wait, please cancel", "cancel"),
+            ("I'm not gonna ask them to try and wait, please cancel", "cancel"),
+            ("I'm not gonna ask them to try, and cancel my appointment", "cancel"),
+            ("I'm not gonna tell them to go ahead and wait, please cancel", "cancel"),
+            ("I'm not gonna tell them to go through with Tuesday, please cancel", "cancel"),
+            ("I'm not gonna have them wait, please cancel", "cancel"),
+            ("I'm not gonna let them wait, please cancel", "cancel"),
+            ("I'm not gonna ask about Tuesday, please cancel", "cancel"),
+            ("I'm not gonna forget to cancel my appointment", "cancel"),
+            ("I don't wanna ask them to wait, please cancel", "cancel"),
+            ("I'm going to have them cancel my appointment", "cancel"),
+            ("I want to have them cancel my appointment", "cancel"),
+            ("I'm going to let them cancel my appointment", "cancel"),
+            ("I'm not going to have them wait, please cancel", "cancel"),
+            ("I'm not going to let them wait, please cancel", "cancel"),
+            ("I'm not going to make them wait, please cancel", "cancel"),
+            ("I don't want to have them wait, please cancel", "cancel"),
+            ("I'm not going to have them try and wait, please cancel", "cancel"),
+            ("I'm not going to have them try, and cancel my appointment", "cancel"),
+            ("I'm not going to let them go ahead and wait, please cancel", "cancel"),
+            ("I'm not going to have Tuesday, please cancel", "cancel"),
+            ("I'm having them cancel my appointment", "cancel"),
+            ("I'm letting them cancel my appointment", "cancel"),
+            ("I'm making them cancel my appointment", "cancel"),
+            ("I'm not having them wait, please cancel", "cancel"),
+            ("I'm not letting them wait, please cancel", "cancel"),
+            ("I'm not making them wait, please cancel", "cancel"),
+            ("I'm not having them try and wait, please cancel", "cancel"),
+            ("I'm not having them try, and cancel my appointment", "cancel"),
+            ("I'm not letting them go ahead and wait, please cancel", "cancel"),
+            ("I'm not having Tuesday, please cancel", "cancel"),
+            ("I'm allowing them to cancel my appointment", "cancel"),
+            ("I'm permitting them to cancel my appointment", "cancel"),
+            ("I'm not allowing them to wait, please cancel", "cancel"),
+            ("I'm not permitting them to wait, please cancel", "cancel"),
+            ("I'm not allowing them to try and wait, please cancel", "cancel"),
+            ("I'm not allowing them to try, and cancel my appointment", "cancel"),
+            ("I'm not permitting them to go ahead and wait, please cancel", "cancel"),
+            ("I'm not allowing Tuesday, please cancel", "cancel"),
+            ("I'm going to be asking them to cancel my appointment", "cancel"),
+            ("I'm gonna be asking them to cancel my appointment", "cancel"),
+            ("I'm going to be allowing them to cancel my appointment", "cancel"),
+            ("I'm going to be having them cancel my appointment", "cancel"),
+            ("I'm gonna be letting them cancel my appointment", "cancel"),
+            ("I'm gonna be going ahead and cancel my appointment", "cancel"),
+            ("I'm not going to be asking them to wait, please cancel", "cancel"),
+            ("I'm not gonna be asking them to wait, please cancel", "cancel"),
+            ("I'm not going to be having them wait, please cancel", "cancel"),
+            ("I'm not gonna be letting them wait, please cancel", "cancel"),
+            ("I'm not going to be allowing them to wait, please cancel", "cancel"),
+            ("I'm not going to be asking them to try and wait, please cancel", "cancel"),
+            ("I'm not going to be asking them to try, and cancel my appointment", "cancel"),
+            ("I'm not gonna be asking them to try, and cancel my appointment", "cancel"),
+            ("I'm not gonna be going ahead and wait, please cancel", "cancel"),
+            ("I'm not gonna be going through with Tuesday, please cancel", "cancel"),
+            ("I'm not going to be asking about Tuesday, please cancel", "cancel"),
+            ("I'm not gonna be asking about Tuesday, please cancel", "cancel"),
+            ("I'm not going to be having Tuesday, please cancel", "cancel"),
+            ("I'm not gonna be able to cancel my appointment", "cancel"),
+            ("I'm going to really have them cancel my appointment", "cancel"),
+            ("I'm gonna really ask them to cancel my appointment", "cancel"),
+            ("I'm going to be really asking them to cancel my appointment", "cancel"),
+            ("I'm going to really cancel my appointment", "cancel"),
+            ("I'm not going to really wait, please cancel", "cancel"),
+            ("I'm not gonna really wait, please cancel", "cancel"),
+            ("I'm not going to really have them wait, please cancel", "cancel"),
+            ("I'm not gonna really have them wait, please cancel", "cancel"),
+            ("I'm not going to really ask them to wait, please cancel", "cancel"),
+            ("I'm not going to be really asking them to wait, please cancel", "cancel"),
+            ("I'm not gonna be really asking them to wait, please cancel", "cancel"),
+            ("I'm not going to really try and wait, please cancel", "cancel"),
+            ("I'm not going to really, cancel my appointment", "cancel"),
+            ("I'm not gonna really, cancel my appointment", "cancel"),
+            ("I'm not going to really have Tuesday, please cancel", "cancel"),
+            ("I'm not going to really ask about Tuesday, please cancel", "cancel"),
+            ("I don't have to wait, please cancel", "cancel"),
+            ("Please don't ask about Tuesday, please cancel", "cancel"),
+            ("Please don't ask them about Tuesday, please cancel", "cancel"),
+            (
+                "Please cancel my appointment, I don't have to try and wait",
+                "cancel",
+            ),
+            ("Please cancel my appointment, don't be asking about Tuesday", "cancel"),
+            ("Don't be asking about Tuesday, please cancel", "cancel"),
+            ("I haven't been going Tuesday, please cancel", "cancel"),
+            ("I haven't been trying to wait, please cancel", "cancel"),
+            ("He does want to cancel my appointment", "cancel"),
+            ("He wants to cancel my appointment", "cancel"),
+            (
+                "Please cancel my appointment, he doesn't want Tuesday",
+                "cancel",
+            ),
+            ("He doesn't want Tuesday, please cancel", "cancel"),
+            ("He doesn't want to wait, please cancel", "cancel"),
+            ("Please cancel, he doesn't want to make it", "cancel"),
+            ("Please reschedule, he doesn't want that time", "reschedule"),
+            ("This doesn't work, please cancel", "cancel"),
+            ("He doesn't, please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_adverb_bridge_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I don't really want to cancel my appointment",
+            "I don't actually want to cancel my appointment",
+            "I don't even want to cancel my appointment",
+            "I don't particularly want to reschedule my appointment",
+            "I don't currently plan to cancel my appointment",
+            "I'm not really going to cancel my appointment",
+            "I'm not going to really cancel my appointment",
+            "I'm not really gonna cancel my appointment",
+            "I'm not gonna really cancel my appointment",
+            "I don't really wanna cancel my appointment",
+            "I don't wanna really cancel my appointment",
+            "I don't want to really cancel my appointment",
+            "I'm not going to really have them cancel my appointment",
+            "I'm not gonna really ask them to cancel my appointment",
+            "I'm not going to be really asking them to cancel my appointment",
+            "I don't even wanna reschedule my appointment",
+            "I don't really want a cancellation",
+            "I don't really think I need to cancel my appointment",
+            "I don't actually believe we should cancel my appointment",
+            "I'm not really looking to schedule an appointment",
+            "I don't particularly wish to schedule an appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_affirmative_adverb_bridges_still_route_to_action(self) -> None:
+        examples = (
+            ("I really want to cancel my appointment", "cancel"),
+            ("I actually want to reschedule my appointment", "reschedule"),
+            ("I'm really going to cancel my appointment", "cancel"),
+            ("I really wanna schedule an appointment", "schedule"),
+            (
+                "Please cancel my appointment, I don't really want Tuesday",
+                "cancel",
+            ),
+            ("Please don't cancel, I really want to reschedule", "reschedule"),
+            # Rejected slot preference must not negate a later explicit action.
+            ("I don't want Tuesday, please cancel", "cancel"),
+            ("I don't really want Tuesday, please cancel", "cancel"),
+            (
+                "I don't actually want Tuesday, please cancel my appointment",
+                "cancel",
+            ),
+            ("I don't need Tuesday, please cancel", "cancel"),
+            ("I don't want that time, please reschedule", "reschedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_affirmative_modals_still_route_to_action(self) -> None:
+        examples = (
+            ("I should cancel my appointment", "cancel"),
+            ("I must cancel my appointment", "cancel"),
+            ("I need to cancel my appointment", "cancel"),
+            ("I shall cancel my appointment", "cancel"),
+            ("I ought to cancel my appointment", "cancel"),
+            ("I dare to cancel my appointment", "cancel"),
+            ("I may cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("I would like to cancel my appointment", "cancel"),
+            ("I should reschedule my appointment", "reschedule"),
+            ("I must schedule an appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_do_not_forget_positive_action_still_routes_to_cancel(self) -> None:
+        examples = (
+            "Please do not forget to cancel my appointment",
+            "Please don't ever forget to cancel my appointment",
+            "Please don't under any circumstances forget to cancel my appointment",
+            "Please do not allow the office to forget to cancel my appointment",
+            "Please don't ask the office to forget to cancel my appointment",
+            "Please do not tell anyone to forget to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "cancel")
+
+    def test_negated_speech_act_refusal_still_routes_to_action(self) -> None:
+        examples = (
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please do not refuse to cancel my appointment", "cancel"),
+            ("Please don't ever refuse to cancel my appointment", "cancel"),
+            (
+                "Please don't under any circumstances refuse to cancel my appointment",
+                "cancel",
+            ),
+            ("Please do not decline to cancel my appointment", "cancel"),
+            ("Please don't decline to reschedule my appointment", "reschedule"),
+            ("Please don't refuse to schedule an appointment", "schedule"),
+            ("Don't you refuse to cancel my appointment", "cancel"),
+            ("Please do not allow the office to refuse to cancel my appointment", "cancel"),
+            ("Please don't ask the office to refuse to cancel my appointment", "cancel"),
+            ("Please do not tell anyone to decline to cancel my appointment", "cancel"),
+            ("I cannot refuse to cancel my appointment", "cancel"),
+            ("I can't refuse to cancel my appointment", "cancel"),
+            ("I can not refuse to cancel my appointment", "cancel"),
+            ("I'm not able to refuse to cancel my appointment", "cancel"),
+            ("I am unable to refuse to cancel my appointment", "cancel"),
+            ("I'm not really able to refuse to cancel my appointment", "cancel"),
+            ("I cannot really refuse to cancel my appointment", "cancel"),
+            ("I'm not going to be able to refuse to cancel my appointment", "cancel"),
+            ("I won't refuse to cancel my appointment", "cancel"),
+            ("I didn't refuse to cancel my appointment", "cancel"),
+            ("I don't think I should refuse to cancel my appointment", "cancel"),
+            ("I don't believe we ought to refuse to cancel my appointment", "cancel"),
+            ("I refuse to wait, please cancel my appointment", "cancel"),
+            ("I refuse, please cancel my appointment", "cancel"),
+            ("Please cancel my appointment, I refuse to wait", "cancel"),
+            ("I refuse to cancel my appointment, please reschedule it", "reschedule"),
+            ("Don't refuse to cancel or reschedule my appointment", "reschedule"),
+            ("Please do not forget to cancel my appointment", "cancel"),
+            ("I might cancel my appointment", "cancel"),
+            ("I might not cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_coordinated_negated_mixed_actions_do_not_route_to_action(self) -> None:
+        examples = (
+            "I do not want to cancel or reschedule my appointment",
+            "I don't wanna cancel or reschedule my appointment",
+            "I'm not gonna cancel or reschedule my appointment",
+            "Please don't reschedule or cancel my appointment",
+            "Please do not cancel my appointment or reschedule it",
+            "Please do not reschedule my appointment or cancel it",
+            "I do not want to cancel my appointment tomorrow or reschedule it",
+            (
+                "Please do not cancel my very important annual comprehensive "
+                "checkup appointment or reschedule it"
+            ),
+            (
+                "Please do not cancel my very important annual comprehensive "
+                "checkup appointment and reschedule it"
+            ),
+            "Please do not schedule, cancel, or reschedule anything",
+            "Please do not cancel, reschedule, nor book an appointment",
+            "Please do not cancel and reschedule my appointment",
+            "Please do not schedule and cancel anything",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_negated_cancel_with_reschedule_instead_still_routes_to_reschedule(self) -> None:
+        examples = (
+            "Please don't cancel my appointment, reschedule it instead",
+            "Please don\u2019t cancel my appointment, reschedule it instead",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "reschedule")
+
+    def test_unless_condition_actions_do_not_override_current_request(self) -> None:
+        examples = (
+            (
+                "Please cancel my appointment unless I ask you to reschedule it",
+                "cancel",
+            ),
+            (
+                "Please schedule a new appointment unless I call to cancel",
+                "schedule",
+            ),
+            (
+                "Please reschedule my appointment unless I ask you to cancel it",
+                "reschedule",
+            ),
+            (
+                "Unless I ask you to reschedule, please cancel my appointment",
+                "cancel",
+            ),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_negated_request_with_unless_condition_does_not_route_to_condition(self) -> None:
+        examples = (
+            "Do not cancel my appointment unless I ask you to reschedule it",
+            "Do not reschedule my appointment unless I ask you to cancel it",
+            "Do not schedule a new appointment unless I ask you to cancel it",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_comma_only_negated_mixed_action_lists_do_not_route_to_action(self) -> None:
+        examples = (
+            "Please do not schedule, cancel, reschedule",
+            "Please don't schedule, cancel, reschedule anything",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_empty_text_does_not_default_to_schedule(self) -> None:
+        for text in ("", "   "):
+            with self.subTest(text=repr(text)):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_dare_refusals_do_not_route_to_action(self) -> None:
+        examples = (
+            "Don't you dare cancel my appointment",
+            "Don't you dare to cancel my appointment",
+            "Please don't you dare cancel my appointment",
+            "Please do not dare cancel my appointment",
+            "Do not dare to cancel my appointment",
+            "Never dare cancel my appointment",
+            "Never you dare cancel my appointment",
+            "You don't dare cancel my appointment",
+            "I don't dare cancel my appointment",
+            "I don't dare to cancel my appointment",
+            "He doesn't dare cancel my appointment",
+            "I wouldn't dare cancel my appointment",
+            "I would not dare to cancel my appointment",
+            "I will not dare cancel my appointment",
+            "You must not dare to cancel my appointment",
+            "Don't you really dare cancel my appointment",
+            "Don't you even dare cancel my appointment",
+            "Don't you ever dare cancel my appointment",
+            "Don't you dare really cancel my appointment",
+            "Don't you dare to really cancel my appointment",
+            "Don't really dare cancel my appointment",
+            "Please don't ever dare cancel my appointment",
+            "Don't you dare go and cancel my appointment",
+            "Don't you dare come and cancel my appointment",
+            "Don't you dare have them cancel my appointment",
+            "Don't you dare ask them to cancel my appointment",
+            "Don't you dare try to cancel my appointment",
+            "Don't you dare call off my appointment",
+            "Don't you dare drop appointment",
+            "Don't you dare reschedule my appointment",
+            "Don't you dare book a new appointment",
+            "Don't you dare schedule an appointment",
+            "Don't you dare the cancellation",
+            "Don't you dare want the cancellation",
+            "Don't you dare cancel or reschedule",
+            "Don't you dare cancel, reschedule, or book",
+            "How dare you cancel my appointment",
+            "How dare they cancel my appointment",
+            "How dare he reschedule my appointment",
+            "How dare you go and cancel my appointment",
+            "How dare you have them cancel my appointment",
+            "How dare you cancel or reschedule",
+            "How dare you cancel, reschedule, or book",
+            "How dare you\u2014cancel my appointment",
+            "Don't you dare\u2014cancel my appointment",
+            "Don't you dare\u2014go and cancel my appointment",
+            "I daren't cancel my appointment",
+            "I dare not cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_dare_phrases_that_are_not_refusals_still_route_to_action(self) -> None:
+        examples = (
+            ("I dare to cancel my appointment", "cancel"),
+            ("I dare you to cancel my appointment", "cancel"),
+            ("Would you dare cancel my appointment?", "cancel"),
+            ("Don't you dare, please cancel my appointment", "cancel"),
+            ("Don't you dare wait, please cancel my appointment", "cancel"),
+            ("Don't you dare cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't you dare reschedule", "cancel"),
+            ("How dare you, please cancel my appointment", "cancel"),
+            ("How dare you wait, please cancel my appointment", "cancel"),
+            ("How dare you cancel, please reschedule", "reschedule"),
+            ("Don't you daredevil, please cancel my appointment", "cancel"),
+            ("I dare say, please cancel my appointment", "cancel"),
+            ("Daren't I cancel my appointment?", "cancel"),
+            ("Don't you dare me to cancel my appointment", "cancel"),
+            ("I don't dare you to cancel my appointment", "cancel"),
+            ("Don't you dare cancel or reschedule or book", "schedule"),
+            ("Please cancel my appointment", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("In no form or fashion should you cancel my appointment", "no_action"),
+            ("How dare you cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
+    def test_unmatched_text_does_not_default_to_schedule(self) -> None:
+        examples = (
+            "What time is my appointment tomorrow?",
+            "Hello, can you help me?",
+            "I cannot make it tomorrow",
+            "I can't make it tomorrow",
+            "I can not make it tomorrow",
+            "I cant make it tomorrow",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+
+if __name__ == "__main__":
+    unittest.main()
