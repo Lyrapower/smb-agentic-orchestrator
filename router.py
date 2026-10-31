@@ -149,6 +149,31 @@ NEGATION_PREFIX_PATTERN = (
     r"not|never|no\s+longer)(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
+# "Don't you dare cancel" / "I wouldn't dare cancel" / "Never dare to cancel"
+# put "dare" between the negation and the action, so the plain gap never
+# reaches the keyword. "How dare you cancel" is the same rebuke with the
+# subject after "dare". "I dare to cancel" and "I dare you to cancel" have
+# no negation and stay executable. A comma after the idiom ("Don't you dare,
+# please cancel" / "How dare you, please cancel") stays executable. Do not
+# match the "dare" inside "daren't". Scan only when "dare" occurs; do not
+# add "dare" to the hot-path gap.
+DARE_REFUSAL_ADVERB_PATTERN = rf"(?:{NEGATION_ADVERB_PATTERN}|ever)(?!\w)"
+DARE_REFUSAL_HEAD_PATTERN = (
+    rf"(?:"
+    rf"{NEGATION_PREFIX_PATTERN}"
+    rf"(?:\s+{DARE_REFUSAL_ADVERB_PATTERN}){{0,2}}"
+    rf"\s+(?:you(?!\w)(?:\s+{DARE_REFUSAL_ADVERB_PATTERN}){{0,2}}\s+)?"
+    rf"dare(?!\w)"
+    rf"|how\s+dare(?!\w)\s+"
+    rf"(?:you|they|he|she|we|i|anyone|someone|everybody|everyone)(?!\w)"
+    rf"(?:\s+{DARE_REFUSAL_ADVERB_PATTERN}){{0,2}}"
+    rf")"
+    rf"(?:\s+{DARE_REFUSAL_ADVERB_PATTERN}){{0,2}}"
+    rf"(?:\s+(?:to|and)(?:\s+{DARE_REFUSAL_ADVERB_PATTERN}){{0,2}})?"
+    # Em dash normalizes to a comma ("how dare you—cancel"). The comma is
+    # part of the rebuke, not a new clause. "please" still cannot be crossed.
+    r"(?:\s*,)?"
+)
 # Standalone "under no circumstances <action>" is itself a refusal. Singular
 # "under no circumstance", "in no circumstances", "on no account",
 # "by no means", "by no manner of means", "by no stretch of the imagination",
@@ -1577,7 +1602,108 @@ def _has_under_no_circumstances_action_list(text: str, keyword: str) -> bool:
     return False
 
 
+def _has_dare_refusal_marker(text: str) -> bool:
+    return "dare" in text
+
+
+def _has_dare_refusal_before_keyword(text: str, keyword: str) -> bool:
+    if not _has_dare_refusal_marker(text):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    if re.search(
+        rf"(?<!\w){DARE_REFUSAL_HEAD_PATTERN}"
+        rf"{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    return (
+        re.search(
+            rf"(?<!\w){DARE_REFUSAL_HEAD_PATTERN}"
+            rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+            rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+            rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+            rf"{keyword_pattern}",
+            text,
+        )
+        is not None
+    )
+
+
+def _has_dare_refusal_conjunction(
+    text: str,
+    keyword: str,
+    previous_keywords: Iterable[str],
+    conjunction_pattern: str,
+) -> bool:
+    if not _has_dare_refusal_marker(text):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    for previous_keyword in previous_keywords:
+        if previous_keyword == keyword:
+            continue
+
+        if re.search(
+            rf"(?<!\w){DARE_REFUSAL_HEAD_PATTERN}"
+            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{_keyword_pattern(previous_keyword)}"
+            rf"{conjunction_pattern}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){DARE_REFUSAL_HEAD_PATTERN}"
+            rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{_keyword_pattern(previous_keyword)}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{conjunction_pattern}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    return False
+
+
+def _has_dare_refusal_action_list(text: str, keyword: str) -> bool:
+    if not _has_dare_refusal_marker(text):
+        return False
+
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    keyword_pattern = _keyword_pattern(keyword)
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){DARE_REFUSAL_HEAD_PATTERN}"
+                rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
+    if _has_dare_refusal_before_keyword(text, keyword):
+        return True
+
     if _has_negated_belief_before_keyword(text, keyword):
         return True
 
@@ -1609,6 +1735,14 @@ def _has_negated_conjunction(
     previous_keywords: Iterable[str],
     conjunction_pattern: str,
 ) -> bool:
+    if _has_dare_refusal_conjunction(
+        text,
+        keyword,
+        previous_keywords,
+        conjunction_pattern,
+    ):
+        return True
+
     if _has_under_no_circumstances_conjunction(
         text,
         keyword,
@@ -1653,6 +1787,9 @@ def _has_negated_conjunction(
 
 
 def _has_negated_action_list(text: str, keyword: str) -> bool:
+    if _has_dare_refusal_action_list(text, keyword):
+        return True
+
     if _has_under_no_circumstances_action_list(text, keyword):
         return True
 

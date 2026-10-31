@@ -6972,6 +6972,95 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, "no_action")
 
+    def test_dare_refusals_do_not_route_to_action(self) -> None:
+        examples = (
+            "Don't you dare cancel my appointment",
+            "Don't you dare to cancel my appointment",
+            "Please don't you dare cancel my appointment",
+            "Please do not dare cancel my appointment",
+            "Do not dare to cancel my appointment",
+            "Never dare cancel my appointment",
+            "Never you dare cancel my appointment",
+            "You don't dare cancel my appointment",
+            "I don't dare cancel my appointment",
+            "I don't dare to cancel my appointment",
+            "He doesn't dare cancel my appointment",
+            "I wouldn't dare cancel my appointment",
+            "I would not dare to cancel my appointment",
+            "I will not dare cancel my appointment",
+            "You must not dare to cancel my appointment",
+            "Don't you really dare cancel my appointment",
+            "Don't you even dare cancel my appointment",
+            "Don't you ever dare cancel my appointment",
+            "Don't you dare really cancel my appointment",
+            "Don't you dare to really cancel my appointment",
+            "Don't really dare cancel my appointment",
+            "Please don't ever dare cancel my appointment",
+            "Don't you dare go and cancel my appointment",
+            "Don't you dare come and cancel my appointment",
+            "Don't you dare have them cancel my appointment",
+            "Don't you dare ask them to cancel my appointment",
+            "Don't you dare try to cancel my appointment",
+            "Don't you dare call off my appointment",
+            "Don't you dare drop appointment",
+            "Don't you dare reschedule my appointment",
+            "Don't you dare book a new appointment",
+            "Don't you dare schedule an appointment",
+            "Don't you dare the cancellation",
+            "Don't you dare want the cancellation",
+            "Don't you dare cancel or reschedule",
+            "Don't you dare cancel, reschedule, or book",
+            "How dare you cancel my appointment",
+            "How dare they cancel my appointment",
+            "How dare he reschedule my appointment",
+            "How dare you go and cancel my appointment",
+            "How dare you have them cancel my appointment",
+            "How dare you cancel or reschedule",
+            "How dare you cancel, reschedule, or book",
+            "How dare you\u2014cancel my appointment",
+            "Don't you dare\u2014cancel my appointment",
+            "Don't you dare\u2014go and cancel my appointment",
+            "I daren't cancel my appointment",
+            "I dare not cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_dare_phrases_that_are_not_refusals_still_route_to_action(self) -> None:
+        examples = (
+            ("I dare to cancel my appointment", "cancel"),
+            ("I dare you to cancel my appointment", "cancel"),
+            ("Would you dare cancel my appointment?", "cancel"),
+            ("Don't you dare, please cancel my appointment", "cancel"),
+            ("Don't you dare wait, please cancel my appointment", "cancel"),
+            ("Don't you dare cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't you dare reschedule", "cancel"),
+            ("How dare you, please cancel my appointment", "cancel"),
+            ("How dare you wait, please cancel my appointment", "cancel"),
+            ("How dare you cancel, please reschedule", "reschedule"),
+            ("Don't you daredevil, please cancel my appointment", "cancel"),
+            ("I dare say, please cancel my appointment", "cancel"),
+            ("Daren't I cancel my appointment?", "cancel"),
+            ("Don't you dare me to cancel my appointment", "cancel"),
+            ("I don't dare you to cancel my appointment", "cancel"),
+            ("Don't you dare cancel or reschedule or book", "schedule"),
+            ("Please cancel my appointment", "cancel"),
+            ("Don't go and cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("In no form or fashion should you cancel my appointment", "no_action"),
+            ("How dare you cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
