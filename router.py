@@ -103,14 +103,21 @@ NEGATION_EMPHASIS_PATTERN = (
     r"in\s+no\s+degree(?!\w)|"
     r"to\s+no\s+extent(?!\w)|"
     r"for\s+no\s+reason(?!\w)|"
-    r"for\s+any\s+reason|i\s+repeat)\s*,?)*"
+    r"for\s+any\s+reason|i\s+repeat|"
+    # "at all" after a negation or a copied idiom ("don't at all cancel",
+    # "don't under no circumstances at all cancel"). Not "at all costs" and
+    # not "at all events": a following word still has to be a real bridge.
+    r"at\s+all(?!\w))\s*,?)*"
 )
 # Hedge/intensifier adverbs that commonly sit between a negation and an intent
-# bridge ("don't really want to cancel") without changing refusal meaning.
+# bridge ("don't really want to cancel", "don't want to at all cancel")
+# without changing refusal meaning. "at all" is the two-word intensifier.
+# It is not "at all costs" or "at all events", and it must not match the
+# "all" inside "allowed" / "allocation".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
-    r"usually|necessarily|exactly|literally)"
+    r"usually|necessarily|exactly|literally|at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
 # "gonna really have them cancel"). Keep these inside matched bridges so a
@@ -393,6 +400,12 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"in\s+no\s+respect|in\s+no\s+sense|in\s+no\s+manner|in\s+no\s+wise|"
     r"in\s+no\s+form\s*,?\s*(?:or|and|nor)\s+fashion|in\s+no\s+fashion|"
     r"in\s+no\s+degree|to\s+no\s+extent)(?!\w)"
+    # "under no circumstances at all should you cancel". The intensifier sits
+    # on the idiom, before inversion. Not "whatsoever". Not "at all events"
+    # or "at all costs": those leave a following word the inversion does not
+    # cross. Clause-final "cancel under no circumstances at all" is still a
+    # prohibition. "in no time at all" is not this idiom.
+    r"(?:\s+at\s+all(?!\w))?"
     r"(?:\s*,)?"
 )
 UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN = (
@@ -525,7 +538,7 @@ NO_CIRCUMSTANCES_IN_WHICH_IDIOM_PATTERN = (
     r"|there(?:'s|'re)\s+(?:no|not\s+any)\s+"
     r"|(?:there\s+(?:is|are|was|were)\s+)?(?:no|not\s+any)\s+"
     r")"
-    r"circumstances?(?!\w)(?:\s*,)?\s+"
+    r"circumstances?(?!\w)(?:\s+at\s+all(?!\w))?(?:\s*,)?\s+"
     r"(?:(?:in|under)\s+which|where)(?!\w)"
     r"(?:\s*,)?"
 )
@@ -567,7 +580,14 @@ PROHIBITIVE_IDIOM_PATTERN = (
 # closes an earlier clause ("Please cancel, for no reason reschedule").
 # "can"/"could" stay out, same as the other idioms. Do not add this idiom to
 # NEGATION_PREFIX_PATTERN.
+# "at all" is the same forward intensifier ("for no reason at all should you
+# cancel" / "for no reason at all cancel"). Clause-final "cancel for no
+# reason at all" and parenthetical "I will, for no reason at all, cancel"
+# stay affirmative, same as "for no reason" without the intensifier. The
+# intensifier is not inside the idiom token: if it were optional there, the
+# comma lookahead would backtrack it off and refuse the parenthetical.
 FOR_NO_REASON_IDIOM_PATTERN = r"for\s+no\s+reason(?!\w)"
+FOR_NO_REASON_AT_ALL_PATTERN = r"(?:\s+at\s+all(?!\w))?"
 FOR_NO_REASON_INVERSION_PATTERN = (
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -575,10 +595,13 @@ FOR_NO_REASON_INVERSION_PATTERN = (
 )
 FOR_NO_REASON_PREFIX_PATTERN = (
     rf"(?:"
-    rf"(?:^|(?<=[.!?]\s)){FOR_NO_REASON_IDIOM_PATTERN}(?:\s*,)?"
+    rf"(?:^|(?<=[.!?]\s)){FOR_NO_REASON_IDIOM_PATTERN}"
+    rf"{FOR_NO_REASON_AT_ALL_PATTERN}(?:\s*,)?"
     rf"(?:{FOR_NO_REASON_INVERSION_PATTERN})?"
     rf"|(?<=,\s){FOR_NO_REASON_IDIOM_PATTERN}(?!\s*,)"
-    rf"|{FOR_NO_REASON_IDIOM_PATTERN}(?:\s*,)?{FOR_NO_REASON_INVERSION_PATTERN}"
+    rf"(?!\s+at\s+all\b\s*,){FOR_NO_REASON_AT_ALL_PATTERN}"
+    rf"|{FOR_NO_REASON_IDIOM_PATTERN}{FOR_NO_REASON_AT_ALL_PATTERN}"
+    rf"(?:\s*,)?{FOR_NO_REASON_INVERSION_PATTERN}"
     rf")"
     r"(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"

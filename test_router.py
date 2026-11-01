@@ -7061,6 +7061,132 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_at_all_intensifier_negations_do_not_route_to_action(self) -> None:
+        examples = (
+            "I don't at all want to cancel my appointment",
+            "I do not at all want to cancel my appointment",
+            "Please don't at all cancel my appointment",
+            "Never at all cancel my appointment",
+            "I won't at all cancel my appointment",
+            "I'm not at all going to cancel my appointment",
+            "I am not at all going to cancel my appointment",
+            "Don't at all cancel my appointment",
+            "Please don't ever at all cancel my appointment",
+            "Please don't at all ever want to cancel my appointment",
+            "I don't really at all want to cancel my appointment",
+            "I don't at all really want to cancel my appointment",
+            "I don't actually at all want to cancel my appointment",
+            "I don't want to at all cancel my appointment",
+            "Do not at all reschedule or cancel my appointment",
+            "I don't at all want to cancel or reschedule",
+            "Under no circumstances at all should you cancel",
+            "Under no circumstances at all cancel my appointment",
+            "I will cancel under no circumstances at all",
+            "Cancel under no circumstances at all",
+            "On no account at all should you cancel",
+            "By no means at all should you cancel",
+            "In no way at all should you cancel",
+            "In no event at all should you cancel",
+            "At no time at all should you cancel",
+            "At no point at all should you cancel",
+            "At no point in time at all should you cancel",
+            "At no point of time at all should you cancel",
+            "In no form or fashion at all should you cancel",
+            "To no extent at all should you cancel",
+            "In no degree at all should you cancel",
+            "At no stage at all should you cancel",
+            "In no fashion at all should you cancel",
+            "In no wise at all should you cancel",
+            "By no manner of means at all should you cancel",
+            "By no stretch of the imagination at all should you cancel",
+            "In no way, shape, or form at all should you cancel",
+            "In no way, shape, and form at all should you cancel",
+            "Never under no circumstances at all cancel",
+            "Please don't under no circumstances at all cancel",
+            "Under no circumstances at all go and cancel",
+            "Under no circumstances at all have them cancel",
+            "Under no circumstances at all ask them to cancel",
+            "Under no circumstances at all try to cancel",
+            "Under no circumstances at all cancel or reschedule",
+            "For no reason at all should you cancel",
+            "For no reason at all cancel my appointment",
+            "There are no circumstances at all in which I want to cancel",
+            "Don't you dare at all cancel my appointment",
+            "How dare you at all cancel my appointment",
+            "I wouldn't at all dare cancel my appointment",
+            "I don't at all dare to cancel my appointment",
+            "Don't you dare cancel my appointment",
+            "In no form or fashion should you cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_at_all_phrases_that_are_not_refusals_still_route_to_action(self) -> None:
+        examples = (
+            ("Please cancel my appointment", "cancel"),
+            ("Please cancel at all costs", "cancel"),
+            ("At all costs, please cancel my appointment", "cancel"),
+            ("At all events, please cancel my appointment", "cancel"),
+            ("Please cancel at all events", "cancel"),
+            ("I will cancel at all costs", "cancel"),
+            ("Please don't, at all costs, cancel", "cancel"),
+            ("Please don't at all costs cancel", "cancel"),
+            ("Not at all, please cancel my appointment", "cancel"),
+            ("I'm not at all sure, please cancel", "cancel"),
+            ("I am not at all ready, please cancel", "cancel"),
+            ("I'm not at all able to cancel my appointment", "cancel"),
+            ("I can't at all cancel my appointment", "cancel"),
+            ("I cannot at all cancel my appointment", "cancel"),
+            ("Under no circumstances at all, please cancel", "cancel"),
+            ("Under no circumstances at all please cancel", "cancel"),
+            ("Under no circumstances at all I will cancel", "cancel"),
+            ("Under no circumstances at all, I will cancel", "cancel"),
+            ("Under no circumstances at all can I cancel", "cancel"),
+            ("Under no circumstances at all could I cancel", "cancel"),
+            ("By no means at all, please cancel", "cancel"),
+            ("In no way at all, please cancel", "cancel"),
+            ("In no way at all I will cancel", "cancel"),
+            ("Under no circumstances at all events, please cancel", "cancel"),
+            ("Please cancel under no circumstances at all events", "cancel"),
+            ("In no time at all, please cancel", "cancel"),
+            ("Please cancel in no time at all", "cancel"),
+            ("I will cancel in no time at all", "cancel"),
+            ("For no reason at all, please cancel", "cancel"),
+            ("For no reason at all I will cancel", "cancel"),
+            ("Cancel for no reason at all", "cancel"),
+            ("I will cancel for no reason at all", "cancel"),
+            ("Please, for no reason at all, cancel", "cancel"),
+            ("I will, for no reason at all, cancel", "cancel"),
+            ("There are no circumstances at all, please cancel", "cancel"),
+            ("Under no circumstances whatsoever at all should you cancel", "cancel"),
+            ("In no form or fashion whatsoever should you cancel", "cancel"),
+            ("I don't at all want to cancel, please reschedule", "reschedule"),
+            ("Please cancel, I don't at all want to reschedule", "cancel"),
+            (
+                "Please cancel, under no circumstances at all reschedule",
+                "cancel",
+            ),
+            (
+                "Under no circumstances at all cancel, please reschedule",
+                "reschedule",
+            ),
+            ("Please cancel, for no reason at all reschedule", "cancel"),
+            ("I'm not at all interested in canceling, please reschedule", "reschedule"),
+            ("On no account at all cancel or reschedule or book", "schedule"),
+            ("I dare to cancel my appointment", "cancel"),
+            ("Don't you dare, please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
