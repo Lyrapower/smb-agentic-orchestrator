@@ -427,18 +427,48 @@ UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN = (
     r"(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
-# Speech-act refusals: the verb itself is the negation ("I refuse to cancel"),
-# so these must not be added to NEGATION_PREFIX_PATTERN. "Don't refuse to
-# cancel" / "I cannot refuse to cancel" / "I don't think I should refuse to
-# cancel" invert the speech act and stay executable, same as "do not forget
-# to cancel". Longer inflections are listed first so "refusing" does not
-# stick on the "refuse" alternative.
+# Speech-act refusals: the verb itself is the negation ("I refuse to cancel",
+# "I forbid you to cancel"), so these must not be added to
+# NEGATION_PREFIX_PATTERN. "Don't refuse to cancel" / "Don't forbid them to
+# cancel" / "I cannot refuse to cancel" / "You are not forbidden to cancel" /
+# "I don't think I should refuse to cancel" invert the speech act and stay
+# executable, same as "do not forget to cancel". Longer inflections are
+# listed first so "refusing" / "forbidding" do not stick on the shorter
+# alternative. "forbade" is not a substring of "forbid", so both the marker
+# and the verb list keep it. Forbid takes an object ("forbid you to",
+# "forbidden from the cancellation"); refuse/decline stay verb-then-to so
+# "I refuse you to cancel" is unchanged. Object tokens stop before not, so
+# "I forbid you not to cancel" stays on the existing "not to cancel" path.
+# "God forbid you cancel" / "Heaven forbid that we should cancel" have no
+# "to". A comma before please ("God forbid, please cancel", "I forbid, please
+# cancel") does not cross please. "forbidding weather" and "the forbidden
+# city" are not followed by to/from or an action noun.
 SPEECH_ACT_REFUSAL_VERB_PATTERN = (
-    r"(?:refusing|refuses|refused|refuse|"
+    r"(?:forbidding|forbids|forbade|forbidden|forbid|"
+    r"refusing|refuses|refused|refuse|"
     r"declining|declines|declined|decline)"
 )
+SPEECH_ACT_FORBID_VERB_PATTERN = (
+    r"(?:forbidding|forbids|forbade|forbidden|forbid)"
+)
+SPEECH_ACT_FORBID_OBJECT_TOKEN_PATTERN = (
+    r"(?!(?:to|from|but|however|instead|yet|please|not)\b)"
+    r"(?:(?:mr|mrs|ms|dr)\.|[a-z0-9']+(?:[.-][a-z0-9']+)*)"
+)
+SPEECH_ACT_GOD_FORBID_HEAD_PATTERN = (
+    r"(?:god|heaven)\s+forbids?(?!\w)"
+    r"(?:\s+that(?!\w))?"
+    r"(?:\s+(?:you|they|them|he|she|we|i|me|us|him|her|it|anyone|someone|"
+    r"somebody|everybody|everyone)(?!\w))?"
+    r"(?:\s+(?:should|would|will|shall|must)(?!\w))?"
+    r"(?:\s*,)?"
+)
 SPEECH_ACT_REFUSAL_PREFIX_PATTERN = (
-    rf"{SPEECH_ACT_REFUSAL_VERB_PATTERN}(?:\s*,\s*|\s+)to\b"
+    rf"(?:{SPEECH_ACT_GOD_FORBID_HEAD_PATTERN}"
+    rf"|{SPEECH_ACT_FORBID_VERB_PATTERN}"
+    rf"(?:\s+{SPEECH_ACT_FORBID_OBJECT_TOKEN_PATTERN}){{0,6}}"
+    rf"(?:\s*,\s*|\s+)(?:to|from)\b"
+    rf"|{SPEECH_ACT_REFUSAL_VERB_PATTERN}(?:\s*,\s*|\s+)to\b)"
 )
 SPEECH_ACT_REFUSAL_SUBJECT_PRONOUN_PATTERN = r"(?:you|we|they|he|she|i)"
 # Noun-object speech acts ("I refuse the cancellation", "I decline a
@@ -1027,12 +1057,29 @@ def _has_no_intent_noun_before_keyword(text: str, keyword: str) -> bool:
     )
 
 
+def _has_speech_act_refusal_marker(text: str) -> bool:
+    return (
+        "refus" in text
+        or "declin" in text
+        or "forbid" in text
+        or "forbade" in text
+    )
+
+
+def _speech_act_from_complement(text: str, end: int) -> bool:
+    """True when the speech-act complement is "from", which can take a noun."""
+    return re.search(r"(?<!\w)from$", text[:end].rstrip()) is not None
+
+
 def _speech_act_verb_is_negated(text: str, verb_start: int) -> bool:
-    """True when refuse/decline is itself under a negation or inability."""
+    """True when refuse/decline/forbid is itself under a negation or inability."""
     before = text[:verb_start]
     if re.search(
-        rf"(?<!\w){NEGATION_PREFIX_PATTERN}{NEGATION_TARGET_GAP_PATTERN}"
+        rf"(?<!\w){NEGATION_PREFIX_PATTERN}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
+        rf"{NEGATION_TARGET_GAP_PATTERN}"
         rf"(?:(?:\s+{SPEECH_ACT_REFUSAL_SUBJECT_PRONOUN_PATTERN})"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}"
         rf"|(?:\s+{NEGATION_BE_AUXILIARY_PATTERN}"
         rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}})?\s+able\s+to"
         rf")?\s+$",
@@ -1069,24 +1116,29 @@ def _speech_act_verb_is_negated(text: str, verb_start: int) -> bool:
     )
 
 
-def _speech_act_refusal_tails(text: str) -> tuple[str, ...]:
-    if "refus" not in text and "declin" not in text:
+def _speech_act_refusal_tails(text: str) -> tuple[tuple[str, bool], ...]:
+    if not _has_speech_act_refusal_marker(text):
         return ()
 
-    tails: list[str] = []
+    tails: list[tuple[str, bool]] = []
     for match in re.finditer(
         rf"(?<!\w){SPEECH_ACT_REFUSAL_PREFIX_PATTERN}",
         text,
     ):
+        tail = text[match.end() :]
+        # "please cancel, god forbid" has nothing after the verb. Skip before
+        # the negation-prefix search, which is expensive on a long prefix.
+        if not re.search(r"[a-z]", tail):
+            continue
         if _speech_act_verb_is_negated(text, match.start()):
             continue
-        tails.append(text[match.end() :])
+        tails.append((tail, _speech_act_from_complement(text, match.end())))
     return tuple(tails)
 
 
 def _unnegated_speech_act_verb_ends(text: str) -> tuple[int, ...]:
-    """End offsets of refuse/decline verbs that are not themselves negated."""
-    if "refus" not in text and "declin" not in text:
+    """End offsets of refuse/decline/forbid verbs that are not themselves negated."""
+    if not _has_speech_act_refusal_marker(text):
         return ()
 
     ends: list[int] = []
@@ -1094,6 +1146,8 @@ def _unnegated_speech_act_verb_ends(text: str) -> tuple[int, ...]:
         rf"(?<!\w){SPEECH_ACT_REFUSAL_VERB_PATTERN}(?!\w)",
         text,
     ):
+        if not re.search(r"[a-z]", text[match.end() :]):
+            continue
         if _speech_act_verb_is_negated(text, match.start()):
             continue
         ends.append(match.end())
@@ -1114,10 +1168,12 @@ def _has_speech_act_noun_object_refusal(text: str, keyword: str) -> bool:
 
 def _has_speech_act_refusal_before_keyword(text: str, keyword: str) -> bool:
     keyword_pattern = _keyword_pattern(keyword)
-    for tail in _speech_act_refusal_tails(text):
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    for tail, allow_determiner in _speech_act_refusal_tails(text):
+        noun = determiner if allow_determiner else ""
         if re.search(
             rf"^{NEGATION_TRAILING_ADVERB_PATTERN}{NEGATION_TARGET_GAP_PATTERN}"
-            rf"\s+{keyword_pattern}",
+            rf"\s+{noun}{keyword_pattern}",
             tail,
         ):
             return True
@@ -1176,24 +1232,26 @@ def _has_speech_act_refused_conjunction(
         return False
 
     keyword_pattern = _keyword_pattern(keyword)
-    for tail in tails:
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    for tail, allow_determiner in tails:
+        noun = determiner if allow_determiner else ""
         for previous_keyword in previous_keywords:
             if previous_keyword == keyword:
                 continue
 
             if re.search(
                 rf"^{NEGATION_TRAILING_ADVERB_PATTERN}{NEGATION_TARGET_GAP_PATTERN}\s+"
-                rf"{_keyword_pattern(previous_keyword)}"
-                rf"{conjunction_pattern}{keyword_pattern}",
+                rf"{noun}{_keyword_pattern(previous_keyword)}"
+                rf"{conjunction_pattern}{noun}{keyword_pattern}",
                 tail,
             ):
                 return True
 
             if re.search(
                 rf"^{NEGATION_TRAILING_ADVERB_PATTERN}{NEGATION_TARGET_GAP_PATTERN}\s+"
-                rf"{_keyword_pattern(previous_keyword)}"
+                rf"{noun}{_keyword_pattern(previous_keyword)}"
                 rf"{NEGATED_OBJECT_GAP_PATTERN}"
-                rf"{conjunction_pattern}{keyword_pattern}",
+                rf"{conjunction_pattern}{noun}{keyword_pattern}",
                 tail,
             ):
                 return True
@@ -1243,14 +1301,28 @@ def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
     if not tails:
         return False
 
-    action_keyword_pattern = rf"(?:{_action_keyword_alternation()})"
-    list_tail_patterns = (
-        rf"(?:\s*,\s*{action_keyword_pattern})*"
-        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
-        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
-    )
     keyword_pattern = _keyword_pattern(keyword)
-    for tail in tails:
+    plain_action_keyword_pattern = rf"(?:{_action_keyword_alternation()})"
+    noun_action_keyword_pattern = (
+        rf"(?:(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+        rf"(?:{_action_keyword_alternation()}))"
+    )
+    for tail, allow_determiner in tails:
+        action_keyword_pattern = (
+            noun_action_keyword_pattern
+            if allow_determiner
+            else plain_action_keyword_pattern
+        )
+        noun = (
+            rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+            if allow_determiner
+            else ""
+        )
+        list_tail_patterns = (
+            rf"(?:\s*,\s*{action_keyword_pattern})*"
+            rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+            rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+        )
         for previous_keyword in _action_keywords():
             if previous_keyword == keyword:
                 continue
@@ -1259,7 +1331,7 @@ def _has_speech_act_refused_action_list(text: str, keyword: str) -> bool:
                 match = re.search(
                     rf"^{NEGATION_TRAILING_ADVERB_PATTERN}"
                     rf"{NEGATION_TARGET_GAP_PATTERN}\s+"
-                    rf"{_keyword_pattern(previous_keyword)}"
+                    rf"{noun}{_keyword_pattern(previous_keyword)}"
                     rf"(?P<tail>{list_tail_pattern})",
                     tail,
                 )
