@@ -7187,6 +7187,117 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_forbid_speech_acts_do_not_route_to_action(self) -> None:
+        examples = (
+            "I forbid you to cancel my appointment",
+            "I forbid you to cancel",
+            "I forbid them to cancel my appointment",
+            "I forbid him to reschedule my appointment",
+            "We forbid you to book a new appointment",
+            "She forbids you to cancel my appointment",
+            "He forbade them to cancel my appointment",
+            "They forbade me to cancel my appointment",
+            "I am forbidding you to cancel my appointment",
+            "They are forbidding you to reschedule my appointment",
+            "You are forbidden to cancel my appointment",
+            "Staff are forbidden to cancel my appointment",
+            "It is forbidden to cancel my appointment",
+            "Forbidden to cancel my appointment",
+            "I forbid to cancel my appointment",
+            "Please forbid them to cancel my appointment",
+            "I forbid Dr. Smith to cancel my appointment",
+            "Clinic policy forbids you to cancel my appointment",
+            "The rules forbid you to cancel my appointment",
+            "I forbid the cancellation",
+            "I forbid a cancellation",
+            "I forbid this cancellation",
+            "Please forbid the cancellation",
+            "I forbid the reschedule",
+            "The policy forbids a cancellation",
+            "The policy forbids cancellation",
+            "God forbid the cancellation",
+            "I forbid you from the cancellation",
+            "I am forbidden from the cancellation",
+            "You are forbidden from a cancellation",
+            "I forbid you to try to cancel my appointment",
+            "I forbid you to have them cancel my appointment",
+            "I forbid you to go ahead and cancel my appointment",
+            "I forbid you to call off my appointment",
+            "I forbid you to drop appointment",
+            "I forbid you to remove appointment",
+            "I forbid you to cancel or reschedule",
+            "I forbid you to cancel, reschedule, or book",
+            "I forbid the cancellation or the reschedule",
+            "I forbid you from the cancellation or the reschedule",
+            "I would forbid you to cancel my appointment",
+            "I might forbid you to cancel my appointment",
+            "I'm going to forbid you to cancel my appointment",
+            "I want to forbid the cancellation",
+            "Please confirm you forbid them to cancel my appointment",
+            "God forbid you cancel my appointment",
+            "Heaven forbid you cancel my appointment",
+            "Heaven forbid that we cancel my appointment",
+            "God forbid that you should cancel my appointment",
+            "Heaven forbid that anyone should reschedule",
+            "God forbid you go and cancel my appointment",
+            "God forbid you have them cancel my appointment",
+            "God forbid you cancel or reschedule",
+            "I said I forbid you to cancel my appointment",
+            "I forbid you to cancel because I can't make it",
+            "I forbid a new appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_forbid_phrases_that_are_not_refusals_still_route_to_action(self) -> None:
+        examples = (
+            ("Don't forbid them to cancel my appointment", "cancel"),
+            ("Please do not forbid them to cancel my appointment", "cancel"),
+            ("Never forbid them to cancel my appointment", "cancel"),
+            ("Please don't ever forbid them to cancel my appointment", "cancel"),
+            ("Don't really forbid them to cancel my appointment", "cancel"),
+            ("Don't you forbid them to cancel my appointment", "cancel"),
+            ("Don't you really forbid them to cancel my appointment", "cancel"),
+            ("I cannot forbid you to cancel my appointment", "cancel"),
+            ("I can't forbid you to cancel my appointment", "cancel"),
+            ("I'm not able to forbid you to cancel my appointment", "cancel"),
+            ("I am unable to forbid you to cancel my appointment", "cancel"),
+            ("You are not forbidden to cancel my appointment", "cancel"),
+            ("It is not forbidden to cancel my appointment", "cancel"),
+            ("I don't think I should forbid you to cancel my appointment", "cancel"),
+            ("I won't forbid you to cancel my appointment", "cancel"),
+            ("Don't forbid the cancellation", "cancel"),
+            ("Please do not refuse the cancellation", "cancel"),
+            ("I forbid, please cancel my appointment", "cancel"),
+            ("I forbid you, please cancel my appointment", "cancel"),
+            ("I forbid the wait, please cancel my appointment", "cancel"),
+            ("I forbid you to wait, please cancel my appointment", "cancel"),
+            ("God forbid, please cancel my appointment", "cancel"),
+            ("Heaven forbid, please cancel my appointment", "cancel"),
+            ("God forbid you, please cancel my appointment", "cancel"),
+            ("forbidding weather, please cancel my appointment", "cancel"),
+            ("The forbidden city tour, please cancel my appointment", "cancel"),
+            ("Please schedule, the old rule forbids nothing", "schedule"),
+            ("I forbid you to cancel, please reschedule", "reschedule"),
+            ("Please cancel, I forbid you to reschedule", "cancel"),
+            ("Please cancel, god forbid you reschedule", "cancel"),
+            ("I forbid you to cancel or reschedule or book", "schedule"),
+            ("Don't really refuse to cancel my appointment", "cancel"),
+            ("I refuse to cancel my appointment", "no_action"),
+            ("Don't refuse to cancel my appointment", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
