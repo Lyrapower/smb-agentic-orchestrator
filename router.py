@@ -75,8 +75,17 @@ NEGATION_EMPHASIS_PATTERN = (
     r"(?:\s*,?\s*(?:ever|"
     r"under\s+(?:any|no)\s+circumstances?(?!\w)|"
     r"in\s+no\s+circumstances?(?!\w)|"
-    r"on\s+no\s+account(?!\w)|"
-    r"by\s+no\s+means(?!\w)|"
+    # "not/don't/never on any account" is the same refusal as "on no account"
+    # ("Don't on any account cancel", "I won't, on any account, cancel").
+    # Bare "on any account" means "in any case" and stays affirmative, so
+    # "any" lives only in this emphasis, not in the standalone idiom.
+    # "upon no account" is not this alternative.
+    r"on\s+(?:no|any)\s+account(?!\w)|"
+    # "not/don't/never by any means" is the same refusal as "by no means".
+    # Bare "by any means" and "by all means" mean "using any method" /
+    # "certainly" and stay affirmative. Not "by any manner of means" and
+    # not "by any stretch of the imagination": "means" must be the next word.
+    r"by\s+(?:no|any)\s+means(?!\w)|"
     r"by\s+no\s+manner\s+of\s+means(?!\w)|"
     r"by\s+no\s+stretch\s+of\s+the\s+imagination(?!\w)|"
     r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*(?:or|and|nor)\s+form(?!\w)|"
@@ -198,7 +207,10 @@ DARE_REFUSAL_HEAD_PATTERN = (
 # match via NEGATION_EMPHASIS_PATTERN. Do not
 # add these idioms to NEGATION_PREFIX_PATTERN: that would invert "Under no
 # circumstances I refuse to cancel" into an executable cancel, the same way
-# "Don't refuse to cancel" must stay executable. Do not treat "under any
+# "Don't refuse to cancel" must stay executable. "Don't on any account" and
+# "don't by any means" are refusals through NEGATION_EMPHASIS, not through
+# this prefix: bare "on any account", "by any means", and "by all means"
+# stay affirmative. Do not treat "under any
 # circumstances", "by any means", "by all means", "in any way", "under/on any
 # condition", "in no condition", "in any event", "in any case", "at any time",
 # "at any point", "at any stage", "on any occasion", "on/under any terms",

@@ -7298,6 +7298,115 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_negated_any_account_or_means_does_not_route_to_action(self) -> None:
+        examples = (
+            "Don't on any account cancel my appointment",
+            "Please don't on any account cancel my appointment",
+            "Please do not on any account cancel my appointment",
+            "Do not on any account cancel my appointment",
+            "Never on any account cancel my appointment",
+            "I won't on any account cancel my appointment",
+            "I will not on any account cancel my appointment",
+            "Please don't, on any account, cancel my appointment",
+            "I will not, on any account, cancel my appointment",
+            "I'm not on any account going to cancel my appointment",
+            "I am not on any account going to cancel my appointment",
+            "I don't on any account want to cancel my appointment",
+            "Don't on any account have them cancel my appointment",
+            "Don't on any account ask them to cancel my appointment",
+            "Don't on any account go and cancel my appointment",
+            "Don't on any account try to cancel my appointment",
+            "Don't on any account call off my appointment",
+            "Don't on any account reschedule my appointment",
+            "Don't on any account book a new appointment",
+            "Don't on any account schedule an appointment",
+            "Don't on any account cancel or reschedule",
+            "Don't on any account cancel, reschedule, or book",
+            "Don't by any means cancel my appointment",
+            "Please don't by any means cancel my appointment",
+            "Please do not by any means cancel my appointment",
+            "Never by any means cancel my appointment",
+            "I won't by any means cancel my appointment",
+            "I will not by any means cancel my appointment",
+            "Please don't, by any means, cancel my appointment",
+            "I will not, by any means, cancel my appointment",
+            "I'm not by any means going to cancel my appointment",
+            "I am not by any means going to cancel my appointment",
+            "I don't by any means want to cancel my appointment",
+            "I ain't by any means gonna cancel my appointment",
+            "Don't by any means have them cancel my appointment",
+            "Don't by any means go ahead and cancel my appointment",
+            "Don't by any means call off my appointment",
+            "Don't by any means reschedule my appointment",
+            "Don't by any means book a new appointment",
+            "Don't by any means cancel or reschedule",
+            "Don't by any means cancel, reschedule, or book",
+            "Please don't on no account cancel my appointment",
+            "Please don't by no means cancel my appointment",
+            "On no account should you cancel my appointment",
+            "By no means should you cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_bare_any_account_or_means_still_routes_to_action(self) -> None:
+        examples = (
+            ("On any account, please cancel my appointment", "cancel"),
+            ("On any account please cancel my appointment", "cancel"),
+            ("Please cancel on any account", "cancel"),
+            ("Please cancel my appointment on any account", "cancel"),
+            ("I will, on any account, cancel my appointment", "cancel"),
+            ("I will cancel on any account", "cancel"),
+            ("By any means cancel my appointment", "cancel"),
+            ("By any means, please cancel my appointment", "cancel"),
+            ("Please cancel by any means", "cancel"),
+            ("Please cancel my appointment by any means", "cancel"),
+            ("I will, by any means, cancel my appointment", "cancel"),
+            ("I will cancel by any means", "cancel"),
+            ("By all means cancel my appointment", "cancel"),
+            ("By all means, please cancel my appointment", "cancel"),
+            ("Not by any manner of means cancel my appointment", "cancel"),
+            ("Please don't by any manner of means cancel my appointment", "cancel"),
+            (
+                "Not by any stretch of the imagination cancel my appointment",
+                "cancel",
+            ),
+            (
+                "Please don't by any stretch of the imagination cancel my appointment",
+                "cancel",
+            ),
+            ("Please don't in any way, shape, or form cancel my appointment", "cancel"),
+            ("Not at all, on any account, please cancel my appointment", "cancel"),
+            ("Not at all, by any means, please cancel my appointment", "cancel"),
+            ("I'm not on any account able to cancel my appointment", "cancel"),
+            ("I'm not by any means able to cancel my appointment", "cancel"),
+            ("I can't by any means cancel my appointment", "cancel"),
+            ("I cannot on any account cancel my appointment", "cancel"),
+            ("I have no means to cancel my appointment", "cancel"),
+            ("Upon no account should you cancel my appointment", "cancel"),
+            ("Don't upon no account cancel my appointment", "cancel"),
+            ("Don't on any account cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't on any account reschedule", "cancel"),
+            ("Don't by any means cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't by any means reschedule", "cancel"),
+            ("Don't on any account cancel or reschedule or book", "schedule"),
+            ("Please cancel my appointment", "cancel"),
+            ("I don't at all want to cancel my appointment", "no_action"),
+            ("I forbid you to cancel my appointment", "no_action"),
+            ("Don't really forbid them to cancel my appointment", "cancel"),
+            ("Don't forbid them to cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
