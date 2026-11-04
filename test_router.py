@@ -7407,6 +7407,118 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_negated_in_the_least_or_slightest_does_not_route_to_action(self) -> None:
+        examples = (
+            "Don't in the least cancel my appointment",
+            "Please don't in the least cancel my appointment",
+            "Please do not in the least cancel my appointment",
+            "Do not in the least cancel my appointment",
+            "Never in the least cancel my appointment",
+            "I won't in the least cancel my appointment",
+            "I will not in the least cancel my appointment",
+            "Please don't, in the least, cancel my appointment",
+            "I will not, in the least, cancel my appointment",
+            "I'm not in the least going to cancel my appointment",
+            "I am not in the least going to cancel my appointment",
+            "I don't in the least want to cancel my appointment",
+            "I don't in the least want a cancellation",
+            "I don't want to in the least cancel my appointment",
+            "I'm not in the least bit going to cancel my appointment",
+            "Don't in the least bit cancel my appointment",
+            "I ain't in the least gonna cancel my appointment",
+            "He isn't in the least going to cancel my appointment",
+            "Don't in the least have them cancel my appointment",
+            "Don't in the least ask them to cancel my appointment",
+            "Don't in the least go and cancel my appointment",
+            "Don't in the least try to cancel my appointment",
+            "Don't in the least call off my appointment",
+            "Don't in the least reschedule my appointment",
+            "Don't in the least book a new appointment",
+            "Don't in the least cancel or reschedule",
+            "Don't in the least cancel, reschedule, or book",
+            "Don't you dare in the least cancel my appointment",
+            "Don't in the slightest cancel my appointment",
+            "Please don't in the slightest cancel my appointment",
+            "Never in the slightest cancel my appointment",
+            "I won't in the slightest cancel my appointment",
+            "Please don't, in the slightest, cancel my appointment",
+            "I'm not in the slightest going to cancel my appointment",
+            "I don't in the slightest want to cancel my appointment",
+            "I don't want to in the slightest cancel my appointment",
+            "I'm not in the slightest bit going to cancel my appointment",
+            "Don't in the slightest bit cancel my appointment",
+            "Don't in the slightest have them cancel my appointment",
+            "Don't in the slightest go ahead and cancel my appointment",
+            "Don't in the slightest call off my appointment",
+            "Don't in the slightest reschedule my appointment",
+            "Don't in the slightest book a new appointment",
+            "Don't in the slightest cancel or reschedule",
+            "Don't in the slightest cancel, reschedule, or book",
+            "I don't at all in the least want to cancel my appointment",
+            "I don't in the least at all want to cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_the_least_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("In the least, please cancel my appointment", "cancel"),
+            ("In the slightest, please cancel my appointment", "cancel"),
+            ("In the least bit, please cancel my appointment", "cancel"),
+            ("Not in the least, please cancel my appointment", "cancel"),
+            ("Not in the slightest, please cancel my appointment", "cancel"),
+            ("Not in the least bit, please cancel my appointment", "cancel"),
+            ("Please cancel in the least", "cancel"),
+            ("Please cancel my appointment in the slightest", "cancel"),
+            ("Please at least cancel my appointment", "cancel"),
+            ("At least, please cancel my appointment", "cancel"),
+            ("At the least, please cancel my appointment", "cancel"),
+            ("Please cancel at the least", "cancel"),
+            ("I'm not in the least able to cancel my appointment", "cancel"),
+            ("I'm not in the slightest able to cancel my appointment", "cancel"),
+            ("I'm not in the least bit able to cancel my appointment", "cancel"),
+            ("I can't in the least cancel my appointment", "cancel"),
+            ("I cannot in the slightest cancel my appointment", "cancel"),
+            (
+                "I don't in the least want Tuesday, please cancel my appointment",
+                "cancel",
+            ),
+            (
+                "I don't in the slightest bit want Tuesday, please cancel",
+                "cancel",
+            ),
+            ("Don't in the least cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't in the least reschedule", "cancel"),
+            ("Please cancel, don't in the slightest reschedule", "cancel"),
+            ("Don't in the least refuse to cancel my appointment", "cancel"),
+            ("Don't in the least forbid them to cancel my appointment", "cancel"),
+            (
+                "Don't in the slightest forbid them to cancel my appointment",
+                "cancel",
+            ),
+            ("Not in the least should you cancel my appointment", "cancel"),
+            ("Don't in the least the cancellation", "cancel"),
+            ("I have not the least desire to cancel my appointment", "cancel"),
+            ("Don't in the least cancel or reschedule or book", "schedule"),
+            ("Please cancel my appointment", "cancel"),
+            ("Don't in the least cancel my appointment", "no_action"),
+            ("I don't at all want to cancel my appointment", "no_action"),
+            ("Don't on any account cancel my appointment", "no_action"),
+            ("By all means cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",

@@ -113,20 +113,34 @@ NEGATION_EMPHASIS_PATTERN = (
     r"to\s+no\s+extent(?!\w)|"
     r"for\s+no\s+reason(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
+    # "not/don't/never in the least" and "in the slightest" are the same
+    # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
+    # the slightest going to cancel", "I'm not in the least bit going to
+    # cancel"). Bare "in the least" means nothing by itself, so it stays
+    # affirmative ("In the least, please cancel"). Not "at least" or "at
+    # the least" ("Please at least cancel"). Not "the least" without "in"
+    # ("I have not the least desire to cancel"). Optional "bit" is only
+    # that word. Not "for a moment".
+    r"in\s+the\s+(?:least|slightest)(?!\w)(?:\s+bit(?!\w))?|"
     # "at all" after a negation or a copied idiom ("don't at all cancel",
     # "don't under no circumstances at all cancel"). Not "at all costs" and
     # not "at all events": a following word still has to be a real bridge.
     r"at\s+all(?!\w))\s*,?)*"
 )
 # Hedge/intensifier adverbs that commonly sit between a negation and an intent
-# bridge ("don't really want to cancel", "don't want to at all cancel")
-# without changing refusal meaning. "at all" is the two-word intensifier.
-# It is not "at all costs" or "at all events", and it must not match the
-# "all" inside "allowed" / "allocation".
+# bridge ("don't really want to cancel", "don't want to at all cancel",
+# "don't want to in the least cancel") without changing refusal meaning.
+# "at all" is the two-word intensifier. It is not "at all costs" or "at all
+# events", and it must not match the "all" inside "allowed" / "allocation".
+# "in the least" / "in the slightest" (optional "bit") are the same trailing
+# intensifier. Not "at least", not "at the least", and not "the least"
+# without "in".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
-    r"usually|necessarily|exactly|literally|at\s+all(?!\w))"
+    r"usually|necessarily|exactly|literally|"
+    r"in\s+the\s+(?:least|slightest)(?!\w)(?:\s+bit(?!\w))?|"
+    r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
 # "gonna really have them cancel"). Keep these inside matched bridges so a
@@ -210,6 +224,9 @@ DARE_REFUSAL_HEAD_PATTERN = (
 # "Don't refuse to cancel" must stay executable. "Don't on any account" and
 # "don't by any means" are refusals through NEGATION_EMPHASIS, not through
 # this prefix: bare "on any account", "by any means", and "by all means"
+# stay affirmative. "Don't in the least" and "don't in the slightest" are
+# refusals through NEGATION_EMPHASIS as well, not through this prefix.
+# Bare "in the least", "in the slightest", "at least", and "at the least"
 # stay affirmative. Do not treat "under any
 # circumstances", "by any means", "by all means", "in any way", "under/on any
 # condition", "in no condition", "in any event", "in any case", "at any time",
