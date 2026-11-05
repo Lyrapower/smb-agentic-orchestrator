@@ -86,6 +86,15 @@ NEGATION_EMPHASIS_PATTERN = (
     # "certainly" and stay affirmative. Not "by any manner of means" and
     # not "by any stretch of the imagination": "means" must be the next word.
     r"by\s+(?:no|any)\s+means(?!\w)|"
+    # "not/don't/never by any chance" is a refusal ("Don't by any chance
+    # cancel", "I won't, by any chance, cancel", "I'm not by any chance
+    # going to cancel"). Bare "by any chance" means "perhaps" and stays
+    # affirmative ("By any chance, please cancel", "Please cancel by any
+    # chance"). Not "by no chance" and not "by some chance": those are not
+    # this emphasis ("By no chance should you cancel" stays executable).
+    # Not "by any means". Not inversion ("Not by any chance should you
+    # cancel"). "chance" must be the next word.
+    r"by\s+any\s+chance(?!\w)|"
     r"by\s+no\s+manner\s+of\s+means(?!\w)|"
     r"by\s+no\s+stretch\s+of\s+the\s+imagination(?!\w)|"
     r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*(?:or|and|nor)\s+form(?!\w)|"
@@ -134,12 +143,15 @@ NEGATION_EMPHASIS_PATTERN = (
 # events", and it must not match the "all" inside "allowed" / "allocation".
 # "in the least" / "in the slightest" (optional "bit") are the same trailing
 # intensifier. Not "at least", not "at the least", and not "the least"
-# without "in".
+# without "in". "by any chance" is that same trailing intensifier ("don't
+# want to by any chance cancel"). Not "by no chance", not "by some chance",
+# and not "by any means".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
     r"usually|necessarily|exactly|literally|"
     r"in\s+the\s+(?:least|slightest)(?!\w)(?:\s+bit(?!\w))?|"
+    r"by\s+any\s+chance(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",

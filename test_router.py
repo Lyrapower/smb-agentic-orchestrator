@@ -7519,6 +7519,92 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_negated_by_any_chance_does_not_route_to_action(self) -> None:
+        examples = (
+            "Don't by any chance cancel my appointment",
+            "Please don't by any chance cancel my appointment",
+            "Please do not by any chance cancel my appointment",
+            "Do not by any chance cancel my appointment",
+            "Never by any chance cancel my appointment",
+            "I won't by any chance cancel my appointment",
+            "I will not by any chance cancel my appointment",
+            "Please don't, by any chance, cancel my appointment",
+            "I will not, by any chance, cancel my appointment",
+            "I'm not by any chance going to cancel my appointment",
+            "I am not by any chance going to cancel my appointment",
+            "I don't by any chance want to cancel my appointment",
+            "I don't by any chance want a cancellation",
+            "I don't want to by any chance cancel my appointment",
+            "I ain't by any chance gonna cancel my appointment",
+            "He isn't by any chance going to cancel my appointment",
+            "Don't by any chance have them cancel my appointment",
+            "Don't by any chance ask them to cancel my appointment",
+            "Don't by any chance go and cancel my appointment",
+            "Don't by any chance go ahead and cancel my appointment",
+            "Don't by any chance try to cancel my appointment",
+            "Don't by any chance call off my appointment",
+            "Don't by any chance reschedule my appointment",
+            "Don't by any chance book a new appointment",
+            "Don't by any chance schedule an appointment",
+            "Don't by any chance cancel or reschedule",
+            "Don't by any chance cancel, reschedule, or book",
+            "Don't you dare by any chance cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_by_any_chance_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("By any chance, please cancel my appointment", "cancel"),
+            ("By any chance please cancel my appointment", "cancel"),
+            ("Please cancel by any chance", "cancel"),
+            ("Please cancel my appointment by any chance", "cancel"),
+            ("I will, by any chance, cancel my appointment", "cancel"),
+            ("I will by any chance cancel my appointment", "cancel"),
+            ("By no chance should you cancel my appointment", "cancel"),
+            ("By no chance, please cancel my appointment", "cancel"),
+            ("Please cancel by no chance", "cancel"),
+            ("Don't by no chance cancel my appointment", "cancel"),
+            ("Don't by some chance cancel my appointment", "cancel"),
+            ("By some chance, please cancel my appointment", "cancel"),
+            ("Not by any chance, please cancel my appointment", "cancel"),
+            ("Not by any chance should you cancel my appointment", "cancel"),
+            ("I'm not by any chance able to cancel my appointment", "cancel"),
+            ("I can't by any chance cancel my appointment", "cancel"),
+            ("I cannot by any chance cancel my appointment", "cancel"),
+            ("Don't by any chance forget to cancel my appointment", "cancel"),
+            ("Do not by any chance forget to cancel my appointment", "cancel"),
+            ("Don't by any chance, please cancel my appointment", "cancel"),
+            ("Don't by any chance cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't by any chance reschedule", "cancel"),
+            ("Don't by any chance refuse to cancel my appointment", "cancel"),
+            ("Don't by any chance forbid them to cancel my appointment", "cancel"),
+            ("Don't by any chance the cancellation", "cancel"),
+            ("Don't by any chance cancel or reschedule or book", "schedule"),
+            (
+                "I don't by any chance want Tuesday, please cancel my appointment",
+                "cancel",
+            ),
+            ("Not at all, by any chance, please cancel my appointment", "cancel"),
+            ("By all means cancel my appointment", "cancel"),
+            ("Don't by any means cancel my appointment", "no_action"),
+            ("Don't in the least cancel my appointment", "no_action"),
+            ("I forbid you to cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
