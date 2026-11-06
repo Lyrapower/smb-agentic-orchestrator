@@ -95,6 +95,16 @@ NEGATION_EMPHASIS_PATTERN = (
     # Not "by any means". Not inversion ("Not by any chance should you
     # cancel"). "chance" must be the next word.
     r"by\s+any\s+chance(?!\w)|"
+    # "not/don't/never so much as" is a refusal ("Don't so much as cancel",
+    # "I won't, so much as, cancel", "I'm not so much as going to cancel",
+    # "I don't want to so much as cancel"). Bare "so much as" means "even"
+    # and stays affirmative ("So much as, please cancel", "If you so much
+    # as cancel"). Not "so much" without "as" ("Not so much, please cancel",
+    # "Don't so much cancel"). Not the comparative "not so much X as Y"
+    # (a word between "much" and "as"). Not ability ("I'm not so much as
+    # able to cancel", "I can't so much as cancel"). Not inversion ("Not
+    # so much as should you cancel"). "as" must be the next word.
+    r"so\s+much\s+as(?!\w)|"
     r"by\s+no\s+manner\s+of\s+means(?!\w)|"
     r"by\s+no\s+stretch\s+of\s+the\s+imagination(?!\w)|"
     r"in\s+no\s+way(?:\s*,\s*|\s+)shape\s*,?\s*(?:or|and|nor)\s+form(?!\w)|"
@@ -145,13 +155,16 @@ NEGATION_EMPHASIS_PATTERN = (
 # intensifier. Not "at least", not "at the least", and not "the least"
 # without "in". "by any chance" is that same trailing intensifier ("don't
 # want to by any chance cancel"). Not "by no chance", not "by some chance",
-# and not "by any means".
+# and not "by any means". "so much as" is that same trailing intensifier
+# ("don't want to so much as cancel"). Not "so much" without "as", and not
+# the comparative "not so much X as Y".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
     r"usually|necessarily|exactly|literally|"
     r"in\s+the\s+(?:least|slightest)(?!\w)(?:\s+bit(?!\w))?|"
     r"by\s+any\s+chance(?!\w)|"
+    r"so\s+much\s+as(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",

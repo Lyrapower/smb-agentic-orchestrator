@@ -7605,6 +7605,95 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_negated_so_much_as_does_not_route_to_action(self) -> None:
+        examples = (
+            "Don't so much as cancel my appointment",
+            "Please don't so much as cancel my appointment",
+            "Please do not so much as cancel my appointment",
+            "Do not so much as cancel my appointment",
+            "Never so much as cancel my appointment",
+            "I won't so much as cancel my appointment",
+            "I will not so much as cancel my appointment",
+            "Please don't, so much as, cancel my appointment",
+            "I will not, so much as, cancel my appointment",
+            "I'm not so much as going to cancel my appointment",
+            "I am not so much as going to cancel my appointment",
+            "I don't so much as want to cancel my appointment",
+            "I don't so much as want a cancellation",
+            "I don't want to so much as cancel my appointment",
+            "I ain't so much as gonna cancel my appointment",
+            "He isn't so much as going to cancel my appointment",
+            "Don't so much as have them cancel my appointment",
+            "Don't so much as ask them to cancel my appointment",
+            "Don't so much as go and cancel my appointment",
+            "Don't so much as go ahead and cancel my appointment",
+            "Don't so much as try to cancel my appointment",
+            "Don't so much as call off my appointment",
+            "Don't so much as reschedule my appointment",
+            "Don't so much as book a new appointment",
+            "Don't so much as schedule an appointment",
+            "Don't so much as cancel or reschedule",
+            "Don't so much as cancel, reschedule, or book",
+            "Don't you dare so much as cancel my appointment",
+            "Not so much as cancel my appointment",
+            "I would not so much as cancel my appointment",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_so_much_as_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("So much as, please cancel my appointment", "cancel"),
+            ("So much as please cancel my appointment", "cancel"),
+            ("Please cancel so much as", "cancel"),
+            ("Please cancel my appointment so much as", "cancel"),
+            ("I will, so much as, cancel my appointment", "cancel"),
+            ("I will so much as cancel my appointment", "cancel"),
+            ("If you so much as cancel my appointment", "cancel"),
+            ("Not so much, please cancel my appointment", "cancel"),
+            ("Don't so much cancel my appointment", "cancel"),
+            ("Not so much as, please cancel my appointment", "cancel"),
+            ("Not so much as should you cancel my appointment", "cancel"),
+            ("I'm not so much as able to cancel my appointment", "cancel"),
+            ("I can't so much as cancel my appointment", "cancel"),
+            ("I cannot so much as cancel my appointment", "cancel"),
+            ("Don't so much as forget to cancel my appointment", "cancel"),
+            ("Do not so much as forget to cancel my appointment", "cancel"),
+            ("Don't so much as, please cancel my appointment", "cancel"),
+            ("Don't so much as cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't so much as reschedule", "cancel"),
+            ("Don't so much as refuse to cancel my appointment", "cancel"),
+            ("Don't so much as forbid them to cancel my appointment", "cancel"),
+            ("Don't so much as the cancellation", "cancel"),
+            ("Don't so much as cancel or reschedule or book", "schedule"),
+            (
+                "I don't so much as want Tuesday, please cancel my appointment",
+                "cancel",
+            ),
+            (
+                "I'm not so much interested in a cancellation as a reschedule",
+                "reschedule",
+            ),
+            ("I don't want so much to cancel as to reschedule", "reschedule"),
+            ("It's not so much a cancellation as a reschedule", "reschedule"),
+            ("I will not so much cancel as reschedule", "reschedule"),
+            ("Don't by any chance cancel my appointment", "no_action"),
+            ("Don't in the least cancel my appointment", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
