@@ -690,6 +690,28 @@ FOR_NO_REASON_PREFIX_PATTERN = (
     r"(?:\s+ever\b)?"
     rf"{NEGATION_EMPHASIS_PATTERN}"
 )
+# "The cancellation is out of the question" and "It's out of the question to
+# cancel" are refusals. The idiom itself is the prohibition, so it does not
+# belong in NEGATION_EMPHASIS_PATTERN or NEGATION_PREFIX_PATTERN: "not" /
+# "never" / "n't" immediately before it, and "I don't think it's out of the
+# question", invert it back into an executable request. Bare "Out of the
+# question, please cancel" is an aside. "not just" / "isn't just" stay
+# refusals ("not merely"). Do not fast-reject on bare "question".
+OUT_OF_THE_QUESTION_PATTERN = r"out\s+of\s+the\s+question(?!\w)"
+OUT_OF_THE_QUESTION_FLIP_DEGREE_PATTERN = (
+    r"(?:absolutely|completely|totally|entirely|really|quite|always|ever|even|"
+    r"so\s+much|at\s+all|in\s+the\s+(?:least|slightest)(?:\s+bit)?)"
+)
+OUT_OF_THE_QUESTION_COPULA_ADVERB_PATTERN = (
+    r"(?:absolutely|completely|totally|entirely|just|simply|really|quite|"
+    r"clearly|now|still|also|definitely|even|plainly|utterly|only)"
+)
+OUT_OF_THE_QUESTION_COPULA_PATTERN = (
+    r"(?:is|are|was|were|seems?|appears?|remains?|looks|"
+    r"(?:seems?|appears?|looks)\s+to\s+be|"
+    r"(?:would|will|shall|should)\s+be|"
+    r"isn't|aren't|wasn't|weren't)"
+)
 PROHIBITIVE_FORWARD_PREFIX_PATTERN = (
     rf"(?:{NO_CIRCUMSTANCES_IN_WHICH_PREFIX_PATTERN}|"
     rf"{UNDER_NO_CIRCUMSTANCES_PREFIX_PATTERN}|"
@@ -1849,7 +1871,175 @@ def _has_dare_refusal_action_list(text: str, keyword: str) -> bool:
     return False
 
 
+def _out_of_the_question_clause(text: str) -> str:
+    return re.split(r"[.!?]\s+|,\s+", text)[-1]
+
+
+def _out_of_the_question_idiom_is_negated(text: str, idiom_start: int) -> bool:
+    """True when this occurrence is denied, so the action stays executable.
+
+    "It's not out of the question to cancel" and "I don't think it's out of
+    the question to cancel" keep cancel. A comma or sentence break ends the
+    clause, so "Don't cancel, it's out of the question to reschedule" still
+    refuses reschedule. "not just" does not flip: the idiom stays a refusal.
+    """
+    clause = _out_of_the_question_clause(text[:idiom_start])
+    degree = OUT_OF_THE_QUESTION_FLIP_DEGREE_PATTERN
+    if re.search(
+        rf"(?:(?:\bno\s+longer\b|\bnot\b|\bnever\b|\bhardly\b|\bscarcely\b|"
+        rf"\bbarely\b)|n't)"
+        rf"(?:\s+{degree}){{0,2}}(?:\s+be)?\s*$",
+        clause,
+    ):
+        return True
+
+    return (
+        re.search(
+            rf"(?<!\w)(?:(?:i|we|you|they|he|she)\s+)?"
+            rf"(?:do|does|did|will|would|should|shall|must)?\s*"
+            rf"(?:not\b|never\b|don't|dont|doesn't|doesnt|didn't|didnt|"
+            rf"won't|wont|wouldn't|wouldnt|shouldn't|shouldnt)"
+            rf"(?:\s+{degree}){{0,2}}\s+"
+            rf"(?:think|believe|feel|suppose|expect|consider)\b",
+            clause,
+        )
+        is not None
+    )
+
+
+def _out_of_the_question_forward_span(tail: str) -> str | None:
+    """Text of the refused action after the idiom, if one is attached.
+
+    "to cancel" and "that we should cancel" attach. "please cancel" does not,
+    with or without a comma. A following "or"/"and" list is the same refusal.
+    "to not cancel" does not attach here; the plain "not cancel" path owns it.
+    """
+    sentence = re.split(r"[.!?]\s+", tail, maxsplit=1)[0]
+    alternation = _action_keyword_alternation()
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    gap = (
+        r"(?!(?:to|but|however|instead|yet|please|not|never)\b)"
+        rf"(?!{alternation})"
+        r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
+    )
+    adverb = OUT_OF_THE_QUESTION_COPULA_ADVERB_PATTERN
+    head = (
+        rf"^(?:\s+(?:{adverb})){{0,2}}"
+        rf"(?:\s+for(?:\s+{gap}){{1,3}})?"
+        rf"\s+(?:to|that)"
+        rf"(?:\s+(?:i|we|you|they|he|she|someone|anyone))?"
+        rf"(?:\s+(?:should|would|will|shall|must|do|does))?"
+        rf"(?:\s+(?:{adverb})){{0,2}}"
+        rf"(?:\s+{gap}){{0,4}}"
+        rf"\s+{determiner}(?:{alternation})"
+    )
+    match = re.match(head, sentence)
+    if match is None:
+        bare = (
+            rf"^(?:\s*,)?"
+            rf"(?!\s*please\b)"
+            rf"(?:\s+(?:{adverb})){{0,2}}"
+            rf"\s+{determiner}(?:{alternation})"
+        )
+        match = re.match(bare, sentence)
+        if match is None:
+            return None
+
+    span = match.group(0)
+    conjunction = (
+        rf"(?:"
+        rf"\s*,?\s+(?:or|nor|and)\s+(?:to\s+)?{determiner}(?:{alternation})"
+        rf"|\s*,\s+{determiner}(?:{alternation})"
+        rf")+"
+    )
+    conjunction_match = re.match(conjunction, sentence[match.end() :])
+    if conjunction_match is not None:
+        span += conjunction_match.group(0)
+    return span
+
+
+def _out_of_the_question_object_keyword(before: str) -> str | None:
+    """Noun a judging verb puts out of the question, with no copula.
+
+    "I consider the cancellation out of the question" refuses cancellation.
+    "I won't consider the cancellation out of the question" is handled earlier,
+    because "won't consider" negates the idiom. "think" / "call" here are not
+    the "to cancel" forward path.
+    """
+    clause = _out_of_the_question_clause(before)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    verb = (
+        r"(?:considering|considered|considers|consider|"
+        r"finding|finds|found|find|"
+        r"deemed|deems|deem|"
+        r"calling|called|calls|call|"
+        r"regarding|regards|regarded|regard|"
+        r"thinking|thinks|thought|think|"
+        r"believing|believes|believed|believe)"
+    )
+    match = re.search(
+        rf"(?<!\w){verb}\s+{determiner}(?P<kw>{_action_keyword_alternation()})"
+        rf"(?:\s+{OUT_OF_THE_QUESTION_COPULA_ADVERB_PATTERN}){{0,2}}\s*$",
+        clause,
+    )
+    if match is None:
+        return None
+    return match.group("kw")
+
+
+def _out_of_the_question_backward_keyword(before: str) -> str | None:
+    """Action noun/verb the copula attaches to the idiom ("cancellation is")."""
+    clause = _out_of_the_question_clause(before)
+    alternation = _action_keyword_alternation()
+    gap = (
+        r"(?!(?:to|but|however|instead|yet|please|not|never)\b)"
+        r"(?!(?:is|are|was|were|seem|seems|appear|appears|remain|remains|"
+        r"looks|would|will|shall|should)\b)"
+        rf"(?!{alternation})"
+        r"[a-z0-9']+(?:[.-][a-z0-9']+)*"
+    )
+    match = re.search(
+        rf"(?P<kw>{alternation})"
+        rf"(?:\s+{gap}){{0,3}}"
+        rf"(?:'s|\s+{OUT_OF_THE_QUESTION_COPULA_PATTERN})"
+        rf"(?:\s+(?:not|never))?"
+        rf"(?:\s+{OUT_OF_THE_QUESTION_COPULA_ADVERB_PATTERN}){{0,2}}"
+        rf"\s*$",
+        clause,
+    )
+    if match is None:
+        return None
+    return match.group("kw")
+
+
+def _has_out_of_the_question_refusal(text: str, keyword: str) -> bool:
+    if "out of the question" not in text:
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    for match in re.finditer(rf"(?<!\w){OUT_OF_THE_QUESTION_PATTERN}", text):
+        if _out_of_the_question_idiom_is_negated(text, match.start()):
+            continue
+
+        backward = _out_of_the_question_backward_keyword(text[: match.start()])
+        if backward is not None and re.fullmatch(keyword_pattern, backward):
+            return True
+
+        obj = _out_of_the_question_object_keyword(text[: match.start()])
+        if obj is not None and re.fullmatch(keyword_pattern, obj):
+            return True
+
+        span = _out_of_the_question_forward_span(text[match.end() :])
+        if span is not None and re.search(keyword_pattern, span) is not None:
+            return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
+    if _has_out_of_the_question_refusal(text, keyword):
+        return True
+
     if _has_dare_refusal_before_keyword(text, keyword):
         return True
 

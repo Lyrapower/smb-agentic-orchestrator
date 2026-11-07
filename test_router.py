@@ -7694,6 +7694,122 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_out_of_the_question_does_not_route_to_action(self) -> None:
+        examples = (
+            "The cancellation is out of the question",
+            "A cancellation is out of the question",
+            "My cancellation is absolutely out of the question",
+            "The cancellation's out of the question",
+            "A cancellation would be out of the question",
+            "The cancellation is just out of the question",
+            "The cancellation isn't just out of the question",
+            "The cancellation seems out of the question",
+            "The cancellation seems to be out of the question",
+            "It's out of the question to cancel",
+            "It's out of the question to cancel my appointment",
+            "It is out of the question to cancel my appointment",
+            "It's absolutely out of the question to cancel",
+            "It's not just out of the question to cancel",
+            "It's out of the question for me to cancel",
+            "It's out of the question for the doctor to cancel",
+            "It's out of the question that we cancel",
+            "It's out of the question that we should cancel",
+            "It's out of the question that I cancel",
+            "Out of the question to cancel my appointment",
+            "It's out of the question to go ahead and cancel",
+            "It's out of the question to have them cancel",
+            "It's out of the question to try and cancel",
+            "It's out of the question to call off my appointment",
+            "It's out of the question to reschedule",
+            "It's out of the question to move my appointment",
+            "It's out of the question to book a new appointment",
+            "It's out of the question to make an appointment",
+            "It's out of the question to schedule a new appointment",
+            "It's out of the question to cancel or reschedule",
+            "It's out of the question to cancel or reschedule or book",
+            "It's out of the question to cancel, reschedule, or book",
+            "Out of the question, cancel my appointment",
+            "It's out of the question to cancel!",
+            "I consider the cancellation out of the question",
+            "I find the cancellation out of the question",
+            "I think the cancellation is out of the question",
+            "We consider a reschedule out of the question",
+            "A new appointment is out of the question",
+            "cancel is out of the question",
+            "Don't you think it's out of the question to cancel",
+            "Do not worry, it's out of the question to cancel",
+            "I don't think so, the cancellation is out of the question",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_out_of_the_question_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("It's not out of the question to cancel", "cancel"),
+            ("It is not out of the question to cancel my appointment", "cancel"),
+            ("The cancellation is not out of the question", "cancel"),
+            ("The cancellation isn't out of the question", "cancel"),
+            ("A cancellation would not be out of the question", "cancel"),
+            ("It's never out of the question to cancel", "cancel"),
+            ("It's not entirely out of the question to cancel", "cancel"),
+            ("It's not absolutely out of the question to cancel", "cancel"),
+            ("It's not at all out of the question to cancel", "cancel"),
+            ("It's not even out of the question to cancel", "cancel"),
+            ("It's not so much out of the question to cancel", "cancel"),
+            ("It's hardly out of the question to cancel", "cancel"),
+            ("The cancellation is no longer out of the question", "cancel"),
+            ("It's no longer out of the question to cancel", "cancel"),
+            ("It isn't out of the question to cancel", "cancel"),
+            ("I don't think it's out of the question to cancel", "cancel"),
+            ("I do not think it's out of the question to cancel", "cancel"),
+            ("I don't really think it's out of the question to cancel", "cancel"),
+            ("We don't believe the cancellation is out of the question", "cancel"),
+            ("I don't think the cancellation is out of the question", "cancel"),
+            ("She doesn't think it's out of the question to cancel", "cancel"),
+            ("I don't consider the cancellation out of the question", "cancel"),
+            ("I won't consider it out of the question to cancel", "cancel"),
+            ("Out of the question, please cancel", "cancel"),
+            ("Out of the question please cancel", "cancel"),
+            ("It's out of the question, please cancel", "cancel"),
+            ("It's out of the question — please cancel", "cancel"),
+            ("Not out of the question, please cancel", "cancel"),
+            ("It's out of the question to cancel, please reschedule", "reschedule"),
+            ("It's out of the question to cancel. Please reschedule", "reschedule"),
+            ("Please cancel, it's out of the question to reschedule", "cancel"),
+            ("Please cancel, the reschedule is out of the question", "cancel"),
+            ("Please cancel, out of the question to reschedule", "cancel"),
+            ("I will cancel, it's out of the question to reschedule", "cancel"),
+            (
+                "I consider the cancellation out of the question, please reschedule",
+                "reschedule",
+            ),
+            ("It's out of the question to postpone the cancellation", "cancel"),
+            ("It's out of the question to not cancel", "no_action"),
+            ("It's out of the question to wait, please cancel", "cancel"),
+            ("The cancellation is out of the questionnaire", "cancel"),
+            ("A question about parking, please cancel", "cancel"),
+            ("Please schedule, it's out of the question to cancel", "schedule"),
+            ("Don't cancel, it's out of the question to reschedule", "no_action"),
+            ("Don't so much as cancel my appointment", "no_action"),
+            ("I would not for the world cancel my appointment", "cancel"),
+            ("Don't you think we should cancel", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+            ("Under no circumstances, please cancel", "cancel"),
+            ("I forbid you to cancel my appointment", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
