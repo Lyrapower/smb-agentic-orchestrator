@@ -142,6 +142,20 @@ NEGATION_EMPHASIS_PATTERN = (
     # able to cancel"). Not inversion ("Not for the world would I cancel"),
     # which is a separate scan. "world" must be the next word.
     r"for\s+the\s+world(?!\w)|"
+    # "not/don't/never for a moment" is a refusal ("Don't for a moment
+    # cancel", "I would not for a moment cancel", "I won't, for a moment,
+    # cancel", "I'm not for a moment going to cancel"). Bare "for a moment"
+    # stays affirmative ("For a moment, please cancel", "Please cancel for
+    # a moment", "I will cancel for a moment", "I will for a moment
+    # cancel"). Do not suffix-scan this idiom: clause-final "cancel for a
+    # moment" is a brief cancel, not a prohibition. A comma after the idiom
+    # is an aside ("Not for a moment, please cancel", "Don't for a moment,
+    # please cancel"). Not "for one moment", not "for a single moment",
+    # not "for a momentary", and not "for a momentous". Not "not the
+    # moment". Not ability ("I can't for a moment cancel", "I'm not for a
+    # moment able to cancel"). Not inversion ("Not for a moment would I
+    # cancel"), which is a separate scan. "moment" must be the next word.
+    r"for\s+a\s+moment(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -171,6 +185,9 @@ NEGATION_EMPHASIS_PATTERN = (
 # the comparative "not so much X as Y". "for the world" is that same trailing
 # intensifier ("don't want to for the world cancel"). Not "for all the world"
 # and not "for the worldwide". Bare "for the world" is not a refusal.
+# "for a moment" is that same trailing intensifier ("don't want to for a
+# moment cancel"). Not "for one moment", not "for a single moment", and not
+# clause-final "cancel for a moment". Bare "for a moment" is not a refusal.
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -179,6 +196,7 @@ NEGATION_ADVERB_PATTERN = (
     r"by\s+any\s+chance(?!\w)|"
     r"so\s+much\s+as(?!\w)|"
     r"for\s+the\s+world(?!\w)|"
+    r"for\s+a\s+moment(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -715,6 +733,25 @@ FOR_NO_REASON_PREFIX_PATTERN = (
 FOR_THE_WORLD_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*for\s+the\s+world(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not for a moment would I cancel" / "Never for a moment should you cancel"
+# put the auxiliary and subject between the idiom and the action.
+# NEGATION_EMPHASIS already refuses "Don't for a moment cancel" and "I would
+# not for a moment cancel"; it does not cross inversion, same as "Not for the
+# world would I cancel". A comma after the idiom stays an aside ("Not for a
+# moment, would I cancel" / "Not for a moment, please cancel"). "can"/"could"
+# are not inversion auxiliaries. Not "for one moment" and not "for a single
+# moment". Do not suffix-scan: "Please cancel for a moment" is a brief
+# cancel. Do not add this prefix to NEGATION_PREFIX_PATTERN. Do not
+# fast-reject on bare "moment".
+FOR_A_MOMENT_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*for\s+a\s+moment(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -2154,11 +2191,101 @@ def _has_for_the_world_inversion_before_keyword(text: str, keyword: str) -> bool
     return False
 
 
+def _has_for_a_moment_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "Not/Never for a moment would I <action>".
+
+    Emphasis owns "Don't for a moment cancel" and "I would not for a moment
+    cancel". Inversion puts an auxiliary and subject between the idiom and the
+    action. A comma after the idiom is an aside. "can" and "could" are not
+    auxiliaries here. Clause-final "cancel for a moment" is not this scan.
+    """
+    if "for a moment" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*for\s+a\s+moment(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = FOR_A_MOMENT_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
 
     if _has_for_the_world_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_for_a_moment_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
