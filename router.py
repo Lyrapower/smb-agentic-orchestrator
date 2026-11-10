@@ -464,6 +464,17 @@ DARE_REFUSAL_HEAD_PATTERN = (
 # "cancel for no consideration" are manner, like clause-final "for no
 # reason", and stay affirmative. Do not fold "on no basis" into this scan:
 # "cancel on no basis" is cancel-without-a-basis.
+# "Over my dead body" and "over our dead bodies" are the speaker's refusal
+# ("Over my dead body will I cancel", "Over my dead body cancel", "Cancel
+# over my dead body", "I will cancel my appointment over my dead body",
+# "Over our dead bodies will we cancel"). The idiom is the prohibition, so
+# it stays in this scan and not in NEGATION_PREFIX_PATTERN. Not "over your
+# dead body", "over his/her/their dead body", or "over the/a dead body":
+# "I will cancel over your dead body" is an affirmative threat. Subject-first
+# "Over my dead body I will cancel" and "can"/"could" stay executable, same
+# as the other idioms. A comma plus please is an aside ("Over my dead body,
+# please cancel"). "Over my dead body forget to cancel" stays executable.
+# Do not fast-reject on bare "dead" ("deadline") or bare "body".
 # Inversion auxiliaries cover "should you" / "will I" / "do I" / "am I", not
 # "can"/"could". Extra subject tokens stop before "not" so "do not forget to
 # cancel" stays executable. "Don't go and cancel" uses the go-and/come-and
@@ -485,7 +496,8 @@ UNDER_NO_CIRCUMSTANCES_IDIOM_PATTERN = (
     r"(?:on|under)\s+no\s+consideration|"
     r"in\s+no\s+respect|in\s+no\s+sense|in\s+no\s+manner|in\s+no\s+wise|"
     r"in\s+no\s+form\s*,?\s*(?:or|and|nor)\s+fashion|in\s+no\s+fashion|"
-    r"in\s+no\s+degree|to\s+no\s+extent)(?!\w)"
+    r"in\s+no\s+degree|to\s+no\s+extent|"
+    r"over\s+my\s+dead\s+body|over\s+our\s+dead\s+bodies)(?!\w)"
     # "under no circumstances at all should you cancel". The intensifier sits
     # on the idiom, before inversion. Not "whatsoever". Not "at all events"
     # or "at all costs": those leave a following word the inversion does not
@@ -1619,6 +1631,13 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
     "pretense", bare "pretence", bare "consideration", bare "respect",
     bare "sense", bare "manner", bare "wise", bare "fashion", bare
     "form", bare "degree", bare "extent", bare "stretch", or bare "stage".
+    "dead body" is the marker for "over my dead body". "dead bodies" is the
+    marker for "over our dead bodies"; "bodies" does not contain "body".
+    The pattern still requires "over my" or "over our". Do not fast-reject
+    on bare "dead" ("deadline", "cancellation deadline") or bare "body"
+    ("somebody"). Do not treat "over your/his/her/their dead body" or
+    "over the/a dead body" as this idiom: "I will cancel over your dead
+    body" stays an affirmative threat.
     """
     return (
         "circumstance" in text
@@ -1648,6 +1667,8 @@ def _has_prohibitive_idiom_marker(text: str) -> bool:
         or "no stretch" in text
         or "no stage" in text
         or "for no reason" in text
+        or "dead body" in text
+        or "dead bodies" in text
     )
 
 

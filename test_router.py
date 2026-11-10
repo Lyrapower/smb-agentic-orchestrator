@@ -8078,6 +8078,108 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_over_my_dead_body_does_not_route_to_action(self) -> None:
+        examples = (
+            "Over my dead body will I cancel",
+            "Over my dead body will I cancel my appointment",
+            "Over my dead body would I cancel my appointment",
+            "Over my dead body am I going to cancel",
+            "Over my dead body should you cancel",
+            "Over my dead body do I want to cancel",
+            "Over my dead body cancel",
+            "Over my dead body cancel my appointment",
+            "Over my dead body, cancel my appointment",
+            "OVER MY DEAD BODY CANCEL",
+            "Over my dead body\u2014cancel my appointment",
+            "Over my dead body ever cancel my appointment",
+            "Over my dead body reschedule",
+            "Over my dead body move my appointment",
+            "Over my dead body book a new appointment",
+            "Over my dead body call off my appointment",
+            "Over my dead body drop appointment",
+            "Over my dead body the cancellation",
+            "Over my dead body a cancellation",
+            "Over my dead body want to cancel",
+            "Over my dead body want the cancellation",
+            "Over my dead body ask them to cancel",
+            "Over my dead body have them cancel",
+            "Over my dead body go and cancel",
+            "Over my dead body go ahead and cancel",
+            "Over my dead body try and cancel",
+            "Cancel over my dead body",
+            "I will cancel over my dead body",
+            "I will cancel my appointment over my dead body",
+            "I will call off my appointment over my dead body",
+            "Book a new appointment over my dead body",
+            "Move my appointment over my dead body",
+            "Cancel over my dead body please",
+            "I will cancel or reschedule over my dead body",
+            "Over my dead body cancel or reschedule",
+            "Over my dead body cancel, reschedule, or book",
+            "Over my dead body reschedule or book",
+            "Not over my dead body will I cancel",
+            "Never over my dead body will I cancel",
+            "Over our dead bodies will we cancel",
+            "Over our dead bodies cancel my appointment",
+            "I will cancel over our dead bodies",
+            "Over our dead bodies book a new appointment",
+            "Don't for a moment cancel",
+            "The cancellation is out of the question",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_over_my_dead_body_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("Over my dead body, please cancel", "cancel"),
+            ("Over my dead body, please cancel my appointment", "cancel"),
+            ("Over my dead body please cancel", "cancel"),
+            ("Over my dead body, I will cancel", "cancel"),
+            ("Over my dead body I will cancel", "cancel"),
+            ("Over my dead body can I cancel", "cancel"),
+            ("Over my dead body could I cancel", "cancel"),
+            ("Over my dead body forget to cancel", "cancel"),
+            ("Over my dead body do not forget to cancel", "cancel"),
+            ("Over my dead body cancel, please reschedule", "reschedule"),
+            ("Over my dead body will I cancel, please reschedule", "reschedule"),
+            ("Please cancel, over my dead body reschedule", "cancel"),
+            ("Please reschedule, over my dead body cancel", "reschedule"),
+            ("Please cancel. Over my dead body.", "cancel"),
+            ("Please cancel. Over my dead body will I reschedule", "cancel"),
+            ("I will cancel. Over my dead body will I reschedule", "cancel"),
+            (
+                "Please cancel my appointment, the policy says over my dead body",
+                "cancel",
+            ),
+            ("Over my dead body wait, please cancel", "cancel"),
+            ("Over my dead body Tuesday, please cancel", "cancel"),
+            ("I will cancel over your dead body", "cancel"),
+            ("Over your dead body will I cancel", "cancel"),
+            ("I'll cancel over his dead body", "cancel"),
+            ("Over the dead body, please cancel", "cancel"),
+            ("There is a dead body, please cancel", "cancel"),
+            ("The cancellation deadline is tomorrow, please cancel", "cancel"),
+            ("Over my deadline, please cancel", "cancel"),
+            ("Over my dead body cancel or reschedule or book", "schedule"),
+            ("Please cancel my appointment", "cancel"),
+            ("I want a new appointment", "schedule"),
+            ("Don't for a moment cancel", "no_action"),
+            ("Not for a moment, please cancel", "cancel"),
+            ("It's out of the question to cancel", "no_action"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
