@@ -156,6 +156,21 @@ NEGATION_EMPHASIS_PATTERN = (
     # moment able to cancel"). Not inversion ("Not for a moment would I
     # cancel"), which is a separate scan. "moment" must be the next word.
     r"for\s+a\s+moment(?!\w)|"
+    # "not/don't/never on your life" and "on my life" are the refusal
+    # ("Don't on your life cancel", "I would not on my life cancel",
+    # "I won't, on your life, cancel", "I'm not on your life going to
+    # cancel"). Bare "on your life" / "on my life" is an oath and stays
+    # affirmative ("On your life, please cancel", "Please cancel on your
+    # life", "I will cancel on my life"). A comma after the idiom is an
+    # aside ("Not on your life, please cancel", "Don't on your life,
+    # please cancel"). Not "on his/her/their/our life", not "on your
+    # sweet life", not "on your lives", and not "on your lifetime" /
+    # "lifeline". Not ability ("I can't on your life cancel"). Not
+    # inversion ("Not on your life would I cancel"), which is a separate
+    # scan. Do not suffix-scan: "Cancel on your life" and "I will cancel,
+    # not on your life" stay on the earlier keyword. "life" must be the
+    # next word. Do not fast-reject on bare "life".
+    r"on\s+(?:your|my)\s+life(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -188,6 +203,10 @@ NEGATION_EMPHASIS_PATTERN = (
 # "for a moment" is that same trailing intensifier ("don't want to for a
 # moment cancel"). Not "for one moment", not "for a single moment", and not
 # clause-final "cancel for a moment". Bare "for a moment" is not a refusal.
+# "on your life" / "on my life" is that same trailing intensifier ("don't
+# want to on your life cancel"). Not "on his/her/their life", not "on your
+# sweet life", and not clause-final "cancel on your life". Bare "on your
+# life" is an oath, not a refusal. Do not fast-reject on bare "life".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -197,6 +216,7 @@ NEGATION_ADVERB_PATTERN = (
     r"so\s+much\s+as(?!\w)|"
     r"for\s+the\s+world(?!\w)|"
     r"for\s+a\s+moment(?!\w)|"
+    r"on\s+(?:your|my)\s+life(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -764,6 +784,25 @@ FOR_THE_WORLD_INVERSION_PREFIX_PATTERN = (
 FOR_A_MOMENT_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*for\s+a\s+moment(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not on your life would I cancel" / "Never on my life should you cancel"
+# put the auxiliary and subject between the idiom and the action.
+# NEGATION_EMPHASIS already refuses "Don't on your life cancel" and "I would
+# not on my life cancel"; it does not cross inversion, same as "Not for the
+# world would I cancel". A comma after the idiom stays an aside ("Not on
+# your life, would I cancel" / "Not on your life, please cancel").
+# "can"/"could" are not inversion auxiliaries. Not "on his/her/their life",
+# not "on your sweet life", and not "on your lives". Do not suffix-scan:
+# "Please cancel on your life" is an oath to cancel. Do not add this prefix
+# to NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "life".
+ON_YOUR_LIFE_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*on\s+(?:your|my)\s+life(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -2299,6 +2338,93 @@ def _has_for_a_moment_inversion_before_keyword(text: str, keyword: str) -> bool:
     return False
 
 
+def _has_on_your_life_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "Not/Never on your/my life would I <action>".
+
+    Emphasis owns "Don't on your life cancel" and "I would not on my life
+    cancel". Inversion puts an auxiliary and subject between the idiom and
+    the action. A comma after the idiom is an aside. "can" and "could" are
+    not auxiliaries here. Clause-final "cancel on your life" is not this scan.
+    """
+    if "on your life" not in text and "on my life" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*on\s+(?:your|my)\s+life"
+            r"(?!\w)(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|"
+            r"is|are|was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = ON_YOUR_LIFE_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -2307,6 +2433,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_for_a_moment_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_on_your_life_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
