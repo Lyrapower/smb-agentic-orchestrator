@@ -8326,6 +8326,167 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_a_million_years_does_not_route_to_action(self) -> None:
+        examples = (
+            "Don't in a million years cancel my appointment",
+            "Please don't in a million years cancel my appointment",
+            "Do not in a million years cancel my appointment",
+            "Never in a million years cancel my appointment",
+            "I would not in a million years cancel my appointment",
+            "I wouldn't in a million years cancel my appointment",
+            "I will not in a million years cancel my appointment",
+            "I won't in a million years cancel my appointment",
+            "I will not, in a million years, cancel my appointment",
+            "I wouldn't, in a million years, cancel my appointment",
+            "Please do not, in a million years, cancel my appointment",
+            "I'm not in a million years going to cancel",
+            "I don't in a million years want to cancel",
+            "I don't want to in a million years cancel",
+            "I'm not going to in a million years cancel",
+            "I ain't in a million years gonna cancel",
+            "I would not in a million years reschedule",
+            "I would not in a million years move my appointment",
+            "Don't in a million years book a new appointment",
+            "Don't in a million years call off my appointment",
+            "Don't in a million years have them cancel",
+            "Don't in a million years try and cancel",
+            "Don't in a million years go and cancel",
+            "I would not, in a million years, go ahead and cancel",
+            "I would not in a million years have them cancel",
+            "Don't in a million years cancel or reschedule",
+            "I will not in a million years book or reschedule",
+            "Not in a million years would I cancel",
+            "Not in a million years would I cancel my appointment",
+            "Not in a million years will I cancel",
+            "Not in a million years will I reschedule",
+            "Not in a million years should you cancel",
+            "Never in a million years would I cancel",
+            "Not in a million years do I want to cancel",
+            "Not in a million years am I going to cancel",
+            "Not in a million years would I have them cancel",
+            "Not in a million years would I want the cancellation",
+            "Not in a million years would the doctor cancel",
+            "Not in a million years would I ever cancel",
+            "Not in a million years would I cancel or reschedule",
+            "Not in a million years would I cancel, reschedule, or book",
+            "It's not in a million years to cancel",
+            "I would never in a million years cancel",
+            "I never in a million years would cancel",
+            "Don't in a million years cancel!",
+            "Don't you dare in a million years cancel",
+            "NOT IN A MILLION YEARS WILL I CANCEL",
+            "Not in a million years\u2014cancel my appointment",
+            "Don't on your life cancel",
+            "Over my dead body will I cancel",
+            "Don't for a moment cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_a_million_years_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("Not in a million years, please cancel", "cancel"),
+            ("Not in a million years, please cancel my appointment", "cancel"),
+            ("In a million years, please cancel", "cancel"),
+            ("In a million years please cancel", "cancel"),
+            ("Please, in a million years, cancel", "cancel"),
+            ("Please cancel in a million years", "cancel"),
+            ("I will cancel in a million years", "cancel"),
+            ("I will, in a million years, cancel", "cancel"),
+            ("Cancel in a million years", "cancel"),
+            ("I wouldn't cancel in a million years", "no_action"),
+            ("I would not cancel in a million years", "no_action"),
+            ("Don't in a million years, please cancel", "cancel"),
+            ("Don't in a million years cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't in a million years reschedule", "cancel"),
+            (
+                "Not in a million years would I cancel, please reschedule",
+                "reschedule",
+            ),
+            (
+                "Please cancel, not in a million years would I reschedule",
+                "cancel",
+            ),
+            (
+                "Please cancel. Not in a million years would I reschedule",
+                "cancel",
+            ),
+            (
+                "Not in a million years would I cancel. Please reschedule",
+                "reschedule",
+            ),
+            (
+                "Please cancel, not in a million years would I book a new appointment",
+                "cancel",
+            ),
+            ("Please cancel. Not in a million years.", "cancel"),
+            ("Not in a million years. Please cancel", "cancel"),
+            ("Don't in a million years forget to cancel", "cancel"),
+            ("Don't in a million years refuse to cancel", "cancel"),
+            ("Don't in a million years forbid them to cancel", "cancel"),
+            ("Don't in a million years the cancellation", "cancel"),
+            ("Not in a million years the cancellation", "cancel"),
+            ("I can't in a million years cancel", "cancel"),
+            ("I cannot in a million years cancel", "cancel"),
+            ("I would not in a million years be able to cancel", "cancel"),
+            ("I'm not in a million years able to cancel", "cancel"),
+            ("Don't really in a million years cancel", "cancel"),
+            ("Don't in a million years really cancel", "cancel"),
+            ("Please don't really cancel", "cancel"),
+            ("Please don't actually cancel", "cancel"),
+            ("Not in a million years, I will cancel", "cancel"),
+            ("Not in a million years I will cancel", "cancel"),
+            ("Not in a million years would I, please cancel", "cancel"),
+            ("Not in a million years, would I cancel", "cancel"),
+            ("Not in a million years can I cancel", "cancel"),
+            ("Not in a million years could I cancel", "cancel"),
+            ("Not in a thousand years will I cancel", "cancel"),
+            ("Not in a hundred years would I cancel", "cancel"),
+            ("Not in a billion years will I cancel", "cancel"),
+            ("Not in one million years would I cancel", "cancel"),
+            ("Don't for a million years cancel", "cancel"),
+            ("Not for a million years would I cancel", "cancel"),
+            ("Not in a million yearly payments, please cancel", "cancel"),
+            ("Not in the million years, please cancel", "cancel"),
+            (
+                "I would not in a million years of silence cancel",
+                "cancel",
+            ),
+            ("Not in a million years of silence, please cancel", "cancel"),
+            ("I'm not free in a million years, please cancel", "cancel"),
+            ("Do not wait in a million years. Please cancel", "cancel"),
+            ("I did not call in a million years, please cancel", "cancel"),
+            ("The cancellation deadline is tomorrow, please cancel", "cancel"),
+            ("Cancel, not in a million years", "cancel"),
+            ("I will cancel, not in a million years", "cancel"),
+            (
+                "Don't in a million years cancel or reschedule or book",
+                "schedule",
+            ),
+            ("I would not in a million years not cancel", "no_action"),
+            ("Don't on your life cancel", "no_action"),
+            ("Not on your life, please cancel", "cancel"),
+            ("I will cancel on your life", "cancel"),
+            ("Over my dead body will I cancel", "no_action"),
+            ("Over my dead body, please cancel", "cancel"),
+            ("Don't for a moment cancel", "no_action"),
+            ("Not for a moment, please cancel", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+            ("I want a new appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",
