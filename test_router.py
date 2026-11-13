@@ -8487,6 +8487,170 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_in_this_lifetime_does_not_route_to_action(self) -> None:
+        examples = (
+            "Don't in this lifetime cancel my appointment",
+            "Please don't in this lifetime cancel my appointment",
+            "Do not in this lifetime cancel my appointment",
+            "Never in this lifetime cancel my appointment",
+            "I would not in this lifetime cancel my appointment",
+            "I wouldn't in this lifetime cancel my appointment",
+            "I will not in this lifetime cancel my appointment",
+            "I won't in this lifetime cancel my appointment",
+            "I will not, in this lifetime, cancel my appointment",
+            "I wouldn't, in this lifetime, cancel my appointment",
+            "Please do not, in this lifetime, cancel my appointment",
+            "I'm not in this lifetime going to cancel",
+            "I don't in this lifetime want to cancel",
+            "I don't want to in this lifetime cancel",
+            "I'm not going to in this lifetime cancel",
+            "I ain't in this lifetime gonna cancel",
+            "I would not in this lifetime reschedule",
+            "I would not in this lifetime move my appointment",
+            "Don't in this lifetime book a new appointment",
+            "Don't in this lifetime call off my appointment",
+            "Don't in this lifetime have them cancel",
+            "Don't in this lifetime try and cancel",
+            "Don't in this lifetime go and cancel",
+            "I would not, in this lifetime, go ahead and cancel",
+            "I would not in this lifetime have them cancel",
+            "Don't in this lifetime cancel or reschedule",
+            "I will not in this lifetime book or reschedule",
+            "Not in this lifetime would I cancel",
+            "Not in this lifetime would I cancel my appointment",
+            "Not in this lifetime will I cancel",
+            "Not in this lifetime will I reschedule",
+            "Not in this lifetime should you cancel",
+            "Never in this lifetime would I cancel",
+            "Not in this lifetime do I want to cancel",
+            "Not in this lifetime am I going to cancel",
+            "Not in this lifetime would I have them cancel",
+            "Not in this lifetime would I want the cancellation",
+            "Not in this lifetime would the doctor cancel",
+            "Not in this lifetime would I ever cancel",
+            "Not in this lifetime would I cancel or reschedule",
+            "Not in this lifetime would I cancel, reschedule, or book",
+            "It's not in this lifetime to cancel",
+            "I would never in this lifetime cancel",
+            "I never in this lifetime would cancel",
+            "Don't in this lifetime cancel!",
+            "Don't you dare in this lifetime cancel",
+            "NOT IN THIS LIFETIME WILL I CANCEL",
+            "Not in this lifetime\u2014cancel my appointment",
+            "Don't in a million years cancel",
+            "Don't on your life cancel",
+            "Over my dead body will I cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_in_this_lifetime_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("Not in this lifetime, please cancel", "cancel"),
+            ("Not in this lifetime, please cancel my appointment", "cancel"),
+            ("In this lifetime, please cancel", "cancel"),
+            ("In this lifetime please cancel", "cancel"),
+            ("Please, in this lifetime, cancel", "cancel"),
+            ("Please cancel in this lifetime", "cancel"),
+            ("I will cancel in this lifetime", "cancel"),
+            ("I will, in this lifetime, cancel", "cancel"),
+            ("Cancel in this lifetime", "cancel"),
+            ("I wouldn't cancel in this lifetime", "no_action"),
+            ("I would not cancel in this lifetime", "no_action"),
+            ("Don't in this lifetime, please cancel", "cancel"),
+            ("Don't in this lifetime cancel, please reschedule", "reschedule"),
+            ("Please cancel, don't in this lifetime reschedule", "cancel"),
+            (
+                "Not in this lifetime would I cancel, please reschedule",
+                "reschedule",
+            ),
+            (
+                "Please cancel, not in this lifetime would I reschedule",
+                "cancel",
+            ),
+            (
+                "Please cancel. Not in this lifetime would I reschedule",
+                "cancel",
+            ),
+            (
+                "Not in this lifetime would I cancel. Please reschedule",
+                "reschedule",
+            ),
+            (
+                "Please cancel, not in this lifetime would I book a new appointment",
+                "cancel",
+            ),
+            ("Please cancel. Not in this lifetime.", "cancel"),
+            ("Not in this lifetime. Please cancel", "cancel"),
+            ("Don't in this lifetime forget to cancel", "cancel"),
+            ("Don't in this lifetime refuse to cancel", "cancel"),
+            ("Don't in this lifetime forbid them to cancel", "cancel"),
+            ("Don't in this lifetime the cancellation", "cancel"),
+            ("Not in this lifetime the cancellation", "cancel"),
+            ("I can't in this lifetime cancel", "cancel"),
+            ("I cannot in this lifetime cancel", "cancel"),
+            ("I would not in this lifetime be able to cancel", "cancel"),
+            ("I'm not in this lifetime able to cancel", "cancel"),
+            ("Don't really in this lifetime cancel", "cancel"),
+            ("Don't in this lifetime really cancel", "cancel"),
+            ("Please don't really cancel", "cancel"),
+            ("Please don't actually cancel", "cancel"),
+            ("Not in this lifetime, I will cancel", "cancel"),
+            ("Not in this lifetime I will cancel", "cancel"),
+            ("Not in this lifetime would I, please cancel", "cancel"),
+            ("Not in this lifetime, would I cancel", "cancel"),
+            ("Not in this lifetime can I cancel", "cancel"),
+            ("Not in this lifetime could I cancel", "cancel"),
+            ("Not in my lifetime will I cancel", "cancel"),
+            ("Not in your lifetime would I cancel", "cancel"),
+            ("Not in our lifetime will I cancel", "cancel"),
+            ("Not in his lifetime would I cancel", "cancel"),
+            ("Not in a lifetime would I cancel", "cancel"),
+            ("Not in one lifetime would I cancel", "cancel"),
+            ("Not in the lifetime will I cancel", "cancel"),
+            ("Don't for this lifetime cancel", "cancel"),
+            ("Not for this lifetime would I cancel", "cancel"),
+            ("Not in this life will I cancel", "cancel"),
+            ("Not in this lifeline would I cancel", "cancel"),
+            ("Not in this lifetimes will I cancel", "cancel"),
+            (
+                "I would not in this lifetime of silence cancel",
+                "cancel",
+            ),
+            ("Not in this lifetime of silence, please cancel", "cancel"),
+            ("I'm not free in this lifetime, please cancel", "cancel"),
+            ("Do not wait in this lifetime. Please cancel", "cancel"),
+            ("I did not call in this lifetime, please cancel", "cancel"),
+            ("The cancellation deadline is tomorrow, please cancel", "cancel"),
+            ("Cancel, not in this lifetime", "cancel"),
+            ("I will cancel, not in this lifetime", "cancel"),
+            (
+                "Don't in this lifetime cancel or reschedule or book",
+                "schedule",
+            ),
+            ("I would not in this lifetime not cancel", "no_action"),
+            ("Don't in a million years cancel", "no_action"),
+            ("Not in a million years, please cancel", "cancel"),
+            ("I will cancel in a million years", "cancel"),
+            ("Not on your life will I cancel", "no_action"),
+            ("Over my dead body will I cancel", "no_action"),
+            ("Don't for a moment cancel", "no_action"),
+            ("Please cancel my appointment", "cancel"),
+            ("I want a new appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",

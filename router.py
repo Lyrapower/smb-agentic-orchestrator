@@ -187,6 +187,23 @@ NEGATION_EMPHASIS_PATTERN = (
     # "years" must be the next word. Do not fast-reject on bare "years"
     # or bare "million".
     r"in\s+a\s+million\s+years(?!\w)|"
+    # "not/don't/never in this lifetime" is a refusal ("Don't in this
+    # lifetime cancel", "I would not in this lifetime cancel", "I won't,
+    # in this lifetime, cancel", "I'm not in this lifetime going to
+    # cancel"). Bare "in this lifetime" is a time span and stays
+    # affirmative ("In this lifetime, please cancel", "Please cancel in
+    # this lifetime", "I will cancel in this lifetime"). Do not
+    # suffix-scan: clause-final "cancel in this lifetime" is a cancel
+    # during this life, not a prohibition. A comma after the idiom is an
+    # aside ("Not in this lifetime, please cancel", "Don't in this
+    # lifetime, please cancel"). Not "in my/your/our/his/her/their
+    # lifetime", not "in a lifetime", not "in one lifetime", not "in the
+    # lifetime", not "for this lifetime", and not "in this life". Not
+    # ability ("I can't in this lifetime cancel"). Not inversion ("Not
+    # in this lifetime would I cancel"), which is a separate scan.
+    # "lifetime" must be the next word. Do not fast-reject on bare
+    # "lifetime" or bare "life".
+    r"in\s+this\s+lifetime(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -228,6 +245,12 @@ NEGATION_EMPHASIS_PATTERN = (
 # not "in one million years", and not clause-final "cancel in a million
 # years". Bare "in a million years" is a far-future span, not a refusal.
 # Do not fast-reject on bare "years" or bare "million".
+# "in this lifetime" is that same trailing intensifier ("don't want to
+# in this lifetime cancel"). Not "in my/your/our/his/her/their lifetime",
+# not "in a/one/the lifetime", not "for this lifetime", not "in this
+# life", and not clause-final "cancel in this lifetime". Bare "in this
+# lifetime" is a time span, not a refusal. Do not fast-reject on bare
+# "lifetime" or bare "life".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -239,6 +262,7 @@ NEGATION_ADVERB_PATTERN = (
     r"for\s+a\s+moment(?!\w)|"
     r"on\s+(?:your|my)\s+life(?!\w)|"
     r"in\s+a\s+million\s+years(?!\w)|"
+    r"in\s+this\s+lifetime(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -846,6 +870,27 @@ ON_YOUR_LIFE_INVERSION_PREFIX_PATTERN = (
 IN_A_MILLION_YEARS_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*in\s+a\s+million\s+years(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not in this lifetime would I cancel" / "Never in this lifetime should
+# you cancel" put the auxiliary and subject between the idiom and the
+# action. NEGATION_EMPHASIS already refuses "Don't in this lifetime
+# cancel" and "I would not in this lifetime cancel"; it does not cross
+# inversion, same as "Not in a million years would I cancel". A comma
+# after the idiom stays an aside ("Not in this lifetime, would I cancel"
+# / "Not in this lifetime, please cancel"). "can"/"could" are not
+# inversion auxiliaries. Not "in my/your/our/his/her/their lifetime",
+# not "in a/one/the lifetime", not "for this lifetime", and not "in this
+# life". Do not suffix-scan: "Please cancel in this lifetime" is a cancel
+# during this life. Do not add this prefix to NEGATION_PREFIX_PATTERN.
+# Do not fast-reject on bare "lifetime" or bare "life".
+IN_THIS_LIFETIME_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*in\s+this\s+lifetime(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -2556,6 +2601,94 @@ def _has_in_a_million_years_inversion_before_keyword(text: str, keyword: str) ->
     return False
 
 
+def _has_in_this_lifetime_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "Not/Never in this lifetime would I <action>".
+
+    Emphasis owns "Don't in this lifetime cancel" and "I would not in this
+    lifetime cancel". Inversion puts an auxiliary and subject between the
+    idiom and the action. A comma after the idiom is an aside. "can" and
+    "could" are not auxiliaries here. Clause-final "cancel in this
+    lifetime" is not this scan.
+    """
+    if "in this lifetime" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*in\s+this\s+lifetime"
+            r"(?!\w)(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|"
+            r"is|are|was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = IN_THIS_LIFETIME_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -2570,6 +2703,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_in_a_million_years_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_in_this_lifetime_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
