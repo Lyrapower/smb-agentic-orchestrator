@@ -204,6 +204,22 @@ NEGATION_EMPHASIS_PATTERN = (
     # "lifetime" must be the next word. Do not fast-reject on bare
     # "lifetime" or bare "life".
     r"in\s+this\s+lifetime(?!\w)|"
+    # "not/don't/never for a second" is a refusal ("Don't for a second
+    # cancel", "I would not for a second cancel", "I won't, for a second,
+    # cancel", "I'm not for a second going to cancel"). Bare "for a second"
+    # stays affirmative ("For a second, please cancel", "Please cancel for
+    # a second", "I will cancel for a second", "I will for a second
+    # cancel"). Do not suffix-scan this idiom: clause-final "cancel for a
+    # second" is a brief cancel, not a prohibition. A comma after the idiom
+    # is an aside ("Not for a second, please cancel", "Don't for a second,
+    # please cancel"). Not "for one second", not "for a single second",
+    # not "for a minute", and not "for a secondary" / "for a secondment".
+    # Not ability ("I can't for a second cancel", "I'm not for a second
+    # able to cancel"). Not inversion ("Not for a second would I cancel"),
+    # which is a separate scan. An extra word after "second" ("of silence",
+    # "time") does not attach. "second" must be the next word. Do not
+    # fast-reject on bare "second".
+    r"for\s+a\s+second(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -251,6 +267,11 @@ NEGATION_EMPHASIS_PATTERN = (
 # life", and not clause-final "cancel in this lifetime". Bare "in this
 # lifetime" is a time span, not a refusal. Do not fast-reject on bare
 # "lifetime" or bare "life".
+# "for a second" is that same trailing intensifier ("don't want to for a
+# second cancel"). Not "for one second", not "for a single second", not
+# "for a minute", and not clause-final "cancel for a second". Bare "for a
+# second" is not a refusal. An extra word after "second" does not attach.
+# Do not fast-reject on bare "second".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -263,6 +284,7 @@ NEGATION_ADVERB_PATTERN = (
     r"on\s+(?:your|my)\s+life(?!\w)|"
     r"in\s+a\s+million\s+years(?!\w)|"
     r"in\s+this\s+lifetime(?!\w)|"
+    r"for\s+a\s+second(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -891,6 +913,26 @@ IN_A_MILLION_YEARS_INVERSION_PREFIX_PATTERN = (
 IN_THIS_LIFETIME_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*in\s+this\s+lifetime(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not for a second would I cancel" / "Never for a second should you
+# cancel" put the auxiliary and subject between the idiom and the action.
+# NEGATION_EMPHASIS already refuses "Don't for a second cancel" and "I
+# would not for a second cancel"; it does not cross inversion, same as
+# "Not for a moment would I cancel". A comma after the idiom stays an
+# aside ("Not for a second, would I cancel" / "Not for a second, please
+# cancel"). "can"/"could" are not inversion auxiliaries. Not "for one
+# second", not "for a single second", and not "for a minute". Do not
+# suffix-scan: "Please cancel for a second" is a brief cancel. Do not add
+# this prefix to NEGATION_PREFIX_PATTERN. Do not fast-reject on bare
+# "second".
+FOR_A_SECOND_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*for\s+a\s+second(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -2689,6 +2731,93 @@ def _has_in_this_lifetime_inversion_before_keyword(text: str, keyword: str) -> b
     return False
 
 
+def _has_for_a_second_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "Not/Never for a second would I <action>".
+
+    Emphasis owns "Don't for a second cancel" and "I would not for a second
+    cancel". Inversion puts an auxiliary and subject between the idiom and
+    the action. A comma after the idiom is an aside. "can" and "could" are
+    not auxiliaries here. Clause-final "cancel for a second" is not this scan.
+    """
+    if "for a second" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*for\s+a\s+second(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = FOR_A_SECOND_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -2706,6 +2835,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_in_this_lifetime_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_for_a_second_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
