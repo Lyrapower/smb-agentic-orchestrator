@@ -254,6 +254,24 @@ NEGATION_EMPHASIS_PATTERN = (
     # not attach. "minute" must be the next word. Do not fast-reject on
     # bare "minute".
     r"for\s+a\s+minute(?!\w)|"
+    # "not/don't/never on my watch" is a refusal ("Don't on my watch
+    # cancel", "I would not on my watch cancel", "I won't, on my watch,
+    # cancel", "I'm not on my watch going to cancel"). Bare "on my watch"
+    # is a shift and stays affirmative ("On my watch, please cancel",
+    # "Please cancel on my watch", "I will cancel on my watch", "I will
+    # on my watch cancel"). Do not suffix-scan this idiom: clause-final
+    # "cancel on my watch" is a cancel during the shift, not a
+    # prohibition. A comma after the idiom is an aside ("Not on my watch,
+    # please cancel", "Don't on my watch, please cancel"). Not "on your
+    # watch", not "on our/his/her/their watch", not "on the/a/this watch",
+    # not "on my night watch", and not "on my watches" / "watchful" /
+    # "watchdog" / "watchman". Not "in my watch" and not "for my watch".
+    # Not ability ("I can't on my watch cancel", "I'm not on my watch
+    # able to cancel"). Not inversion ("Not on my watch would I cancel"),
+    # which is a separate scan. An extra word after "watch" ("tonight",
+    # "'s sake") does not attach. "watch" must be the next word. Do not
+    # fast-reject on bare "watch".
+    r"on\s+my\s+watch(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -318,6 +336,11 @@ NEGATION_EMPHASIS_PATTERN = (
 # clause-final "cancel for a minute". Bare "for a minute" is not a
 # refusal. An extra word after "minute" does not attach. Do not
 # fast-reject on bare "minute".
+# "on my watch" is that same trailing intensifier ("don't want to on my
+# watch cancel"). Not "on your/our/his/her/their watch", not "on the
+# watch", not "on my night watch", and not clause-final "cancel on my
+# watch". Bare "on my watch" is a shift, not a refusal. An extra word
+# after "watch" does not attach. Do not fast-reject on bare "watch".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -333,6 +356,7 @@ NEGATION_ADVERB_PATTERN = (
     r"for\s+a\s+second(?!\w)|"
     r"for\s+love\s+or\s+money(?!\w)|"
     r"for\s+a\s+minute(?!\w)|"
+    r"on\s+my\s+watch(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -1022,6 +1046,26 @@ FOR_LOVE_OR_MONEY_INVERSION_PREFIX_PATTERN = (
 FOR_A_MINUTE_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*for\s+a\s+minute(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not on my watch would I cancel" / "Never on my watch should you
+# cancel" put the auxiliary and subject between the idiom and the action.
+# NEGATION_EMPHASIS already refuses "Don't on my watch cancel" and "I
+# would not on my watch cancel"; it does not cross inversion, same as
+# "Not for a minute would I cancel". A comma after the idiom stays an
+# aside ("Not on my watch, would I cancel" / "Not on my watch, please
+# cancel"). "can"/"could" are not inversion auxiliaries. Not "on your
+# watch", not "on our/his/her/their watch", not "on the watch", and not
+# "on my night watch". Do not suffix-scan: "Please cancel on my watch"
+# is a cancel during the shift. Do not add this prefix to
+# NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "watch".
+ON_MY_WATCH_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*on\s+my\s+watch(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -3082,6 +3126,93 @@ def _has_for_a_minute_inversion_before_keyword(text: str, keyword: str) -> bool:
     return False
 
 
+def _has_on_my_watch_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "Not/Never on my watch would I <action>".
+
+    Emphasis owns "Don't on my watch cancel" and "I would not on my watch
+    cancel". Inversion puts an auxiliary and subject between the idiom and
+    the action. A comma after the idiom is an aside. "can" and "could" are
+    not auxiliaries here. Clause-final "cancel on my watch" is not this scan.
+    """
+    if "on my watch" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*on\s+my\s+watch(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = ON_MY_WATCH_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -3108,6 +3239,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_for_a_minute_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_on_my_watch_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
