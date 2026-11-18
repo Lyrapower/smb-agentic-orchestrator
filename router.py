@@ -272,6 +272,27 @@ NEGATION_EMPHASIS_PATTERN = (
     # "'s sake") does not attach. "watch" must be the next word. Do not
     # fast-reject on bare "watch".
     r"on\s+my\s+watch(?!\w)|"
+    # "not/don't/never for all the tea in China" is a refusal ("Don't for
+    # all the tea in China cancel", "I would not for all the tea in China
+    # cancel", "I won't, for all the tea in China, cancel", "I'm not for
+    # all the tea in China going to cancel"). Bare "for all the tea in
+    # China" stays affirmative ("For all the tea in China, please cancel",
+    # "Please cancel for all the tea in China", "I will cancel for all the
+    # tea in China", "I will for all the tea in China cancel"). Do not
+    # suffix-scan: clause-final "cancel for all the tea in China" is an
+    # inducement, not a prohibition. A comma after the idiom is an aside
+    # ("Not for all the tea in China, please cancel", "Don't for all the
+    # tea in China, please cancel"). Not "for all the tea" without "in
+    # China", not "for all of the tea in China", not "for all tea in
+    # China", not "for the tea in China", not "for all the teas in China",
+    # not "for all the tea of China", not "for all the coffee in China",
+    # and not "in all the tea in China". Not "Chinese", "Chinatown", or
+    # "Chinaware". Not ability ("I can't for all the tea in China
+    # cancel"). Not inversion ("Not for all the tea in China would I
+    # cancel"), which is a separate scan. An extra word after "China"
+    # ("tonight", "'s sake") does not attach. "China" must be the next
+    # word. Do not fast-reject on bare "tea" or bare "China".
+    r"for\s+all\s+the\s+tea\s+in\s+china(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -341,6 +362,13 @@ NEGATION_EMPHASIS_PATTERN = (
 # watch", not "on my night watch", and not clause-final "cancel on my
 # watch". Bare "on my watch" is a shift, not a refusal. An extra word
 # after "watch" does not attach. Do not fast-reject on bare "watch".
+# "for all the tea in China" is that same trailing intensifier ("don't
+# want to for all the tea in China cancel"). Not "for all the tea"
+# without "in China", not "for all of the tea in China", not "for all
+# the teas in China", and not clause-final "cancel for all the tea in
+# China". Bare "for all the tea in China" is an inducement, not a
+# refusal. An extra word after "China" does not attach. Do not
+# fast-reject on bare "tea" or bare "China".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -357,6 +385,7 @@ NEGATION_ADVERB_PATTERN = (
     r"for\s+love\s+or\s+money(?!\w)|"
     r"for\s+a\s+minute(?!\w)|"
     r"on\s+my\s+watch(?!\w)|"
+    r"for\s+all\s+the\s+tea\s+in\s+china(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -1066,6 +1095,28 @@ FOR_A_MINUTE_INVERSION_PREFIX_PATTERN = (
 ON_MY_WATCH_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*on\s+my\s+watch(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not for all the tea in China would I cancel" / "Never for all the tea
+# in China should you cancel" put the auxiliary and subject between the
+# idiom and the action. NEGATION_EMPHASIS already refuses "Don't for all
+# the tea in China cancel" and "I would not for all the tea in China
+# cancel"; it does not cross inversion, same as "Not on my watch would I
+# cancel". A comma after the idiom stays an aside ("Not for all the tea
+# in China, would I cancel" / "Not for all the tea in China, please
+# cancel"). "can"/"could" are not inversion auxiliaries. Not "for all the
+# tea" without "in China", not "for all of the tea in China", not "for
+# all the teas in China", and not "in all the tea in China". Do not
+# suffix-scan: "Please cancel for all the tea in China" is an inducement
+# to cancel. Do not add this prefix to NEGATION_PREFIX_PATTERN. Do not
+# fast-reject on bare "tea" or bare "China".
+FOR_ALL_THE_TEA_IN_CHINA_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*for\s+all\s+the\s+tea\s+in\s+china(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -3213,6 +3264,97 @@ def _has_on_my_watch_inversion_before_keyword(text: str, keyword: str) -> bool:
     return False
 
 
+def _has_for_all_the_tea_in_china_inversion_before_keyword(
+    text: str, keyword: str
+) -> bool:
+    """True for "Not/Never for all the tea in China would I <action>".
+
+    Emphasis owns "Don't for all the tea in China cancel" and "I would not
+    for all the tea in China cancel". Inversion puts an auxiliary and subject
+    between the idiom and the action. A comma after the idiom is an aside.
+    "can" and "could" are not auxiliaries here. Clause-final "cancel for all
+    the tea in China" is not this scan.
+    """
+    if "for all the tea in china" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*"
+            r"for\s+all\s+the\s+tea\s+in\s+china(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = FOR_ALL_THE_TEA_IN_CHINA_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -3242,6 +3384,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_on_my_watch_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_for_all_the_tea_in_china_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
