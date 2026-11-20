@@ -310,6 +310,27 @@ NEGATION_EMPHASIS_PATTERN = (
     # "'s sake") does not attach. "shot" must be the next word. Do not
     # fast-reject on bare "shot" or bare "long".
     r"by\s+a\s+long\s+shot(?!\w)|"
+    # "not/don't/never in your wildest dreams" and "in my wildest dreams"
+    # are a refusal ("Don't in your wildest dreams cancel", "I would not
+    # in my wildest dreams cancel", "I won't, in your wildest dreams,
+    # cancel", "I'm not in my wildest dreams going to cancel"). Bare "in
+    # your wildest dreams" / "in my wildest dreams" stays affirmative
+    # ("In your wildest dreams, please cancel", "Please cancel in my
+    # wildest dreams", "I will cancel in your wildest dreams", "I will in
+    # my wildest dreams cancel"). Do not suffix-scan: clause-final
+    # "cancel in your wildest dreams" is not a prohibition. A comma after
+    # the idiom is an aside ("Not in your wildest dreams, please cancel",
+    # "Don't in my wildest dreams, please cancel"). Not "in our/his/her/
+    # their wildest dreams", not "in the/a wildest dreams", not "in your
+    # wildest dream", not "in your wild dreams", not "in your very
+    # wildest dreams", and not "for/on your wildest dreams". Not
+    # "dreamscape" or "dreamsicle". Not ability ("I can't in your
+    # wildest dreams cancel"). Not inversion ("Not in your wildest dreams
+    # would I cancel"), which is a separate scan. An extra word after
+    # "dreams" ("tonight", "'s sake") does not attach. "dreams" must be
+    # the next word. Do not fast-reject on bare "dream", bare "dreams",
+    # or bare "wildest".
+    r"in\s+(?:your|my)\s+wildest\s+dreams(?!\w)|"
     r"for\s+any\s+reason|i\s+repeat|"
     # "not/don't/never in the least" and "in the slightest" are the same
     # degree refusal as "at all" ("Don't in the least cancel", "I'm not in
@@ -392,6 +413,14 @@ NEGATION_EMPHASIS_PATTERN = (
 # and not clause-final "cancel by a long shot". Bare "by a long shot"
 # is a margin, not a refusal. An extra word after "shot" does not
 # attach. Do not fast-reject on bare "shot" or bare "long".
+# "in your wildest dreams" / "in my wildest dreams" is that same trailing
+# intensifier ("don't want to in your wildest dreams cancel"). Not "in
+# our/his/her/their wildest dreams", not "in the wildest dreams", not
+# "in your wildest dream", not "in your wild dreams", and not
+# clause-final "cancel in your wildest dreams". Bare "in your wildest
+# dreams" is not a refusal. An extra word after "dreams" does not
+# attach. Do not fast-reject on bare "dream", bare "dreams", or bare
+# "wildest".
 NEGATION_ADVERB_PATTERN = (
     r"(?:really|actually|even|particularly|currently|also|still|always|"
     r"just|quite|truly|simply|honestly|especially|generally|normally|"
@@ -410,6 +439,7 @@ NEGATION_ADVERB_PATTERN = (
     r"on\s+my\s+watch(?!\w)|"
     r"for\s+all\s+the\s+tea\s+in\s+china(?!\w)|"
     r"by\s+a\s+long\s+shot(?!\w)|"
+    r"in\s+(?:your|my)\s+wildest\s+dreams(?!\w)|"
     r"at\s+all(?!\w))"
 )
 # Same hedges after an already-matched bridge ("going to really cancel",
@@ -1162,6 +1192,28 @@ FOR_ALL_THE_TEA_IN_CHINA_INVERSION_PREFIX_PATTERN = (
 BY_A_LONG_SHOT_INVERSION_PREFIX_PATTERN = (
     r"(?:not|never)(?!\w)"
     r"(?:\s*,\s*)?\s*by\s+a\s+long\s+shot(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "Not in your wildest dreams would I cancel" / "Never in my wildest
+# dreams should you cancel" put the auxiliary and subject between the
+# idiom and the action. NEGATION_EMPHASIS already refuses "Don't in your
+# wildest dreams cancel" and "I would not in my wildest dreams cancel";
+# it does not cross inversion, same as "Not by a long shot would I
+# cancel". A comma after the idiom stays an aside ("Not in your wildest
+# dreams, would I cancel" / "Not in your wildest dreams, please cancel").
+# "can"/"could" are not inversion auxiliaries. Not "in our/his/her/their
+# wildest dreams", not "in the wildest dreams", not "in your wildest
+# dream", and not "for/on your wildest dreams". Do not suffix-scan:
+# "Please cancel in your wildest dreams" is not a prohibition. Do not
+# add this prefix to NEGATION_PREFIX_PATTERN. Do not fast-reject on bare
+# "dream", bare "dreams", or bare "wildest".
+IN_YOUR_WILDEST_DREAMS_INVERSION_PREFIX_PATTERN = (
+    r"(?:not|never)(?!\w)"
+    r"(?:\s*,\s*)?\s*in\s+(?:your|my)\s+wildest\s+dreams(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
@@ -3489,6 +3541,97 @@ def _has_by_a_long_shot_inversion_before_keyword(text: str, keyword: str) -> boo
     return False
 
 
+def _has_in_your_wildest_dreams_inversion_before_keyword(
+    text: str, keyword: str
+) -> bool:
+    """True for "Not/Never in your/my wildest dreams would I <action>".
+
+    Emphasis owns "Don't in your wildest dreams cancel" and "I would not in
+    my wildest dreams cancel". Inversion puts an auxiliary and subject
+    between the idiom and the action. A comma after the idiom is an aside.
+    "can" and "could" are not auxiliaries here. Clause-final "cancel in your
+    wildest dreams" is not this scan.
+    """
+    if "in your wildest dreams" not in text and "in my wildest dreams" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)(?:not|never)(?!\w)(?:\s*,\s*)?\s*"
+            r"in\s+(?:your|my)\s+wildest\s+dreams(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = IN_YOUR_WILDEST_DREAMS_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -3524,6 +3667,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_by_a_long_shot_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_in_your_wildest_dreams_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
