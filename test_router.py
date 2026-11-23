@@ -10032,6 +10032,123 @@ class RouterTests(unittest.TestCase):
 
                 self.assertEqual(intent, expected_intent)
 
+    def test_no_way_in_hell_does_not_route_to_action(self) -> None:
+        examples = (
+            "No way in hell would I cancel",
+            "No way in hell would I cancel my appointment",
+            "No way in hell will I cancel",
+            "No way in hell will I cancel my appointment",
+            "No way in hell should you cancel",
+            "No way in hell do I want to cancel",
+            "No way in hell am I going to cancel",
+            "No way in hell would I have them cancel",
+            "No way in hell would I want the cancellation",
+            "No way in hell would the doctor cancel",
+            "No way in hell will the office cancel",
+            "No way in hell would I ever cancel",
+            "No way in hell would I cancel or reschedule",
+            "No way in hell would I cancel, reschedule, or book",
+            "No way in hell will I cancel or reschedule or book",
+            "No way in hell would I reschedule",
+            "No way in hell would I reschedule or book",
+            "No way in hell would I move my appointment",
+            "No way in hell would I book a new appointment",
+            "No way in hell would I call off my appointment",
+            "No way in hell will I reschedule",
+            "No way in hell shall I cancel",
+            "No way in hell must you cancel",
+            "No way in hell are we going to cancel",
+            "No way in hell was I going to cancel",
+            "No way in hell will I forget to cancel",
+            "No way in hell will I refuse to cancel",
+            "NO WAY IN HELL WILL I CANCEL",
+            "No way in hell will I cancel!",
+            "Like hell will I cancel",
+            "Not a chance will I cancel",
+            "Not in your wildest dreams will I cancel",
+            "Over my dead body will I cancel",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, "no_action")
+
+    def test_no_way_in_hell_phrases_that_are_not_refusals_still_route_to_action(
+        self,
+    ) -> None:
+        examples = (
+            ("No way in hell, please cancel", "cancel"),
+            ("No way in hell, please cancel my appointment", "cancel"),
+            ("No way in hell please cancel", "cancel"),
+            ("No way in hell, I will cancel", "cancel"),
+            ("No way in hell I will cancel", "cancel"),
+            ("No way in hell I'm going to cancel", "cancel"),
+            ("No way in hell I'll cancel", "cancel"),
+            ("No way in hell, would I cancel", "cancel"),
+            ("No way in hell would I, please cancel", "cancel"),
+            ("No way in hell can I cancel", "cancel"),
+            ("No way in hell could I cancel", "cancel"),
+            ("Please cancel, no way in hell", "cancel"),
+            ("I will cancel, no way in hell", "cancel"),
+            ("Cancel, no way in hell", "cancel"),
+            ("I will cancel no way in hell", "cancel"),
+            ("Please cancel no way in hell", "cancel"),
+            ("No way in hell\u2014cancel my appointment", "cancel"),
+            ("No, way in hell will I cancel", "cancel"),
+            ("No way, in hell will I cancel", "cancel"),
+            ("No way in, hell will I cancel", "cancel"),
+            ("No way will I cancel", "cancel"),
+            ("No way would I cancel", "cancel"),
+            ("Not a chance in hell will I cancel", "cancel"),
+            ("No chance in hell will I cancel", "cancel"),
+            ("Like hell will I cancel my appointment", "no_action"),
+            ("The hell will I cancel", "cancel"),
+            ("What the hell will I cancel", "cancel"),
+            ("Why the hell would I cancel", "cancel"),
+            ("No way in the hell will I cancel", "cancel"),
+            ("No way into hell will I cancel", "cancel"),
+            ("No way in hellish will I cancel", "cancel"),
+            ("No way in hell tonight will I cancel", "cancel"),
+            ("No way in hell's sake would I cancel", "cancel"),
+            ("No way in hell really will I cancel", "cancel"),
+            ("A way in hell will I cancel", "cancel"),
+            ("Not a way in hell will I cancel", "cancel"),
+            ("Don't no way in hell cancel", "cancel"),
+            ("I would no way in hell cancel", "cancel"),
+            ("No way in hell cancel", "cancel"),
+            ("There's no way in hell I will cancel", "cancel"),
+            ("There is no way in hell I will cancel", "cancel"),
+            ("No way in hell would I cancel, please reschedule", "reschedule"),
+            ("Please cancel, no way in hell will I reschedule", "cancel"),
+            ("No way in hell would I cancel. Please reschedule", "reschedule"),
+            ("Please cancel. No way in hell.", "cancel"),
+            ("No way in hell. Please cancel", "cancel"),
+            ("No way in hell will I not cancel", "no_action"),
+            ("Come hell or high water will I cancel", "cancel"),
+            ("Come hell or high water I will cancel", "cancel"),
+            ("Like hell, please cancel", "cancel"),
+            ("Like hell I will cancel", "cancel"),
+            ("I will cancel like hell", "cancel"),
+            ("It hurts like hell, please cancel", "cancel"),
+            ("Not a chance, please cancel", "cancel"),
+            ("Not a chance will I cancel", "no_action"),
+            ("Don't in your wildest dreams cancel", "no_action"),
+            ("Not in your wildest dreams will I cancel", "no_action"),
+            ("Don't for a minute cancel", "no_action"),
+            ("Over my dead body will I cancel", "no_action"),
+            ("The cancellation deadline is tomorrow, please cancel", "cancel"),
+            ("Please cancel my appointment", "cancel"),
+            ("I want a new appointment", "schedule"),
+        )
+
+        for text, expected_intent in examples:
+            with self.subTest(text=text):
+                intent, _ = route_intent(text)
+
+                self.assertEqual(intent, expected_intent)
+
     def test_unmatched_text_does_not_default_to_schedule(self) -> None:
         examples = (
             "What time is my appointment tomorrow?",

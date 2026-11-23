@@ -1277,6 +1277,36 @@ LIKE_HELL_INVERSION_PREFIX_PATTERN = (
     rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
     r"(?:\s+ever\b)?"
 )
+# "No way in hell would I cancel" / "No way in hell will I cancel" put the
+# auxiliary and subject between the idiom and the action. "no way in hell"
+# is itself the refusal, so it is not an emphasis after a separate negation
+# and it does not belong in NEGATION_EMPHASIS_PATTERN or
+# NEGATION_ADVERB_PATTERN. "No way will I cancel" without "in hell", "not
+# a chance in hell", and "like hell" are different idioms. A comma after
+# the idiom stays an aside ("No way in hell, please cancel" / "No way in
+# hell, would I cancel"). "can"/"could" are not inversion auxiliaries.
+# Subject-first "No way in hell I will cancel" and "No way in hell I'll
+# cancel" stay executable. "No way in hell will I forget to cancel" follows
+# the other inversion scans: "forget" sits in the subject span, so the
+# action is refused. There is no "Don't no way in hell forget to cancel"
+# emphasis form. Not "the hell", not "what the hell", not "no way", not
+# "no way in the hell", not "no way into hell", and not "a way in hell".
+# An extra word after "hell" ("tonight", "'s sake", "really") does not
+# attach. Do not suffix-scan: "Cancel, no way in hell" and "I will cancel
+# no way in hell" stay on the earlier keyword. Do not add this prefix to
+# NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "hell", bare "way",
+# or bare "no".
+NO_WAY_IN_HELL_INVERSION_PREFIX_PATTERN = (
+    r"no(?!\w)"
+    r"\s+way(?!\w)"
+    r"\s+in(?!\w)"
+    r"\s+hell(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
 # "The cancellation is out of the question" and "It's out of the question to
 # cancel" are refusals. The idiom itself is the prohibition, so it does not
 # belong in NEGATION_EMPHASIS_PATTERN or NEGATION_PREFIX_PATTERN: "not" /
@@ -3861,6 +3891,92 @@ def _has_like_hell_inversion_before_keyword(text: str, keyword: str) -> bool:
     return False
 
 
+def _has_no_way_in_hell_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "No way in hell would/will I <action>".
+
+    The idiom is the refusal. A comma after it is an aside. "can" and
+    "could" are not auxiliaries here. Clause-final "cancel, no way in hell"
+    is not this scan. Bare "hell" is not a fast reject.
+    """
+    if "no way in hell" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)no(?!\w)\s+way(?!\w)\s+in(?!\w)\s+hell(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = NO_WAY_IN_HELL_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_negation_before_keyword(text: str, keyword: str) -> bool:
     if _has_out_of_the_question_refusal(text, keyword):
         return True
@@ -3905,6 +4021,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_like_hell_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_no_way_in_hell_inversion_before_keyword(text, keyword):
         return True
 
     if _has_dare_refusal_before_keyword(text, keyword):
