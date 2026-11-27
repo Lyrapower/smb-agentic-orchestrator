@@ -1358,19 +1358,56 @@ NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN = (
 # auxiliary. "No way in the world will I forget to cancel" follows the other
 # inversion scans: "forget" sits in the subject span, so the action is
 # refused. There is no "Don't no way in the world forget to cancel" emphasis
-# form. Not "no way in this world", not "no way in a world", not "no way in
-# the whole world", not "no way into the world", and not "in the world"
-# without "no way". An extra word after "world" ("tonight", "'s sake",
-# "really") does not attach. "worlds" and "worldly" do not attach. Do not
-# suffix-scan: "Cancel, no way in the world" and "I will cancel no way in the
-# world" stay on the earlier keyword. Do not add this prefix to
-# NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "world", bare "way",
-# or bare "no". Not "not a chance in the world".
+# form. "No way in this world" stays on
+# NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN. Not "no way in a world",
+# not "no way in the whole world", not "no way into the world", and not
+# "in the world" without "no way". An extra word after "world" ("tonight",
+# "'s sake", "really") does not attach. "worlds" and "worldly" do not
+# attach. Do not suffix-scan: "Cancel, no way in the world" and "I will
+# cancel no way in the world" stay on the earlier keyword. Do not add this
+# prefix to NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "world",
+# bare "way", or bare "no". Not "not a chance in the world".
 NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN = (
     r"no(?!\w)"
     r"\s+way(?!\w)"
     r"\s+in(?!\w)"
     r"\s+the(?!\w)"
+    r"\s+world(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "No way in this world would I cancel" / "No way in this world will I cancel"
+# put the auxiliary and subject between the idiom and the action. "no way in
+# this world" is itself the refusal, so it is not an emphasis after a separate
+# negation and it does not belong in NEGATION_EMPHASIS_PATTERN or
+# NEGATION_ADVERB_PATTERN. Bare "No way will I cancel" without "in this world"
+# is NO_WAY_INVERSION_PREFIX_PATTERN. "No way in the world" is
+# NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN ("the" is not "this"). "No way
+# in hell" and "no way on earth" are different idioms. A comma after the idiom
+# stays an aside ("No way in this world, please cancel" / "No way in this
+# world, would I cancel"). "can"/"could" are not inversion auxiliaries.
+# Subject-first "No way in this world I will cancel" and "No way in this world
+# I'll cancel" stay executable. "There's no way in this world I will cancel"
+# and "There is no way in this world to cancel" stay executable because the
+# next word is not an inversion auxiliary. "No way in this world will I forget
+# to cancel" follows the other inversion scans: "forget" sits in the subject
+# span, so the action is refused. There is no "Don't no way in this world
+# forget to cancel" emphasis form. Not "no way in a world", not "no way in the
+# whole world", not "no way into this world", and not "in this world" without
+# "no way". An extra word after "world" ("tonight", "'s sake", "really") does
+# not attach. "worlds" and "worldly" do not attach. Do not suffix-scan:
+# "Cancel, no way in this world" and "I will cancel no way in this world" stay
+# on the earlier keyword. Do not add this prefix to NEGATION_PREFIX_PATTERN.
+# Do not fast-reject on bare "world", bare "this", bare "way", or bare "no".
+# Not "not a chance in this world". Not "no way on this earth".
+NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN = (
+    r"no(?!\w)"
+    r"\s+way(?!\w)"
+    r"\s+in(?!\w)"
+    r"\s+this(?!\w)"
     r"\s+world(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
@@ -1385,8 +1422,10 @@ NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN = (
 # on the prohibitive-idiom scan. "No way in hell" stays on
 # NO_WAY_IN_HELL_INVERSION_PREFIX_PATTERN: "in" after "way" is not an
 # auxiliary, so this pattern does not take that phrase. "No way in the
-# world" stays on NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN. A comma after
-# the idiom stays an aside ("No way, please cancel" / "No way, would I cancel").
+# world" stays on NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN. "No way in
+# this world" stays on NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN. A comma
+# after the idiom stays an aside ("No way, please cancel" / "No way, would I
+# cancel").
 # "can"/"could" are not inversion auxiliaries. Subject-first "No way I will
 # cancel" and "No way I'll cancel" stay executable. "There's no way I will
 # cancel", "There's no way I can cancel", and "There is no way to cancel"
@@ -1395,11 +1434,13 @@ NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN = (
 # "forget" sits in the subject span, so the action is refused. There is no
 # "Don't no way forget to cancel" emphasis form. Not "no way in the world"
 # (that intensifier is NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN; "in the
-# world" after "way" is not an auxiliary), not "no way on earth" (that
-# intensifier is NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN; "on" after "way"
-# is not an auxiliary), not "no way, shape, or form", and
-# not "not a chance in hell". An extra word after "way" ("tonight", "'s sake",
-# "really", "on this earth", "on the earth", "in this world") does not attach.
+# world" after "way" is not an auxiliary), not "no way in this world" (that
+# intensifier is NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN; "in this world"
+# after "way" is not an auxiliary), not "no way on earth" (that intensifier is
+# NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN; "on" after "way" is not an
+# auxiliary), not "no way, shape, or form", and not "not a chance in hell".
+# An extra word after "way" ("tonight", "'s sake", "really", "on this earth",
+# "on the earth", "in a world") does not attach.
 # "ways" and "wayward" do not attach. Do not suffix-scan: "Cancel, no way" and
 # "I will cancel no way" stay on the earlier keyword. Do not add this prefix to
 # NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "way" or bare "no".
@@ -4175,7 +4216,8 @@ def _has_no_way_in_the_world_inversion_before_keyword(text: str, keyword: str) -
     The idiom is the refusal. A comma after it is an aside. "can" and
     "could" are not auxiliaries here. Clause-final "cancel, no way in the
     world" is not this scan. Bare "world" is not a fast reject. "No way in
-    hell", "no way on earth", and bare "no way" are different scans.
+    hell", "no way on earth", "no way in this world", and bare "no way" are
+    different scans.
     """
     if "no way in the world" not in text:
         return False
@@ -4256,14 +4298,102 @@ def _has_no_way_in_the_world_inversion_before_keyword(text: str, keyword: str) -
     return False
 
 
+def _has_no_way_in_this_world_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "No way in this world would/will I <action>".
+
+    The idiom is the refusal. A comma after it is an aside. "can" and
+    "could" are not auxiliaries here. Clause-final "cancel, no way in this
+    world" is not this scan. Bare "world" is not a fast reject. "No way in
+    the world", "no way in hell", "no way on earth", and bare "no way" are
+    different scans.
+    """
+    if "no way in this world" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)no(?!\w)\s+way(?!\w)\s+in(?!\w)\s+this(?!\w)\s+world(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
 def _has_no_way_inversion_before_keyword(text: str, keyword: str) -> bool:
     """True for "No way would/will I <action>".
 
     The idiom is the refusal. A comma after it is an aside. "can" and
     "could" are not auxiliaries here. Clause-final "cancel, no way" is not
     this scan. Bare "way" and bare "no" are not a fast reject. "No way in
-    hell" and "no way in the world" are different scans: "in" is not an
-    auxiliary.
+    hell", "no way in the world", and "no way in this world" are different
+    scans: "in" is not an auxiliary.
     """
     if "no way" not in text:
         return False
@@ -4397,6 +4527,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_no_way_in_the_world_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_no_way_in_this_world_inversion_before_keyword(text, keyword):
         return True
 
     if _has_no_way_inversion_before_keyword(text, keyword):
