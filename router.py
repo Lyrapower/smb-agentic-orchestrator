@@ -1325,17 +1325,54 @@ NO_WAY_IN_HELL_INVERSION_PREFIX_PATTERN = (
 # executable because the next word is not an inversion auxiliary. "No way on
 # earth will I forget to cancel" follows the other inversion scans: "forget"
 # sits in the subject span, so the action is refused. There is no "Don't no
-# way on earth forget to cancel" emphasis form. Not "no way on the earth",
-# not "no way on this earth", not "no way on God's earth", and not "on earth"
-# without "no way". An extra word after "earth" ("tonight", "'s sake",
-# "really") does not attach. "earthly" does not attach. Do not suffix-scan:
-# "Cancel, no way on earth" and "I will cancel no way on earth" stay on the
-# earlier keyword. Do not add this prefix to NEGATION_PREFIX_PATTERN. Do not
-# fast-reject on bare "earth", bare "way", or bare "no".
+# way on earth forget to cancel" emphasis form. "No way on this earth" stays
+# on NO_WAY_ON_THIS_EARTH_INVERSION_PREFIX_PATTERN. Not "no way on the earth",
+# not "no way on God's earth", and not "on earth" without "no way". An extra
+# word after "earth" ("tonight", "'s sake", "really") does not attach.
+# "earthly" does not attach. Do not suffix-scan: "Cancel, no way on earth"
+# and "I will cancel no way on earth" stay on the earlier keyword. Do not add
+# this prefix to NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "earth",
+# bare "way", or bare "no".
 NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN = (
     r"no(?!\w)"
     r"\s+way(?!\w)"
     r"\s+on(?!\w)"
+    r"\s+earth(?!\w)"
+    r"(?!\s*,)"
+    r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_PATTERN}"
+    rf"(?:\s+{UNDER_NO_CIRCUMSTANCES_SUBJECT_TOKEN_PATTERN}){{0,3}})?"
+    r"(?:\s+ever\b)?"
+)
+# "No way on this earth would I cancel" / "No way on this earth will I cancel"
+# put the auxiliary and subject between the idiom and the action. "no way on
+# this earth" is itself the refusal, so it is not an emphasis after a separate
+# negation and it does not belong in NEGATION_EMPHASIS_PATTERN or
+# NEGATION_ADVERB_PATTERN. Bare "No way will I cancel" without "on this earth"
+# is NO_WAY_INVERSION_PREFIX_PATTERN. "No way on earth" is
+# NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN ("this" is not absent). "No way in
+# hell", "no way in the world", and "no way in this world" are different
+# idioms. A comma after the idiom stays an aside ("No way on this earth,
+# please cancel" / "No way on this earth, would I cancel"). "can"/"could" are
+# not inversion auxiliaries. Subject-first "No way on this earth I will
+# cancel" and "No way on this earth I'll cancel" stay executable. "There's no
+# way on this earth I will cancel" and "There is no way on this earth to
+# cancel" stay executable because the next word is not an inversion auxiliary.
+# "No way on this earth will I forget to cancel" follows the other inversion
+# scans: "forget" sits in the subject span, so the action is refused. There is
+# no "Don't no way on this earth forget to cancel" emphasis form. Not "no way
+# on the earth", not "no way on God's earth", not "no way onto this earth",
+# and not "on this earth" without "no way". An extra word after "earth"
+# ("tonight", "'s sake", "really") does not attach. "earthly" and "earths" do
+# not attach. Do not suffix-scan: "Cancel, no way on this earth" and "I will
+# cancel no way on this earth" stay on the earlier keyword. Do not add this
+# prefix to NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "earth", bare
+# "this", bare "way", or bare "no". Not "not a chance on this earth".
+NO_WAY_ON_THIS_EARTH_INVERSION_PREFIX_PATTERN = (
+    r"no(?!\w)"
+    r"\s+way(?!\w)"
+    r"\s+on(?!\w)"
+    r"\s+this(?!\w)"
     r"\s+earth(?!\w)"
     r"(?!\s*,)"
     r"\s+(?:should|would|will|shall|must|do|does|did|am|is|are|was|were)(?!\w)"
@@ -1402,7 +1439,8 @@ NO_WAY_IN_THE_WORLD_INVERSION_PREFIX_PATTERN = (
 # "Cancel, no way in this world" and "I will cancel no way in this world" stay
 # on the earlier keyword. Do not add this prefix to NEGATION_PREFIX_PATTERN.
 # Do not fast-reject on bare "world", bare "this", bare "way", or bare "no".
-# Not "not a chance in this world". Not "no way on this earth".
+# Not "not a chance in this world". "No way on this earth" stays on
+# NO_WAY_ON_THIS_EARTH_INVERSION_PREFIX_PATTERN.
 NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN = (
     r"no(?!\w)"
     r"\s+way(?!\w)"
@@ -1438,9 +1476,11 @@ NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN = (
 # intensifier is NO_WAY_IN_THIS_WORLD_INVERSION_PREFIX_PATTERN; "in this world"
 # after "way" is not an auxiliary), not "no way on earth" (that intensifier is
 # NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN; "on" after "way" is not an
-# auxiliary), not "no way, shape, or form", and not "not a chance in hell".
-# An extra word after "way" ("tonight", "'s sake", "really", "on this earth",
-# "on the earth", "in a world") does not attach.
+# auxiliary), not "no way on this earth" (that intensifier is
+# NO_WAY_ON_THIS_EARTH_INVERSION_PREFIX_PATTERN; "on this earth" after "way"
+# is not an auxiliary), not "no way, shape, or form", and not "not a chance
+# in hell". An extra word after "way" ("tonight", "'s sake", "really",
+# "on the earth", "on God's earth", "in a world") does not attach.
 # "ways" and "wayward" do not attach. Do not suffix-scan: "Cancel, no way" and
 # "I will cancel no way" stay on the earlier keyword. Do not add this prefix to
 # NEGATION_PREFIX_PATTERN. Do not fast-reject on bare "way" or bare "no".
@@ -4128,8 +4168,8 @@ def _has_no_way_on_earth_inversion_before_keyword(text: str, keyword: str) -> bo
 
     The idiom is the refusal. A comma after it is an aside. "can" and
     "could" are not auxiliaries here. Clause-final "cancel, no way on earth"
-    is not this scan. Bare "earth" is not a fast reject. "No way in hell" and
-    bare "no way" are different scans.
+    is not this scan. Bare "earth" is not a fast reject. "No way on this
+    earth", "No way in hell", and bare "no way" are different scans.
     """
     if "no way on earth" not in text:
         return False
@@ -4148,6 +4188,93 @@ def _has_no_way_on_earth_inversion_before_keyword(text: str, keyword: str) -> bo
     keyword_pattern = _keyword_pattern(keyword)
     determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
     prefix = NO_WAY_ON_EARTH_INVERSION_PREFIX_PATTERN
+    if re.search(
+        rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    if re.search(
+        rf"(?<!\w){prefix}"
+        rf"(?:\s+{NEGATION_ADVERB_PATTERN}){{0,2}}\s+"
+        rf"{DIRECT_OBJECT_NEGATION_VERB_PATTERN}\s+"
+        rf"{DIRECT_OBJECT_PRE_NOUN_PATTERN}"
+        rf"{keyword_pattern}",
+        text,
+    ):
+        return True
+
+    action_keyword_pattern = rf"(?:{determiner}(?:{_action_keyword_alternation()}))"
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        previous_pattern = _keyword_pattern(previous_keyword)
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+        if re.search(
+            rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+            rf"{determiner}{previous_pattern}"
+            rf"{NEGATED_OBJECT_GAP_PATTERN}"
+            rf"{ACTION_CHOICE_CONJUNCTION_PATTERN}"
+            rf"{determiner}{keyword_pattern}",
+            text,
+        ):
+            return True
+
+    list_tail_patterns = (
+        rf"(?:\s*,\s*{action_keyword_pattern})*"
+        rf"\s*,?\s+(?:or|nor|and)\s+{action_keyword_pattern}",
+        rf"(?:\s*,\s*{action_keyword_pattern}){{2,}}",
+    )
+    for previous_keyword in _action_keywords():
+        if previous_keyword == keyword:
+            continue
+
+        for list_tail_pattern in list_tail_patterns:
+            for match in re.finditer(
+                rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+"
+                rf"{determiner}{_keyword_pattern(previous_keyword)}"
+                rf"(?P<tail>{list_tail_pattern})",
+                text,
+            ):
+                if re.search(keyword_pattern, match.group("tail")):
+                    return True
+
+    return False
+
+
+def _has_no_way_on_this_earth_inversion_before_keyword(text: str, keyword: str) -> bool:
+    """True for "No way on this earth would/will I <action>".
+
+    The idiom is the refusal. A comma after it is an aside. "can" and
+    "could" are not auxiliaries here. Clause-final "cancel, no way on this
+    earth" is not this scan. Bare "earth" is not a fast reject. "No way on
+    earth", "no way in hell", and bare "no way" are different scans.
+    """
+    if "no way on this earth" not in text:
+        return False
+
+    if (
+        re.search(
+            r"(?<!\w)no(?!\w)\s+way(?!\w)\s+on(?!\w)\s+this(?!\w)\s+earth(?!\w)"
+            r"(?!\s*,)\s+(?:should|would|will|shall|must|do|does|did|am|is|are|"
+            r"was|were)(?!\w)",
+            text,
+        )
+        is None
+    ):
+        return False
+
+    keyword_pattern = _keyword_pattern(keyword)
+    determiner = rf"(?:{SPEECH_ACT_NOUN_OBJECT_DETERMINER_PATTERN}\s+)?"
+    prefix = NO_WAY_ON_THIS_EARTH_INVERSION_PREFIX_PATTERN
     if re.search(
         rf"(?<!\w){prefix}{NEGATION_TARGET_GAP_PATTERN}\s+{determiner}{keyword_pattern}",
         text,
@@ -4392,8 +4519,8 @@ def _has_no_way_inversion_before_keyword(text: str, keyword: str) -> bool:
     The idiom is the refusal. A comma after it is an aside. "can" and
     "could" are not auxiliaries here. Clause-final "cancel, no way" is not
     this scan. Bare "way" and bare "no" are not a fast reject. "No way in
-    hell", "no way in the world", and "no way in this world" are different
-    scans: "in" is not an auxiliary.
+    hell", "no way on this earth", "no way in the world", and "no way in this
+    world" are different scans: "in" and "on" are not auxiliaries.
     """
     if "no way" not in text:
         return False
@@ -4524,6 +4651,9 @@ def _has_negation_before_keyword(text: str, keyword: str) -> bool:
         return True
 
     if _has_no_way_on_earth_inversion_before_keyword(text, keyword):
+        return True
+
+    if _has_no_way_on_this_earth_inversion_before_keyword(text, keyword):
         return True
 
     if _has_no_way_in_the_world_inversion_before_keyword(text, keyword):
